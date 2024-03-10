@@ -1,0 +1,131 @@
+serviceName: dctm-cmis
+
+customLabels:
+  app: dctm-cmis
+
+containerName: cmis-container
+
+#deployment
+replicaCount: 1
+strategyType: RollingUpdate
+
+# image artifactory details. This would be changed to image artifactory in the next release.
+image: artifactory.otxlab.net/bpdockerhub
+# The path of the image in the docker registry artifactory, i.e the location of the image in the artifcatory.
+path: common/oraclelinux-openjdk-tomcat
+imageTag: dctm-oraclelinux9-openjdk17.0.6-tomcat9.0.71
+imagePullPolicy: Always
+imagePullSecrets:
+
+serviceAccount:
+  serviceAccountName:
+  createServiceAccount: false
+
+cmisInitContainers:
+  name: cmis-init-container
+  image: artifactory.otxlab.net/bpdockerhub/dctm-cmis-23.2.0.313 
+  imageTag: latest
+  imagePullPolicy: Always
+#service
+serviceType: ClusterIP
+
+httpPort: 8080
+httpsPort: 8443
+
+#configmap
+existingConfigMap:
+
+configurationFiles:
+  - dfc.properties
+extraConfigMountPath: /home/dmadmin/ext-conf
+
+#resources
+resources:
+  limits:
+    cpu: 1500m
+    memory: 4Gi
+  requests:
+    cpu: 800m
+    memory: 2Gi
+
+#cs secrets
+content_server:
+  secretName: <sname>cs-secret-config
+
+#certificate
+docbroker:
+  useCertificate: false
+  dbrServiceName:
+  pvcCertSubPath: certificate/certdbr-data-pvc
+
+#logging
+log4j:
+  rootLogLevel: INFO
+  cmisLogLevel: INFO
+  dfcLogLevel: INFO
+  formatMsgNoLookups: true
+
+graylog:
+  enabled: false
+  image: 
+  imagePullPolicy: Always
+  server: 
+  port: 9000
+  tags: '["linux", "apache"]'
+  serviceToken: 
+  logsDir: /home/dmadmin/logs
+
+#monitor
+newrelic:
+  enabled: false
+  configurationFile: newrelic.yml
+  addNodeNamePrefix: false
+  proxy_host: bp2-prox01-l001.otxlab.net
+  proxy_port: 3128
+  proxy_protocol: http
+  app_name: DOCUMENTUM-CMIS-SERVICES-<sname>
+
+livenessProbe:
+  enabled: false
+  scheme: HTTP
+  probeUrl: /dctm-cmis/main
+  initialDelaySeconds: 40
+  periodSeconds: 5
+
+acsService:
+  serviceName: <csServiceName>-pg-jms-service 
+  servicePort: 9080
+
+otds:
+  enable: true
+  #the otds service should be in the format https://<OTDS server url>:<port>/otdsws
+  url: <otds-service-url>
+  clientID:
+
+single_helm:
+  enable: false
+
+cmis:
+  pvcName: custom-script-pvc
+  pvcSize: 1Gi
+  pvcAccessModes: ReadWriteMany
+  storageClass:
+  existVolumePv:
+  useCommonPVC: false
+  commonPVCname:
+
+dfc:
+  dataDir: /home/cmis
+  docbroker: 10.9.56.251
+  port: 31832
+  connectionMode: try_native_first
+  cryptoRepository: docbase1
+  globalRegistryRepository: docbase1
+  globalRegistryUsername: dm_bof_registry
+  globalRegistryPassword: AAAAEP8g0U7evudkQEQw81I4O35HctkEZ1MvGnJgTv4n8Tjl7f7cX68h8udGMUTQzk+vCg\=\=
+  additionalProperties: 
+
+  #Customers can add their own java options below
+java:
+  #adding dev/./urandom parameter by deafult to improve the application performace wrt to random number generation
+  javaOptions: -Djava.security.egd=file:/dev/./urandom

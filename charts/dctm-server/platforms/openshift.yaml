@@ -1,0 +1,16 @@
+#These are specific configuration values passed for Openshift. Other values for dctm-ingress still need to be configured in main values.yaml only
+dctm-ingress:
+  platform: openshift
+  ingress: 
+    class: openshift-default    
+
+contentconnect:
+  platform: openshift  
+  ingress:   
+    class: openshift-default 
+    
+content-server:
+  platform: openshift   
+  
+docbroker:
+  platform: openshift  

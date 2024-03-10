@@ -1,0 +1,6 @@
+apiVersion: v2
+appVersion: "1"
+description: Highlight/search service
+name: highlight
+type: application
+version: 0.1.0

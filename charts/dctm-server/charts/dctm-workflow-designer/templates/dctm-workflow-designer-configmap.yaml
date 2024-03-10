@@ -1,0 +1,204 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.prefix }}-dctm-workflow-designer-config
+  labels:
+    name: {{ .Values.prefix }}-dctm-workflow-designer-config
+data:
+  dfc: |-
+    dfc.data.dir={{ .Values.dfc.dataDir }}
+    dfc.tokenstorage.dir=${dfc.data.dir}/apptoken
+    dfc.tokenstorage.enable=false
+    dfc.docbroker.host[0]={{ .Values.docbaseConnection.docbroker }}
+    dfc.docbroker.port[0]={{ .Values.docbaseConnection.port }}
+    dfc.globalregistry.repository={{ .Values.docbaseConnection.globalRegistryRepository }}
+    dfc.globalregistry.username={{ .Values.docbaseConnection.globalRegistryUsername }}
+    dfc.globalregistry.password={{ .Values.docbaseConnection.globalRegistryPassword }}
+    dfc.security.keystore.file=${dfc.data.dir}/dfc.keystore
+    {{ if eq .Values.docbaseConnection.use_certificate true }}
+    dfc.security.ssl.truststore=/opt/dctm/certificate/dfc.keystore    
+    dfc.security.ssl.truststore_password={{ .Values.docbaseConnection.truststorePassword }}
+    dfc.security.ssl.use_existing_truststore=false 
+    dfc.session.secure_connect_default=try_secure_first
+    {{ else }}
+    dfc.session.secure_connect_default=try_native_first
+    {{ end }}
+
+  rest-api-runtime: |-
+    #
+    # Copyright (c) 2021. OpenText Corporation. All Rights Reserved.
+    #
+    
+    # This file holds a template for all configurable parameters for the REST API server side deployment.
+    # Settings in this file override the default ones defined in specific libraries.
+    
+    
+    ################################################
+    ##      DEFAULT PARAMETERS FOR CONTROLLERS    ##
+    ################################################
+    
+    # Determines whether or not to enable the REST request and response message logging on the server side.
+    # To enable the message logging, set this property to TRUE, and enable DEBUG logging level for the package 'com.emc.documentum.rest.log' in log4j.
+    # The default value is false.
+    rest.message.logging.enabled=true
+    								
+    
+    #################################################
+    ##       GENERAL SECURITY CONFIGURATION        ##
+    #################################################
+    #
+    # This section contains the general security configuration for the Documentum REST Services.
+    # Different combinations of authentication schemes are supported.
+    # The default scheme is HTTP basic authentication for Content Server inline users and LDAP users.
+    
+    # Specifies the realm name for the authentication.
+    rest.security.realm.name=workflowdesigner
+    
+    # By default, the REST server uses the TolerantTimeoutExpirationPolicy policy.
+    rest.security.client.token.expiration.policy=com.emc.documentum.rest.security.ticket.impl.TolerantTimeoutExpirationPolicy
+    
+    # This property is used by all expiration policies.
+    # The timeout in seconds for the client token cookie. The default value is 3600.
+    rest.security.client.token.timeout=3600
+    
+    # Symmetric crypto algorithm that RESTful Services uses to encrypt and decrypt client tokens, the block cipher mode, 
+    # and the padding strategy in the following pattern:
+    # rest.security.crypto.algorithm=<crypto_algorithm>/<block_cipher_mode>/<padding_strategy>
+    # Each provider may have different implementations and limitations.
+    # This property is optional.
+    # Default: AES/CBC/PKCS5Padding
+    # We do not recommend that you set <padding_strategy> to NoPadding because the CT length is not always compatible with the block size.
+    rest.security.crypto.algorithm=
+    
+    # Crypto algorithm parameters class name
+    # Valid values: javax.crypto.spec.IvParameterSpec, or blank
+    # If the algorithm requires extra parameters, such as initialization vector (IV), set this property to 
+    # javax.crypto.spec.IvParameterSpec. Otherwise, leave it blank. 
+    # For example, if AES/CBC/PKCS5Padding is used, the value must be set to javax.crypto.spec.IvParameterSpec.
+    # If AES/ECB/PKCS5Padding is used, the value must be blank.
+    # This property is optional for the ECB, CBC, OFB, and CFB modes. The system selects the correct class for these modes.
+    rest.security.crypto.algorithm.parameters.class=
+    
+    # Algorithm to generate the secret key
+    # Examples: AES, DESede, DES, RC5, HmacMD5, and Blowfish
+    # The key generating algorithm must be compatible with the crypto algorithm.
+    # This property is optional.
+    # Default: same with the crypto algorithm.
+    rest.security.key.algorithm=
+    
+    # Random algorithm name
+    # Default: SHA1PRNG
+    # You can set this property to ECDRBG if the crypto provider is JsafeJCE.
+    rest.security.random.algorithm=
+    
+    # Crypto provider name 
+    # Default: RSA JsafeJCE
+    # Alternatively, set this property to BC to use the Bouncy Castle provider.
+    # When REST Services uses the Bouncy Castle provider, its library must be specified in the class path.
+    rest.security.crypto.provider=
+    
+    # Crypto provider class name 
+    # Default: RSA JsafeJCE
+    # This property is optional if the provider is RSA JsafeJCE or Bouncy Castle.
+    rest.security.crypto.provider.class=
+    
+    # Key size in bit for the secret key
+    # This property must be compatible with the crypto algorithm.
+    # If you want to use a key size larger than 128 bits, download the "JCE Unlimited Strength Jurisdiction Policy Files" from 
+    # the Oracle web site. 
+    # By default, the key size is 64 for DES, and 128 for all other algorithms.
+    rest.security.crypto.key.size=
+    
+    # Block size in bit
+    # This property must be compatible with the crypto algorithm.
+    # By default, the block size is 64 bits for Blowfish, DES, DESede, RC2, and RC5, and 128 bits for all other algorithms.
+    rest.security.crypto.block.size=
+    
+    # Crypto salt for client token encryption and decryption
+    # For a multi-node deployment of REST servers, this property must be consistently set across all REST servers.
+    # For a single-node deployment of REST servers, this property is optional.
+    # The value can be any ascII characters. We recommend that you specify a text no less than 8 characters.
+    rest.security.crypto.key.salt=
+    rest.user.private.session.preferred=true
+    rest.api.paged_query_template.db_hint.com.emc.documentum.
+    rest.dfc.impl.query.FolderChildrenQueryTemplate=
+    SQL_SERVER(’FORCESEEK’)
+    
+    #Specifies whether to enable audit trail for log in events
+    rest.security.logon.audit=false
+    
+    # Specifies the mode of the JsafeJCE provider.
+    # Valid values are:
+    #  -    FIPS140_MODE: only FIPS140-approved algorithms and default algorithms are allowed
+    #  -    NON_FIPS140_MODE: all algorithms are allowed
+    # When you deploy Documentum REST Services on IBM WebSphere and use CAS or Kerberos authentication, the value must be
+    # set to NON_FIPS140_MODE.
+    # This property only takes effect when CryptoJ toolkit in runtime supports to switch mode.
+    # Editing property "com.rsa.cryptoj.fips140initialmode" in Java security properties file
+    # (by default, it is JAVA_HOME/lib/security/java.security) will change the initial FIPS mode.
+    # For example, "com.rsa.cryptoj.fips140initialmode=NON_FIPS140_MODE" will set the initial mode as NON FIPS.
+    # Currently REST will only try to switch mode at runtime when NON_FIPS140_MODE is specified here no matter what the initial FIPS mode is.
+    # When it fails to switch mode, logs are dumped to indicate the failure and the working FIPS mode is dumped as well.
+    # Default value: FIPS140_MODE
+    rest.security.crypto.provider.jsafejce.mode=FIPS140_MODE
+    
+    
+    # Specifies the authentication scheme or the combination of authentication schemes used for Documentum Workflow Designer Services.
+    # Please choose one scheme from below supported list :
+    # [basic, saml, saml-basic, otds, otds-basic]
+    #
+    # basic
+    #    - HTTP basic authentication for Content Server inline users and LDAP users synced to Content Server
+    # saml
+    #    - Supports SAML SSO
+    # saml-lb
+    #	 - Supports SAML SSO with Load Balancer
+    # saml-basic
+    #	 - Supports SAML SSO and basic authentication
+    # saml-basic-lb
+    #  	 - Supports SAML SSO and basic authentication with Load Balancer
+    # otds
+    #	 - Supports OTDS authentication
+    # otds-basic
+    #	 - Supports OTDS SSO and basic authentication
+    #
+    
+    # SAML SSO specific
+    #rest.security.auth.mode=saml
+    #rest.security.auth.mode=saml-basic
+    #rest.security.auth.mode=saml-basic-lb
+    #rest.security.saml2.ks.entry.password=password
+    #rest.security.saml2.ks.file=C:/cert/xcpappnews.jks
+    #rest.security.saml2.ks.password=password
+    #rest.security.saml2.ks.entry.alias=selfsignednews
+    #rest.security.saml2.request.binding=HTTP-Redirect
+    #rest.security.saml2.idp.metadata.files=C:/cert/federationmetadata.xml
+    #rest.security.saml2.user.attributes=http://schemas.microsoft.com/ws/2008/06/identity/claims/windowsaccountname
+    #rest.security.saml2.request.signature.algorithm = RSA-SHA1
+    
+    # Load Balancer settings
+    #rest.security.saml2.entity.base.url=https://apphost/ap2801
+    #rest.security.saml2.url.scheme=https
+    #rest.security.saml2.url.hostname=apphost
+    #rest.security.saml2.url.port=443
+    #rest.security.saml2.url.context.path=/ap2801
+    
+    
+    # OTDS SSO authentication settings 
+    {{- if .Values.otds.enable }}
+    rest.security.auth.mode=otds-basic
+    rest.security.otds.login.url={{ .Values.otds.url }}/otdsws/login?response_type=token&client_id={{ .Values.otds.client_id }}&client_secret={{ .Values.otds.client_secret }}&logon_appname={{ .Values.otds.logon_appname }}
+    rest.signon.logout.url=/otds-signin.jsp?logout=yes
+    rest.security.otds.reverseproxy.url={{ .Values.otds.reverseproxy_url }}
+    {{- end }}
+    
+    
+    #rest.security.auth.mode=basic
+    rest.security.logon.secured=false
+
+  deployment: |-
+    workflow.designer.csrf.enabled=true
+    workflow.designer.workspace.root=/System/Applications/XCP Application Templates
+    workflow.designer.sync.remove.unused_days=5
+    workflow.designer.sync.update.change_retry=5
+    workflow.designer.temp_dir=

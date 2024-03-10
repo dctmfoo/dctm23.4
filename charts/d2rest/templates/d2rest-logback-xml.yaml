@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2rest-logback-xml
+  {{- template "configMap.labels" . }}
+data:
+  logback.xml: |-
+    <?xml version="1.0" encoding="UTF-8"?>
+    
+    <!-- @See http://logback.qos.ch/manual/configuration.html -->
+    <!-- Scan the configuration file for changes every 5 minutes. -->
+    <configuration scan="true" scanPeriod="5 minutes">
+    
+    	<contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator" />
+    
+    	<timestamp key="bySecond" datePattern="yyyyMMdd"
+    		timeReference="contextBirth" />
+    
+    	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    		<!-- @See http://logback.qos.ch/manual/encoders.html -->
+    		<encoder>
+    			<!-- @See http://logback.qos.ch/manual/layouts.html -->
+    			<pattern>%-31(%date{yyyy-MM-dd HH:mm:ss.SSS} [%-5level]) [%thread] -
+    				%-40(%C{39}): %message%n</pattern>
+    		</encoder>
+    	</appender>
+    
+    	<appender name="FileAppender"
+    		class="ch.qos.logback.core.rolling.RollingFileAppender">
+    		<!--See also http://logback.qos.ch/manual/appenders.html#RollingFileAppender -->
+    		<File>{{ .Values.logback.file | toString | replace "[" "" | replace "]" "" | replace "/ " "/" | replace " /" "/" }}</File>
+    		<encoder>
+    			<pattern>%-31(%date{yyyy-MM-dd HH:mm:ss.SSS} [%-5level]) [%thread] -
+    				%-40(%C{18}[%-20(%mdc{methodName})]) : %message%n</pattern>
+    		</encoder>
+    		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+    			<maxIndex>3</maxIndex>
+    			<FileNamePattern>{{ .Values.logback.fileNamePattern | toString | replace "[" "" | replace "]" "" | replace "/ " "/" | replace " /" "/" }}</FileNamePattern>
+    		</rollingPolicy>
+    		<triggeringPolicy
+    			class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+    			<MaxFileSize>100MB</MaxFileSize>
+    		</triggeringPolicy>
+    	</appender>
+    
+    	<!-- Add Custom Loggers Here -->
+    	<!-- Loggers configuration shown below. All loggers inherit from root logger. 
+    		To disable cumulative logging (default behaviour) set additivity flag to 
+    		false -->
+    	<!-- <logger name="com.emc.documentum.rest" level="INFO" /> -->
+    	<!-- <logger name="com.emc.documentum.d2fs" level="WARN"/> -->
+    
+    	<root level="WARN">
+    		<appender-ref ref="STDOUT" />
+    		<appender-ref ref="FileAppender" />
+    	</root>
+    </configuration>

@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configMap.cs_configMap_name }}
+data:
+  logging.properties: |
+    container_name={{ .Values.loggingConfiguration.containerName }}
+    dfc_tracing_enable={{ .Values.dfcTraceing.enable }}
+    docbase_trace_enable={{ .Values.docbaseTrace.enable }}
+    docbase_trace_options={{ .Values.docbaseTrace.options }}
+  dfc.eventhub.tracing: |
+    dfc.client.should_use_eventhub={{ .Values.dfcEventHubTracing.enable }}
+  dfc.eventhub.tracelevel: |
+    dfc.client.eventhub.log_level={{ .Values.dfcEventHubTracing.level }}
+  dfc.trace.options: |
+    dfc.tracing.enable={{ .Values.dfcTraceing.enable }}
+    dfc.logging.level_to_force_stack = all
+    dfc.tracing.verbose=true
+    dfc.tracing.include_rpcs=true
+    dfc.tracing.max_stack_depth=20
+    dfc.tracing.timing_style=date
+    dfc.tracing.date_column_width=12
+    dfc.tracing.date_format=dd-mm-yyyy hh:mm:ss.SSS
+    dfc.tracing.mode=standard
+    dfc.tracing.file_prefix=dfctrace
+    dfc.tracing.log.level= DEBUG
+    dfc.bof.cache.append_name=true
+    dfc.tracing.print_exception_stack=true
+    
+  docbase.trace.options: |
+    docbase_trace_options={{ .Values.docbaseTrace.options }}

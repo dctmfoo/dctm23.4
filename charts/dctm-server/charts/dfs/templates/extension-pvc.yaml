@@ -1,0 +1,13 @@
+{{- if .Values.extensionPVC.createPVC }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.serviceName }}-dfs-extension-pvc
+spec:
+  accessModes:
+    - {{ .Values.extensionPVC.PVCAccessMode }}
+  storageClassName: {{ .Values.extensionPVC.PVCStorageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.extensionPVC.PVCSize }}
+{{- end }}

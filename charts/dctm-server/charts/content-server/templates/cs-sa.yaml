@@ -1,0 +1,7 @@
+{{- if .Values.serviceAccount.createserviceaccount }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.serviceAccount.serviceAccountName }}
+  namespace: {{ .Release.Namespace }}
+{{- end }}

@@ -1,0 +1,14 @@
+#Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.prefix }}
+spec:
+  type: ClusterIP
+  sessionAffinity: ClientIP
+  ports:
+  - port: 8080
+    name: bpsport
+    targetPort: 8080
+  selector:
+    app: {{ .Values.prefix }}

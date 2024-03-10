@@ -1,0 +1,45 @@
+#These are specific configuration values passed for Azure. Other values for dctm-ingress still need to be configured in main values.yaml only
+dctm-server:
+  content-server:
+    platform: azure
+  docbroker:
+    platform: azure
+  dctm-ingress:
+    platform: azure
+    ingress:
+      class: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/proxy-body-size: "0"
+        nginx.ingress.kubernetes.io/affinity: cookie
+        nginx.ingress.kubernetes.io/session-cookie-hash: sha1
+        nginx.ingress.kubernetes.io/proxy-connect-timeout: "6000"
+        nginx.ingress.kubernetes.io/proxy-send-timeout: "6000"
+        nginx.ingress.kubernetes.io/proxy-read-timeout: "6000"
+        nginx.ingress.kubernetes.io/session-cookie-path: "/; Secure"
+        nginx.ingress.kubernetes.io/session-cookie-samesite: None
+        nginx.ingress.kubernetes.io/proxy-buffer-size: "32k"
+
+  contentconnect:
+    platform: azure
+    ingress:
+      class: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/proxy-body-size: "0"
+        nginx.ingress.kubernetes.io/affinity: cookie
+        nginx.ingress.kubernetes.io/session-cookie-hash: sha1
+        nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+        nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+        nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+
+appworks-gateway:
+  ingress:
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      # kubernetes.io/tls-acme: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: 20m
+      nginx.ingress.kubernetes.io/client-max-body-size: 20m
+otiv:
+  global:
+      ingressClass: nginx
+      ingressAnnotations:
+        nginx.ingress.kubernetes.io/affinity: cookie

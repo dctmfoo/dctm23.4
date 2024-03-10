@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.serviceName }}-logging-configmap
+data:
+  log4j2.xml: |-
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Configuration status={{ .Values.log4j.rootLogLevel }}>
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="[%d{dd/MM/yy hh:mm:ss:sss z}] %5p %c: %m%n" />
+        </Console>
+        <RollingFile name="RollingFile" fileName="cmis.log" filePattern="cmis-%d{MM-dd-yyyy}-%i.log.gz">
+            <PatternLayout pattern="[%d{dd/MM/yy hh:mm:ss:sss z}] %5p %c: %m%n" />
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="1 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="5"/>
+        </RollingFile>
+        <Async name="Async">
+            <AppenderRef ref="Console"/>
+          	<AppenderRef ref="RollingFile"/>
+        </Async>
+    </Appenders>
+    <Loggers>
+        <Root level={{ .Values.log4j.cmisLogLevel }}>
+            <AppenderRef ref="Async" />
+        </Root>
+    </Loggers>
+    </Configuration>

@@ -1,0 +1,129 @@
+# Default values for docbroker.chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+#Leave below value as empty. Use yaml files under platforms folder.
+platform:
+
+###User Name/ID
+serviceName: <sname>dbr
+serviceAccount:
+      createserviceaccount: false
+      serviceAccountName:
+
+### Docker Images ###  
+images:
+  repository : artifactory.otxlab.net/bpdockerhub
+  contentserver :
+    name : dctm-server
+    tag : 23.4
+  pullPolicy : IfNotPresent
+  pullSecrets:
+
+
+### CS Secret ###
+secret:
+  name: cs-secret-config
+  
+openshift:
+  enable: false
+  
+### Dockbroker ###
+docbroker:
+  replicaCount: 2
+  installerUI : silent
+  #connectMode can be native, secure or dual
+  connectMode: dual
+  liveness:
+    enable: true
+    #For the first time docbroker may take 10 minutes to complete the initialization, give enough time
+    initialDelaySeconds: 600
+    #Time interval between liveness probes
+    periodSeconds: 180
+    #The number of consecutive liveness probe failures alowed before the container restarts
+    failureThreshold: 3
+  #Change value of this parameter to a different numeric value than previous value, if there are changes only in cs-secrets so that pod gets recreated during upgrade
+  secretsChange: 1
+
+#External Docbroker
+# Use the command "kubectl exec -ti tcp-port-availability-donotdelete-0 /bin/bash /execute.sh" to find available ports to be configured for nativeExtPort and sslExtPort
+ExtDocbroker:
+  enable: false  
+  extNativeNodePort: 
+  extSSLNodePort: 
+  createExtService: true
+  useELB: false
+  enableLiveness: false
+  useLBAnnotations: false
+  LBAnnotations:
+  
+### Graylog. Enable isnewGraylog if the graylog setup is a new one and not using legacy collector method ###
+graylog:
+  enable: true
+  image: artifactory.otxlab.net/bpdockerhub/graylog-sidecar:v1.8
+  server: 10.9.57.15
+  port: 9000
+  isnewGraylog: false
+
+### Ports ###
+ports:
+  docbrokerPort: 1489
+  docbrokrSSLport: 1490
+  extNativePort: 1491
+  extSSLPort: 1492
+
+certificate:
+  use_certificate: false
+  aekname: aek_name
+  aeklocation: Local
+
+kms:
+  url: <https://kmsurl:port>
+  masterkey_id: <KMS_MASTERKEY_ID>
+  
+### Persistent Volume ###
+persistentVolume:
+  vctName: dbr-vct
+  accessModes: ReadWriteOnce
+  size: 1Gi
+  storageClass: trident-nfs
+  dbrdataPVCName: certdbr-data-pvc
+  pvcAccessModes: ReadWriteMany
+### Below parameter if there is already existing volume to hook up ###
+  existVolumePv:
+### Below parameter is used when there are different storage classes for vct and PVC ###
+  pvcStorageClass:
+  pvcStorageSize: 1Gi
+  awsEFS: false
+  awsEFSCSIDriver: efs.csi.aws.com
+  awsEFSCSIHandle: 
+  awsEFSCSIClaimPolicy: 
+  logVctAccessModes: ReadWriteOnce
+  logVctSize: 2Gi
+  logVctStorageClass: trident-nfs
+  
+### newrelic agent configuration. ###
+newrelic:
+  enable: false
+  proxy_host: 
+  proxy_port: 
+  proxy_protocol: http  
+  c_app_name : DBR_documentum-PROD-OT2_CFCR_LI3-EIM-<sname>
+  
+oracle:
+  isoracleimage: false
+   
+ ### resources ###
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 100m
+    memory: 200Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

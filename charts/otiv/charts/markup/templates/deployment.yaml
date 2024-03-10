@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "base.resource.name" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "markup.name" . }}
+    helm.sh/chart: {{ include "markup.chart" . }}
+    app.kubernetes.io/instance: {{ include "base.resource.name" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ include "base.resource.name" . }}
+      app.kubernetes.io/name: {{ include "markup.name" . }}
+      app.kubernetes.io/instance: {{ include "base.resource.name" . }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configMap.yaml") . | sha256sum }}
+      labels:
+        app: {{ include "base.resource.name" . }}
+        app.kubernetes.io/name: {{ include "markup.name" . }}
+        app.kubernetes.io/instance: {{ include "base.resource.name" . }}
+      {{- if (include "is.ocp" .) }}
+        opentext.com/chart-hash: {{ printf "%063d" 0 }}
+      {{- end }}
+        {{- include "otiv.custom.labels" . }}
+    spec:
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      {{- template "topology.spread" . }}
+      {{- template "ocp.service.account" . }}
+    {{- if and (not .Values.global.usingServiceMesh) (include "is.iv" .) }}
+      serviceAccountName: otiv-asecret-sa
+      initContainers:
+      {{ template "init.otds.container" . }}
+    {{- end }}
+      containers:
+        - name: {{ include "base.resource.name" . }}
+          image: {{ include "image.source.path" . }}
+          imagePullPolicy: {{ include "image.pull.policy" . }}
+          securityContext:
+            allowPrivilegeEscalation: false
+          ports:
+          - name: http
+            containerPort: {{ .Values.service.targetPort }}
+            protocol: TCP
+          {{- template "resources.cpu.memory" . }}
+          {{- template "cvt.probes" . }}
+          env:
+          {{- include "pg.env.password" . }}
+          {{ template "env.resource" . }}
+          envFrom:
+          - configMapRef:
+              name: {{ include "base.resource.name" . }}-configmap
+          {{- if .Values.command }}
+          command: {{ .Values.command }}
+          {{- end }}
+        {{ template "cloud.sql.proxy.container" . }}
+    {{- if .Values.global.imagePullSecret }}
+      imagePullSecrets:
+      - name: {{ .Values.global.imagePullSecret }}
+    {{- end }}

@@ -1,0 +1,1 @@
+Place the certificate inside the d2smartview/certificate directory so that d2smartview helm chart would pick the certificate.

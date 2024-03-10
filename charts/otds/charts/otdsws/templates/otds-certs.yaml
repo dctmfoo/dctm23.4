@@ -1,0 +1,38 @@
+{{- if eq .Values.enableCustomizedTruststore true }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ template "otdsws.name" . }}-certs
+{{- if and .Values.migration.enabled .Values.migration.preUpgradeJob.enabled .Release.IsUpgrade}}
+  annotations:
+    "meta.helm.sh/release-name": {{ .Release.Name }}
+{{- if .Values.global.namespace }}
+    "meta.helm.sh/release-namespace": {{ .Values.global.namespace }}
+{{- else }}
+    "meta.helm.sh/release-namespace": {{ .Release.Namespace }}
+{{- end }}
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/resource-policy": keep
+{{- end }}
+{{- if .Values.global.namespace }}
+  namespace: {{ .Values.global.namespace }}
+{{- end }}
+  labels:
+    {{- include (printf "%s%s" .Chart.Name ".labels" ) . | nindent 4 }}
+data:
+{{- if .Values.singleCaCert }}
+{{/*
+Support single cert file
+*/}}
+  rootCA.crt: |-
+    {{ .Values.singleCaCert | b64enc }}
+{{- else }}
+  {{ range $path, $_ :=  .Files.Glob  "certificates/*" }}
+  {{ $subdir := dir $path }}
+  {{ $currentFilename := ($path | replace (printf "%s/" $subdir) "" ) }}
+  {{ $currentFilename | indent 2 }}: |-
+      {{ tpl ($.Files.Get $path) $ | b64enc }}
+  {{ end }}
+{{- end }}
+{{- end }}

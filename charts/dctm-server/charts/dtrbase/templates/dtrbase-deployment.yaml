@@ -1,0 +1,265 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.deployment.name }}
+  labels:
+    app: {{ .Values.deployment.appName }}
+spec:
+  strategy:
+    type: {{ .Values.deployment.strategyType }}
+  replicas: {{ .Values.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.deployment.appName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.deployment.appName }}
+    spec:
+    {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+    {{ end }}
+      serviceAccountName: {{ .Values.serviceAccount.serviceAccountName }}
+      containers:
+      {{- if eq .Values.images.graylog.enable true }}
+      - name: {{ .Values.images.graylog.name }}
+        image: {{.Values.images.graylog.image}}
+        imagePullPolicy: {{ .Values.images.graylog.pullPolicy }}
+        env:
+        - name: GRAYLOG_SERVER
+          value: {{ quote .Values.images.graylog.server }}
+        - name: GRAYLOG_PORT
+          value: {{ quote .Values.images.graylog.port }}
+        - name: TAGS
+          value: {{ quote .Values.images.graylog.tags }}
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NAMESPACE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        volumeMounts:
+          - name: shared-data
+            mountPath: /pod-data
+      {{ end }}
+      - name: {{ .Values.containers.dtrbase.name }}
+        image: {{ .Values.images.dtrbase.repository }}/{{ .Values.images.dtrbase.name }}:{{ .Values.images.dtrbase.tag }}
+        imagePullPolicy: {{ .Values.images.dtrbase.pullPolicy }}
+        env:
+        - name: DTR_EXT_CONF
+          value: "{{ .Values.containers.dtrbase.externalFolderPath }}"
+        - name: KUBERNETES
+          value: "{{ .Values.containers.dtrbase.kubernetes }}"
+        - name: DOCBASE_PASSWORD
+          valueFrom:
+            secretKeyRef:              
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: {{ .Values.cs.globalRegistryPasswordKey }}
+        - name: DTR_KUBERNETES_INSTALL
+          value: {{ quote .Values.containers.dtrbase.dtrKubernetesInstall }}
+        - name: DAR_INSTALL_REPO
+          value: {{ quote .Values.containers.dtrbase.darInstallRepo }}
+        - name: DAR_INSTALL_USER
+          valueFrom:
+            secretKeyRef:              
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: {{ .Values.cs.installOwnerKey }}
+        - name: DAR_INSTALL_PASS
+          valueFrom:
+            secretKeyRef:              
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: {{ .Values.cs.globalRegistryPasswordKey }}
+        - name: CS_INSTALL_UN
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: {{ .Values.cs.installOwnerKey }}
+        - name: CS_INSTALL_PW
+          valueFrom:
+            secretKeyRef:
+               name: {{ .Values.cs.csSecretConfigName }}
+               key: {{ .Values.cs.installOwnerPasswordkey }}       
+        - name: DOCBROKERS_COUNT
+          value: {{ .Values.docbroker.replicaCount | quote }}
+        - name: DOCBROKER_PORT
+          value: {{ .Values.docbroker.port | quote }}          
+        - name: DOCBROKER_SERVICE_NAME
+          value: {{ .Values.docbroker.serviceName }}
+        - name: DOCBROKER_CLUSTER_SPACE
+          value: {{ .Values.env.domain }}
+        - name: METHOD_SVR_HOST                                                                
+          value: {{ .Values.methodsvr.containerName }}-jms-service
+        - name: METHOD_SVR_PORT
+          value: "9080"
+        - name: NUM_ROW_THRESHHOLD
+          value: {{ quote .Values.containers.dtrbase.rowNumThreshholdForJob }}
+        - name: EXEC_QUERY_BATCH
+          value: {{ quote .Values.containers.dtrbase.execQueryByBatch }}          
+        - name: DRUSER
+          valueFrom:
+            secretKeyRef:
+               name: {{ .Values.cs.csSecretConfigName }}
+               key: drServiceAccountUser
+        - name: DRPASS
+          valueFrom:
+            secretKeyRef:
+               name: {{ .Values.cs.csSecretConfigName }}
+               key: drServiceAccountPassword
+        - name: DR_USER_EMAIL
+          value: {{ quote .Values.containers.dtrbase.drServiceUserEmailID }}
+        - name: DCTM_REPORTS_JOB_CONF
+          value: "<![CDATA[http://{{ .Values.containers.dtrbase.ingressHost }}/dtr/GenerateReport?1=1]]>"
+        - name: DR_Core_DefaultStyleFile
+          value: {{ quote .Values.containers.dtrbase.drCoreDefaultStyleFile }}
+        - name: DR_Core_ServerTimeout
+          value: {{ quote .Values.containers.dtrbase.drCoreServerTimeout }}
+        - name: DR_Core_smtp_port
+          value: {{ quote .Values.containers.dtrbase.drCoreSmtpPort }}
+        - name: DR_Core_smtp_auth_required
+          value: {{ quote .Values.containers.dtrbase.drCoreSmtpAuthRequired }}
+        - name: DR_Core_mail_subject
+          value: {{ quote .Values.containers.dtrbase.drCoreMailSubject }}
+        - name: DR_Core_max_attachment_size
+          value: {{ quote .Values.containers.dtrbase.drCoreMaxAttachmentSize }}
+        - name: DR_Core_attach_as_zip
+          value: {{ quote .Values.containers.dtrbase.drCoreAttachAsZip }}
+        - name: DR_Core_smtp_user
+          value: {{ quote .Values.containers.dtrbase.drCoreSmtpUser }}
+        - name: DR_Core_URLTimeout
+          value: {{ quote .Values.containers.dtrbase.drCoreUrlTimeout }}
+        - name: DR_Core_smtp_starttls_enable
+          value: {{ quote .Values.containers.dtrbase.drCoreSmtpStarttlsEnable }}
+        - name: DR_Core_smtp_host
+          value: {{ quote .Values.containers.dtrbase.drCoreSmtpHost }}
+        - name: DR_Core_from_address
+          value: {{ quote .Values.containers.dtrbase.drCoreFromAddress }}            
+        - name: DR_Core_smtp_password
+          value: {{ quote .Values.containers.dtrbase.drCoreSmtpPassword }}
+        - name: DR_Core_ReportServlet
+          value: {{ quote .Values.containers.dtrbase.drCoreReportServlet }}
+        - name: DR_Core_AllowPlainTextParamsInReportURL
+          value: {{ quote .Values.containers.dtrbase.drCoreAllowPlainTextParamsInReportUrl }}  
+        - name: DR_Core_EnableSessionValidationWithClientIP
+          value: {{ quote  .Values.containers.dtrbase.drCoreEnableSessionValidationWithClientIp }}
+        - name: DR_Core_ReportCacheTimeout
+          value: {{ quote .Values.containers.dtrbase.drCoreReportCacheTimeout }}       
+        # newrelic env parameters
+        {{- if eq .Values.newrelic.enable true }}
+        - name: NEW_RELIC_AGENT_ENABLED
+          value: {{ quote .Values.newrelic.enable }}
+        - name: NEW_RELIC_APP_NAME
+          value: {{ quote .Values.newrelic.appName }}        
+        - name: NEW_RELIC_LICENSE_KEY
+          valueFrom:
+            secretKeyRef:              
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: {{ .Values.newrelic.licenseKeyName }}          
+        {{- if .Values.newrelic.proxyHost }}
+        - name: NEW_RELIC_PROXY_HOST
+          value: {{ quote .Values.newrelic.proxyHost }}
+        {{ end }}
+        {{- if .Values.newrelic.proxyPort }}
+        - name: NEW_RELIC_PROXY_PORT
+          value: {{ quote .Values.newrelic.proxyPort }}
+        {{ end }}        
+        {{ if .Values.newrelic.proxyScheme }}
+        - name: NEW_RELIC_PROXY_SCHEME
+          value: {{ quote .Values.newrelic.proxyScheme }}
+        {{ end }}
+        {{ end }}
+        - name: ALLOW_TRUSTED_LOGIN
+          value: {{ quote .Values.cs.allowTrustedLogin }}
+        {{- if eq .Values.certificate.useCertificate true }}        
+        - name: USE_CERTIFICATE
+          value: {{ quote .Values.certificate.useCertificate }}
+        - name: TRUST_STORE_PASSWORD        
+          valueFrom: 
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: dbrCertpassword
+        {{ end }}        
+        volumeMounts:         
+        - name: nfs-data
+          mountPath: {{ .Values.containers.dtrbase.externalFolderPath }}
+          subPath: dtrbase          
+        - name: dfc-config-map
+          mountPath: {{ .Values.containers.dtrbase.externalFolderPath }}/dfc.properties
+          subPath: dfc.properties
+        - name: logging-config-map
+          mountPath: {{ .Values.containers.dtrbase.externalFolderPath }}/log4j2.properties
+          subPath: log4j2.properties
+        - name: nfs-data
+          mountPath: /opt/dtr_build/volumes/kubeDmMethod
+          subPath: {{ .Values.persistentVolumeClaim.PVCSubPath }}
+        {{- if eq .Values.images.graylog.enable true }}
+        - name: shared-data
+          mountPath: /opt/tomcat/logs
+          subPath: logs/tomcat
+        - name: shared-data  
+          mountPath: {{ .Values.images.graylog.userhomedir }}/documentum/logs
+          subPath: logs/dtrbase
+        {{ end }}
+        {{- if eq .Values.certificate.useCertificate true }}
+        - name: {{ .Values.certificate.dbrDataPVCName }}
+          mountPath: /opt/dctm/certificate
+          subPath: certificate/{{ .Values.certificate.dbrDataPVCName }}
+        {{ end }}
+        resources:
+          requests:
+             memory: {{ .Values.resources.requests.memory | quote  }}
+             cpu: {{ .Values.resources.requests.cpu | quote  }}
+          limits:
+             memory: {{ .Values.resources.limits.memory | quote  }}
+             cpu: {{ .Values.resources.limits.cpu | quote  }}
+        ports:
+        - containerPort: {{ .Values.containers.dtrbase.containerPort }}
+        readinessProbe:
+          httpGet:
+             path: {{ .Values.containers.dtrbase.healthPath }}
+             port: {{ .Values.containers.dtrbase.healthPort }}
+          initialDelaySeconds: 180
+          periodSeconds: 600
+          failureThreshold: 2
+          successThreshold: 1
+          timeoutSeconds: 240
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.containers.dtrbase.healthPath }}
+            port: {{ .Values.containers.dtrbase.healthPort }}
+          initialDelaySeconds: 180
+          periodSeconds: 600
+          failureThreshold: 2
+          successThreshold: 1
+          timeoutSeconds: 240
+      volumes:
+      {{- if eq .Values.images.graylog.enable true }}
+      - name: shared-data
+        emptyDir: {} 
+      {{ end }}
+      - name: dfc-config-map
+      {{- if eq .Values.cs.useCSDfcConfigMap true }}
+        configMap:
+          name: {{ .Values.cs.configMapName}}
+      {{ else }}
+        configMap:
+          name: {{ .Values.deployment.name}}-dfcproperties-configmap
+      {{ end }}
+      - name: logging-config-map
+        configMap:
+          name: {{ .Values.deployment.name }}-logging-configmap
+      - name: nfs-data
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistentVolumeClaim.pvcName }}
+      {{- if eq .Values.certificate.useCertificate true }}
+      - name: {{ .Values.certificate.dbrDataPVCName }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.certificate.dbrServiceName }}-pvc
+      {{ end }}
+      restartPolicy: Always

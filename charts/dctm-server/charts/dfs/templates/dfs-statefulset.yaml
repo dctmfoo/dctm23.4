@@ -1,0 +1,311 @@
+#StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+   name: {{ .Values.serviceName }}
+spec:
+  serviceName: {{ .Values.serviceName }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.serviceName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.serviceName }}
+    spec:
+{{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+{{ end }}
+      serviceAccountName: {{ .Values.serviceAccount.serviceAccountName }}
+
+      initContainers:
+      - name: {{ .Values.containers.initcontainer.name }}
+        image: {{ .Values.containers.initcontainer.image.repository }}/{{ .Values.containers.initcontainer.image.path }}:{{ .Values.containers.initcontainer.image.tag }}
+        imagePullPolicy: {{ .Values.containers.initcontainer.image.pullPolicy }}
+        
+        volumeMounts:
+          - name: extensionpvc
+            mountPath: /opt/dfsxtension
+            subPath: dfsxtension
+
+      containers:
+
+# Graylog Section Starts
+{{ if eq .Values.containers.graylog.enabled true }}
+      - name: {{ .Values.containers.graylog.name }}
+        image: {{ .Values.containers.graylog.image }}
+        imagePullPolicy: Always
+        env:
+        - name: GRAYLOG_SERVER
+          value: {{ .Values.containers.graylog.server | quote }}
+        - name: GRAYLOG_PORT
+          value: {{ .Values.containers.graylog.port | quote }}
+        - name: GRAYLOG_SERVICE_TOKEN
+          value: {{ .Values.containers.graylog.serviceToken | quote }}
+        - name: TAGS
+          value: {{ .Values.containers.graylog.tags | quote }}
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+               fieldPath: spec.nodeName
+        - name: NAMESPACE_NAME
+          valueFrom:
+            fieldRef:
+               fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+               fieldPath: metadata.name
+        volumeMounts:
+        - name: {{ .Values.serviceName }}-vct
+          mountPath: /pod-data
+{{ end }} 
+# Graylog Section Ends
+
+# Fluentd Section Starts
+{{ if eq .Values.containers.fluentd.enable true }}
+      - name: {{ .Values.containers.fluentd.name }}
+        image: {{ .Values.containers.fluentd.image }}
+        imagePullPolicy: {{ .Values.containers.fluentd.pullPolicy }}
+{{- if .Values.containers.fluentd.readiness.enable }}
+        readinessProbe:
+          exec: {
+            command: [
+              bash,
+                -c,
+                /fluentd-setup/scripts/fluentd_readiness.sh
+            ]            
+          }
+          initialDelaySeconds: 300
+          periodSeconds: 120
+          failureThreshold: 2
+          timeoutSeconds: 60
+{{ end }}
+        env:
+        - name: KUBERNETES
+          value: "true"
+        - name: CATALINA_HOME
+          value: {{ .Values.tomcat.home }}
+        - name: FLUENTD_TCP_PORT
+          value: {{ .Values.containers.fluentd.TCPPort | quote }}
+        - name: FLUENTD_REST_PORT
+          value: {{ .Values.containers.fluentd.RESTPort | quote }}
+        - name: FLUENTD_LOG_FOLDER_PATH
+          value: {{ .Values.containers.fluentd.fluentdLogFolder }}
+        - name: FLUENTD_CONFIG_MAP_PATH
+          value: {{ .Values.containers.fluentd.fluentdConfigFolder }}
+        volumeMounts:
+        - mountPath: /{{ .Values.containers.fluentd.fluentdLogFolder }}
+          name: {{ .Values.containers.fluentd.servicedataPVCName }}-logs
+        - mountPath: /{{ .Values.containers.fluentd.fluentdConfigFolder }}/config_map
+          name: fluentdconfig-map
+        ports:
+        - containerPort: {{ .Values.containers.fluentd.TCPPort }}
+          name: fluentdtcpport
+        - containerPort: {{ .Values.containers.fluentd.RESTPort }}
+          name: fluentdrestport
+{{ end }}
+# Fluentd Section Ends
+
+
+      - name: {{ .Values.containers.dfs.name }}
+        image: {{ .Values.containers.dfs.image.repository }}/{{ .Values.containers.dfs.image.path }}:{{ .Values.containers.dfs.image.tag }}
+
+
+        command: ['bin/bash', '-c', 'mkdir -p /home/dmadmin/extnscriptfolder/;chmod 755 /home/dmadmin/extnscriptfolder/;cp /opt/dfsxtension/scripts/extensionstartup.sh /home/dmadmin/extnscriptfolder/;chmod +x /home/dmadmin/extnscriptfolder/extensionstartup.sh;/home/dmadmin/extnscriptfolder/extensionstartup.sh']
+
+        imagePullPolicy: {{ .Values.containers.dfs.image.pullPolicy }}
+{{- if .Values.containers.dfs.probing.readinessProbe.enable }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.containers.dfs.probing.url }}
+            port: {{ .Values.containers.dfs.probing.port }}
+          initialDelaySeconds: {{ .Values.containers.dfs.probing.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.containers.dfs.probing.readinessProbe.periodSeconds }}
+          failureThreshold: {{ .Values.containers.dfs.probing.failureThreshold }}
+          successThreshold: {{ .Values.containers.dfs.probing.successThreshold }}
+          timeoutSeconds: {{ .Values.containers.dfs.probing.timeoutSeconds }}
+{{ end }}
+{{- if .Values.containers.dfs.probing.livenessProbe.enable }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.containers.dfs.probing.url }}
+            port: {{ .Values.containers.dfs.probing.port }}
+          initialDelaySeconds: {{ .Values.containers.dfs.probing.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.containers.dfs.probing.livenessProbe.periodSeconds }}
+          failureThreshold: {{ .Values.containers.dfs.probing.failureThreshold }}
+          successThreshold: {{ .Values.containers.dfs.probing.successThreshold }}
+          timeoutSeconds: {{ .Values.containers.dfs.probing.timeoutSeconds }}
+{{ end }}        
+        env:
+        - name: KUBERNETES
+          value: "true"
+        - name: CATALINA_HOME
+          value: {{ .Values.tomcat.home }}
+        - name: NEWRELIC_HOME
+          value: {{ .Values.tomcat.home }}/newrelic
+        - name: NEWRELIC_JAVA_AGENT
+          value: {{ .Values.tomcat.home }}/newrelic/newrelic_java_agent
+{{ if eq .Values.containers.fluentd.enable true }}
+        - name: EVENT_HUB_FLUENTD_PORT
+          value: {{ .Values.fluentdConf.TCPPort | quote }}
+{{ end }}
+        - name: CONTAINER_NAME
+          value: {{ .Values.serviceName }}
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: KUBERNETES_LABELS
+          value: app={{ .Values.serviceName }}
+        - name: KUBERNETES_TOMCAT_CLUSTER_ENABLED
+          value: {{ .Values.tomcat.tomcatClusterEnabled | quote }}
+        - name: DOCBASE_NAME
+          value: {{ .Values.dfc.docbase }}
+        - name: BOF_REGISTRY_USER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.serviceName }}-secret
+              key: globalRegistryPassword
+        - name: INSTALL_OWNER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.serviceName }}-secret
+              key: installOwner
+        - name: SECRETS_CHANGE  
+          value: {{ .Values.secretsChange | quote}}      
+        - name: DOCBROKER_HOST
+          value: {{ .Values.dfc.docbroker }}
+        - name: DOCBROKER_PORT
+          value: {{ .Values.dfc.port | quote }}
+        - name: SECURE_CONNECT_MODE
+          value: {{ .Values.dfc.connectionMode }}
+        - name: TOMCAT_ADMIN_USER
+          value: {{ .Values.tomcat.username }}
+{{ if eq .Values.certificate.use_certificate true }}
+        - name: DOCBASE_USE_CERTIFICATES
+          value: {{ .Values.certificate.use_certificate | quote }}
+        - name: DFC_SSL_TRUSTSTORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.serviceName }}-secret
+              key: dfcTrustStorePassword
+{{ end }}
+        - name: TOMCAT_ADMIN_PWD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.serviceName }}-secret
+              key: tomcatPassword
+{{- if .Values.newrelic.enable }}
+        - name: NEWRELIC_LICENSE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.serviceName }}-secret
+              key: newrelicLicensekey
+        - name: NEWRELIC_DFS_APPLICATION_NAME
+          value: {{ .Values.newrelic.dfs_application_name }}
+        - name: NEWRELIC_PROXY_HOST
+          value: {{ .Values.newrelic.proxy_host }}
+        - name: NEWRELIC_PROXY_PORT
+          value: {{ .Values.newrelic.proxy_port | quote }}
+        - name: ENABLE_NEWRELIC
+          value: {{ .Values.newrelic.enable | quote }}
+{{- end }}
+        ports:
+        - containerPort: {{ .Values.containers.dfs.containerHttpPort }}
+          name: dfs-http-port
+        - containerPort: {{ .Values.containers.dfs.containerSslPort }}
+          name: dfs-secure-port
+        volumeMounts:
+          - mountPath: /opt/dfsxtension
+            name: extensionpvc
+            subPath: dfsxtension
+          - mountPath: /opt/tomcat/logs
+            name: {{ .Values.serviceName }}-vct 
+          - mountPath: /opt/tomcat/DfcPropConfigMap
+            name: dfc-properties-volume
+          - mountPath: /opt/tomcat/Log4jPropConfigMap
+            name: log4j-properties-volume
+{{ if eq .Values.certificate.use_certificate true }}
+          - mountPath: /opt/dctm/certificate
+            name: {{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+            subPath: certificate/{{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+{{ end }}
+        resources:
+          requests:
+            memory: {{ .Values.resources.requests.memory | quote  }}
+            cpu: {{ .Values.resources.requests.cpu | quote  }}
+          limits:
+            memory: {{ .Values.resources.limits.memory | quote  }}
+            cpu: {{ .Values.resources.limits.cpu | quote  }}
+      volumes:
+{{ if eq .Values.containers.fluentd.enable true }}
+        - name: fluentdconfig-map
+          configMap:
+            #Name of the fluentd config map that we want
+            name: {{ .Values.configMap.fluentd_configMap_name }}
+{{ end }}
+{{ if eq .Values.containers.graylog.enabled true }}
+        - name: {{ .Values.serviceName }}-vct
+          emptyDir: {}
+{{ end }}
+
+        - name: extensionpvc
+          persistentVolumeClaim:
+         {{- if (eq .Values.extensionPVC.useCommonPVC true) }}
+            claimName: {{ .Values.extensionPVC.commonPVCName }}        
+        {{- else }} 
+            claimName: {{ .Values.serviceName }}-dfs-extension-pvc        
+        {{- end }}
+        
+{{ if eq .Values.certificate.use_certificate true }}
+        - name: {{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.certificate.dbrserviceName }}-pvc
+{{- end }}
+        - name: log4j-properties-volume
+          configMap:
+            name: {{ .Values.serviceName }}-dfs-config
+            items:
+              - key: log4j
+                path: log4j2.properties                 
+
+        - name: dfc-properties-volume
+        {{- if eq .Values.cs.useCSDfcConfigMap true }}
+          configMap:
+            name: {{ .Values.cs.configMapName}}
+            items:
+              - key: dfc.properties
+                path: dfc.properties
+        {{ else }}
+          configMap:
+            name: {{ .Values.serviceName }}-dfs-config
+            items:
+              - key: dfc
+                path: dfc.properties
+        {{ end }}
+
+      restartPolicy: Always
+  volumeClaimTemplates:
+  - metadata:
+      name: {{ .Values.serviceName }}-vct
+    spec:
+      accessModes:
+        - {{ .Values.volumeClaimTemplate.logVctAccessModes }}
+      resources:
+         requests:
+            storage: {{ .Values.volumeClaimTemplate.size }}
+      storageClassName: {{ .Values.volumeClaimTemplate.logVctStorageClass }}
+{{ if eq .Values.containers.fluentd.enable true }}
+  - metadata:
+      name: {{ .Values.containers.fluentd.servicedataPVCName }}-logs
+    spec:
+      accessModes:
+        - {{ .Values.volumeClaimTemplate.logVctAccessModes }}
+      resources:
+         requests:
+            storage: {{ .Values.volumeClaimTemplate.logVctSize }}
+      storageClassName: {{ .Values.volumeClaimTemplate.logVctStorageClass }}
+{{ end }}

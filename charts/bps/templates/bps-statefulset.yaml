@@ -1,0 +1,141 @@
+#StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+   name: {{ .Values.prefix }}
+spec:
+  serviceName: {{ .Values.prefix }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.prefix }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.prefix }}        
+    spec:
+{{- if .Values.serviceAccount.serviceAccountName }}
+      serviceAccountName: {{ .Values.serviceAccount.serviceAccountName }}
+{{- end }}
+{{- if and .Values.initImage.pullSecrets .Values.image.pullSecrets }}
+      imagePullSecrets:
+      - name: {{ .Values.image.pullSecrets }}
+{{ end }}   
+      # These containers are run during pod initialization
+      initContainers:
+      - name: {{ .Values.prefix }}-init
+        image: {{ .Values.initImage.repository }}/{{ .Values.initImage.name }}:{{ .Values.initImage.tag }}
+        imagePullPolicy: {{ .Values.initImage.pullPolicy }}
+        command: ['sh', '-c', "until $(wget -O /home/xcpuser/init.log http://{{ .Values.docbaseConnection.jmsservicename }}:{{ .Values.docbaseConnection.jmshttpport }}/bpm/modules.jsp); do echo waiting for CS Service; sleep 45; done"]      
+      containers:
+      - name: {{ .Values.prefix }}
+        image: {{ .Values.image.repository }}/{{ .Values.image.name }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        resources:
+{{ toYaml .Values.resources | indent 12 }}
+        env:
+        - name: KUBERNETES
+          value: "true"
+        - name: CONTAINER_NAME
+          value: {{ .Values.prefix }}
+{{ if .Values.docbaseConnection.use_certificate }}
+        - name: DOCBASE_USE_CERTIFICATES
+          value: {{ .Values.docbaseConnection.use_certificate | quote }}
+{{ end }}          
+        - name: DOCBROKER_HOST
+          value: {{ .Values.docbaseConnection.docbroker }}
+        - name: DOCBROKER_PORT
+          value: {{ .Values.docbaseConnection.port | quote }}
+        - name: TOMCAT_ADMIN_USER
+          value: {{ .Values.tomcat.username }}
+        - name: TOMCAT_ADMIN_PWD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.prefix }}-secret
+              key: tomcatPassword
+        - name: TOMCAT_JAVA_OPTS
+          value: {{ .Values.tomcat.javaOptions }}              
+      {{- if .Values.newrelic.enable }}
+        - name: NEWRELIC_ENABLE
+          value: {{ .Values.newrelic.enable | quote  }}
+        - name: NEWRELIC_APP_NAME
+          value: {{ .Values.newrelic.app_name }}.{{ .Release.Namespace }}
+        - name: NEWRELIC_PROXY_HOST
+          value: {{ .Values.newrelic.proxy_host }}
+        - name: NEWRELIC_PROXY_PORT
+          value: {{ .Values.newrelic.proxy_port | quote  }}
+        - name: NEWRELIC_LICENSE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: {{ .Values.newrelic.licenseKeyName }}
+      {{- end }}              
+        ports:
+        - containerPort: 8080
+          name: bpsport
+        livenessProbe:
+          httpGet:
+            path: /bps/lsnrs.jsp
+            port: bpsport
+          initialDelaySeconds: 180
+          periodSeconds: 300
+          failureThreshold: 2
+          successThreshold: 1
+          timeoutSeconds: 60
+        readinessProbe:
+          httpGet:
+            path: /bps/lsnrs.jsp
+            port: bpsport
+          initialDelaySeconds: 180
+          periodSeconds: 300
+          failureThreshold: 2
+          successThreshold: 1
+          timeoutSeconds: 60                  
+        volumeMounts:
+          - mountPath: /opt/tomcat/CustomConf
+            name: custom-conf-volume
+          - mountPath: /opt/tomcat/LogConf
+            name: log4j-properties-volume
+          - mountPath: /opt/tomcat/logs
+            name: {{ .Values.prefix }}-vct
+            subPath: bps_logs
+{{ if eq .Values.docbaseConnection.use_certificate true }}
+          - mountPath: /opt/dctm/certificate
+            name: {{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+            subPath: certificate/{{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+{{ end }}             
+          #If message store is configured, uncomment the following lines:            
+          #- mountPath: {{ .Values.bpsConfig.messageStoreHomeDir }}
+          #  name: {{ .Values.prefix }}-vct
+          #  subPath: bps_msgstore
+      volumes:
+        - name: custom-conf-volume
+          configMap:
+            name: {{ .Values.prefix }}-bps-dfc-config
+            items:
+              - key: dfc-properties-config
+                path: dfc.properties
+              - key: bps-config
+                path: bps_template.xml
+        - name: log4j-properties-volume
+          configMap:
+            name: {{ .Values.prefix }}-log4j-properties-config
+            items:
+              - key: log4j-properties-config
+                path: log4j2.properties
+{{ if eq .Values.docbaseConnection.use_certificate true }}
+        - name: {{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.docbaseConnection.docbroker }}-pvc
+{{- end }}                
+      restartPolicy: Always
+  volumeClaimTemplates:
+  - metadata:
+      name: {{ .Values.prefix }}-vct
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+         requests:
+            storage: {{ .Values.volumeClaimTemplates.size }}
+      storageClassName: {{ .Values.volumeClaimTemplates.storageClassReadWriteOnce }}

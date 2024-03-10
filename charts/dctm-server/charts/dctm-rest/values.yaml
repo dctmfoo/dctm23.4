@@ -1,0 +1,184 @@
+rwmstorage: &rwm_storage_class
+#metadata
+serviceName: dctm-rest
+
+namespace:
+
+customLabels:
+  app: dctm-rest
+
+containerName: rest-container
+
+#deployment
+replicaCount: 1
+strategyType: RollingUpdate
+
+# image artifactory details. This would be changed to image artifactory in the next release.
+image: registry.opentext.com
+# The path of the image in the docker registry artifactory, i.e the location of the image in the artifcatory.
+path: dctm-tomcat
+imageTag: 23.4
+imagePullPolicy: Always
+imagePullSecrets:
+
+serviceAccount:
+  createServiceAccount: false
+  serviceAccountName:
+
+restInitContainers:
+  name: rest-init-container
+  image: dctm-rest
+  imageTag: 23.4
+  imagePullPolicy: Always
+# init container image details.
+extraInitContainers:
+  name: rest-custom
+  image:
+  imageTag:
+  imagePullPolicy: Always
+  volumeMounts:
+    # should not be modified by ct
+    name: custom-script-pvc
+    # this should be created in init container docker file and init container startup script should copy the customization files from init container image to this mount path.
+    mountPath: /opt/customscriptpvc
+    # should not be modified by ct
+    subPath: initcontainercustomscripts/dctm-rest-custom
+rest:
+  useCommonPVC: false
+  # The common pvc name
+  commonPVCname: custom-script-pvc-common
+#service
+serviceType: ClusterIP
+
+httpPort: 8080
+httpsPort: 8443
+
+#configmap
+existingConfigMap:
+
+configurationFiles:
+
+extraConfigMountPath: /home/dmadmin/ext-conf
+
+#resources
+resources:
+  limits:
+    cpu: 1500m
+    memory: 4Gi
+  requests:
+    cpu: 800m
+    memory: 2Gi
+
+#cs secrets
+content_server:
+  secretName: <sname>cs-secret-config
+
+#certificate
+docbroker:
+  useCertificate: false
+  dbrServiceName:
+  pvcCertSubPath: certificate/certdbr-data-pvc
+
+#logging
+log4j:
+  rootLogLevel: INFO
+  restLogLevel: INFO
+  dfcLogLevel: INFO
+  formatMsgNoLookups: true
+
+graylog:
+  enabled: false
+  image: 
+  imagePullPolicy: Always
+  server: 
+  port: 9000
+  tags: '["linux", "apache"]'
+  serviceToken: 
+  logsDir: /home/dmadmin/logs
+
+#monitor
+newrelic:
+  enabled: false
+  configurationFile: newrelic.yml
+  addNodeNamePrefix: false
+  proxy_host: bp2-prox01-l001.otxlab.net
+  proxy_port: 3128
+  proxy_protocol: http
+  app_name: DOCUMENTUM-CORE-REST-SERVICES-<sname>
+
+livenessProbe:
+  enabled: true
+  scheme: HTTP
+  probeUrl: /dctm-rest/services
+  initialDelaySeconds: 40
+  periodSeconds: 5
+  
+fluentd_service:
+  enable: false
+  # Name and tag of should not be changed as they specify fluentd image details
+  image: artifactory.otxlab.net/bpdockerhub/fluentd-4.4.1-1:22.4
+  imagePullPolicy: Always
+  restartPolicy: Always
+  ##Values for TCPPort and RESTPort should be same as give for fluentdTCPPort and fluentdRESTPort in fluentdConf section
+  TCPPort: 24224
+  RESTPort: 8888
+  servicedataPVCName: fluentd-data-pvc
+  readiness:
+    enable: false  
+    
+### Fluentd config ### 
+fluentdConf:
+  enable: false
+  # This value specifies the port on which fluentd is listening for TCP connection.
+  # Make sure the port you specify is not used else where in the helm chart
+  TCPPort: 24224
+
+  # This value specifies the port on which fluentd is listening for REST connection.
+  # Make sure the port you specify is not used else where in the helm chart
+  RESTPort: 8888
+  kafkabroker:
+        port: 9092
+        name: <sname>-kfk
+        domain: <env_domain>
+        replica: 3
+
+  # Here give the topic name that was specified during kafka broker deployment
+  kafkaTopic: <KAFKA TOPIC NAME>
+  kafkaUser: kfkuser
+  kafkaUsrPasswd: password
+  compressionMode: gzip
+  bufferingMode: FILEBUFFER
+  flushInterval: 3s
+  
+acsService:
+  serviceName: <csServiceName>-pg-jms-service 
+  servicePort: 9080
+
+otds:
+    enable: true
+    #the otds service should be in the format https://<OTDS server url>:<port>/otdsws
+    url: <otds-service-url>
+    clientID: 
+
+single_helm:
+  enable: true
+
+custom:
+  useInitContainers: false
+  # customers should not change the name.
+  scriptPVCname: custom-script-pvc
+  PVCSubPath: dctm-rest-custom
+  pvcSize: 1Gi
+  pvcAccessModes: ReadWriteMany
+  storageClass: *rwm_storage_class
+  existVolumePv:
+
+#Customers can add their own java options below
+java:
+  #adding dev/./urandom parameter by deafult to improve the application performace wrt to random number generation
+  javaOptions: -Djava.security.egd=file:/dev/./urandom
+
+#Time zone configuration
+timeZone:
+  enable: false
+  value: Etc/UTC

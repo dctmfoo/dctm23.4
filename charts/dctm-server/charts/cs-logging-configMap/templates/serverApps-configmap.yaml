@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configMap.serverApps_configMap_name }}  
+data:
+  log4j: |
+    rootLogger.level={{ .Values.serverApps.log4j.rootLogLevel }}
+    property.logfolderpath=/opt/dctm/{{ .Values.jmsVersion }}/logs
+    monitorInterval={{ .Values.serverApps.log4j.monitorInterval }}
+    rootLogger.appenderRefs=F1
+    rootLogger.appenderRef.F1.ref=File
+    
+    #----------------------------DM_METHODS_TRACE --------------------------
+    appender.DM_METHODS_TRACE.type=RollingFile
+    appender.DM_METHODS_TRACE.name=File
+    appender.DM_METHODS_TRACE.filePattern=${logfolderpath}/DmMethods.log.%i.%d{yyyy-MM-dd}
+    appender.DM_METHODS_TRACE.layout.type={{ .Values.serverApps.log4j.layout_type }}
+    appender.DM_METHODS_TRACE.filter.threshold.type=ThresholdFilter
+    appender.DM_METHODS_TRACE.filter.threshold.level=DEBUG
+    appender.DM_METHODS_TRACE.fileName=${logfolderpath}/DmMethods.log
+    appender.DM_METHODS_TRACE.layout.pattern={{ .Values.serverApps.log4j.layout_pattern }}
+    appender.DM_METHODS_TRACE.policies.type=Policies
+    appender.DM_METHODS_TRACE.policies.time.type=TimeBasedTriggeringPolicy
+    appender.DM_METHODS_TRACE.policies.time.interval=1
+    appender.DM_METHODS_TRACE.policies.time.modulate=true
+    appender.DM_METHODS_TRACE.policies.size.type=SizeBasedTriggeringPolicy
+    appender.DM_METHODS_TRACE.policies.size.size=10MB
+    appender.DM_METHODS_TRACE.strategy.type=DefaultRolloverStrategy
+    appender.DM_METHODS_TRACE.strategy.max=5

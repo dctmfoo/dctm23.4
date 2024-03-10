@@ -1,0 +1,48 @@
+{
+  "rules": [
+    {
+      "id": "1678",
+      "name": "Sample OpenText Directory Services (OTDS) 10.5 Patch 5 and below",
+      "whitelist": [
+        "(?i)^(otdsws|otds-v2|ot-authws|otds-admin)(/.*|$)"
+      ],
+      "blacklist": [
+        {
+          "match": "(\\.\\./)|(//)",
+          "responseCode": 400,
+          "location": null
+        }
+      ],
+      "urlRules": [
+        {
+          "match": "(?i)^otdsws/?(.*|$)",
+          "replace": "http://otds.myhost.com:8080/otdsws/$1",
+          "sort": 0,
+          "continue": false
+        },
+        {
+          "match": "(?i)^otds-v2/?(.*|$)",
+          "replace": "http://otds.myhost.com:8080/otds-v2/$1",
+          "sort": 1,
+          "continue": false
+        },
+        {
+          "match": "(?i)^ot-authws/?(.*|$)",
+          "replace": "http://otds.myhost.com:8080/ot-authws/$1",
+          "sort": 2,
+          "continue": false
+        },
+        {
+          "match": "(?i)^otds-admin/?(.*|$)",
+          "replace": "http://otds.myhost.com:8080/otds-admin/$1",
+          "sort": 3,
+          "continue": false
+        }
+      ],
+      "outgoingRules": [],
+      "enabled": false,
+      "sort": 11,
+      "enableOAuth": false
+    }
+  ]
+}

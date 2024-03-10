@@ -1,0 +1,226 @@
+# Default values for d2config.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+### Environment ###
+env:
+  tomcatJVMArgs: ""
+  webappName: &webappName D2-Config
+  # By Default the appTitle is D2-Config that gets displayed on the Browser tab.
+  # Update to a custom appTitle below when required 
+  appTitle: 
+  domain: 
+
+## serviceAnnotations define custom annotations that need to be assigned to d2config service.
+## For example:
+##  cloud.google.com/backend-config: '{"ports": {"80": "abcd-d2config-backend"}}'
+##  cloud.google.com/neg: '{"ingress": true}'
+serviceAnnotations: {}
+
+serviceAccount: 
+  createserviceaccount: true
+  serviceAccountName: documentum-sa
+
+### Tomcat ###
+tomcat:
+  catalinaHome: /opt/tomcat  
+  connectionTimeoutInMilliseconds: 60000
+  logfilerotation: 7  #Log files are rotated "logfilerotation" times before being removed 
+  logfilesize: 5M  #Log files are rotated only if they grow bigger then "logfilesize" bytes
+  logrotateFrequency: 1d  #Log files are rotated every "logrotateFrequency". Ex., 10m, 10h, 10d
+
+### Docbroker ###
+docbroker:
+  count: 2
+  serviceName: dbr
+  port: 1489
+
+cs:
+  custom:
+    scriptinPVC: true
+    ##In the case of  hybrid installers approach, volumeMountName value should be custom-script-pvc and scriptPVCname value should be shared-pvc
+    volumeMountName: dcs-data-pvc
+    scriptPVCname: dcs-pg-pvc
+    PVCSubPath: initcontainercustomscripts/dcs-pg
+
+methodsvr:
+  containerName: dcs-pg
+
+session:
+  allowTrustedLogin: false
+
+### Docbase ###
+docbase:
+  name: docbase1
+# if k8s version is < 1.19  default initial delay is set to 250 seconds and 60 seconds if k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+readinessProbe:
+  initialDelaySeconds: 
+# If k8s version is < 1.19  default initial delay is set to 250 seconds and 60 seconds if k8s version is >= 1.19
+# Increase the initialDelaySeconds to further and add the value below if default value is not enough
+livenessProbe:
+  initialDelaySeconds: 
+  
+startupProbe:
+  initialDelaySeconds: 180  
+ 
+OTDS:
+  enable: true
+
+replicaCount: 1
+
+fsGroup: 1000
+
+images:
+  repository : artifactory.otxlab.net/bpdockerhub
+  name : common/oraclelinux-openjdk-tomcat
+  tag : "dctm-oraclelinux9-openjdk17.0.6-tomcat9.0.71"
+  pullPolicy: IfNotPresent
+  pullSecrets:
+
+extensionImage:
+  repository: artifactory.otxlab.net/bpdockerhub
+  name : dctm-d2pp-config
+  tag : 23.2.0
+  pullPolicy: Always
+
+extraInitContainers: []
+### Secret ###
+secret:
+  csConfigName: cs-secret-config
+
+nameOverride: ""
+fullnameOverride: ""
+
+### Persistent Volume ###
+persistentVolume:
+  vctAccessModes: ReadWriteOnce
+  storageClass: trident-nfs
+  size: 1Gi
+
+certificate:
+  use_certificate: false
+  dbrserviceName: dbr
+
+dbrpersistentVolume:
+  dbrdataPVCName: certdbr-data-pvc
+
+### Graylog Enabled by default, set to false if logs mount to PVC ###
+graylog:
+  enable: true
+  volumeClaimTemplate:
+    logVctAccessModes: ReadWriteOnce
+    logVctSize: 2Gi
+    logVctStorageClass: trident-nfs
+
+serviceType: ClusterIP
+
+### D2Config Extension image ###
+extension:  
+  createPVC: true
+  PVCAccessMode: ReadWriteMany
+  PVCStorageClass: trident-nfs
+  PVCSize: 4Gi
+  pvcName: d2-extension-pvc
+  #Update the below parameters in case of Static Provisioning in AWS
+  staticPVName:
+  reclaimPolicy:
+  awsEFSCSIDriver: efs.csi.aws.com
+  awsEFSCSIHandle:
+
+### Custom Configuration ###
+customConfigurations:
+  custom: false
+  hook_approach: false
+  createPVC: false
+  scriptPVCname: d2custom-shared-pvc
+  persistentVolume:
+    awsEFS: false
+    awsEFSCSIDriver: efs.csi.aws.com
+    awsEFSCSIHandle:
+    existVolumePv:
+    reclaimPolicy: Retain
+    storageClass: trident-nfs
+    size: 2Gi
+  #In a multi repo deployment when d2configs need to be imported in multirepo, then update the filename as below
+  #filename: docbase1:config1.zip,config2.xml,config3.zip;docbase2:config1.zip,config2.xml,config3.zip
+  #If there is a need for multiple config import in the single repo deployment, then update the filename parameter as below with comma-separated format
+  #filename: docbase1:config1.zip,config2.xml,config3.zip
+  filename: 
+  #By default below are the given config import parameters, customer can add new or edit below default parameters as per their need
+  d2configImportParameters: "-full_import true -reset false"
+  plugins:
+  # Customer need to pass the plugins as an array and "Plugin" word should be part of file naming.
+  # Array for Customer to pass more than one plugin. Below ex : 
+  # - plugin1
+  # - plugin2
+
+  # Customer could pass the custom d2config properties and place under d2config/properties subchart
+  # Customer need to merge with the existing d2config.properties file and place under d2config/properties subchart
+  # Currently have placed a template under d2config/properties for reference
+  settings:
+  locale: 
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #  cpu: 100m
+  #  memory: 128Mi
+  # requests:
+  #  cpu: 100m
+  #  memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+###############################################################
+#  BEGIN parameter value definitions for D2-Config configuration files
+###############################################################
+
+# directory in chart holding any .properties config file "coda" files.
+# These files are appended to the corresponding default .properties config
+# file in the resulting config map definition.  This provides a convenient
+# way for solutions built on top of D2 to override settings in D2FS.properties,
+# settings.properties etc.
+configFileOverrideFilesDir: configFileOverrideFiles
+
+d2version: 23.4.0
+pluspack: false
+
+# parameters used to compose d2config-logback-xml config map
+logback:
+   file: 
+   - /opt/tomcat/webapps/
+   - *webappName
+   - /logs/D2-Config.log
+   fileNamePattern: 
+   - /opt/tomcat/webapps/
+   - *webappName
+   - /logs/D2-Config-%d{yyyy-MM-dd}.log.zip
+   logLevel: info   
+
+# parameters used to compose d2config-log4j-properties config map
+log4j:
+   file: 
+   - /opt/tomcat/webapps/
+   - *webappName
+   - /logs
+   logLevel: WARN
+
+#############################################################
+#  END parameter value definitions for D2-Config configuration files
+#############################################################
+
+### New Relic Configuration ###
+
+newrelic:
+  enable: false
+  app_name: DOCUMENTUM_D2CONFIG-PROD-OT2_CFCR_BP2-ECD
+  proxy_host: 
+  proxy_port: 

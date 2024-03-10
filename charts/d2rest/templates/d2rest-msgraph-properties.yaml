@@ -1,0 +1,24 @@
+{{- if .Values.msgraphConfig.enable }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2rest-msgraph-properties
+  {{- template "configMap.labels" . }}
+data:
+  msgraph.properties: |-
+    app.client.id= {{ .Values.msgraphConfig.clientid }}
+    app.client.secret= {{ .Values.msgraphConfig.clientsecret }}
+    app.tenant.id= {{ .Values.msgraphConfig.tenantid }}
+    app.scope = {{ .Values.msgraphConfig.scope }}
+    app.config.proxy.config.host= {{ .Values.msgraphConfig.proxy_host }}
+    app.config.proxy.config.port= {{ .Values.msgraphConfig.proxy_port }}
+{{- $configFileOverridesFile := printf "%s/%s" .Values.configFileOverrideFilesDir "msgraph.config.properties" }}
+{{- $configFileMsg0 := printf "\n\n##### Begin lines added from %s\n" $configFileOverridesFile }}
+{{- $configFileMsg1 := printf "##### End lines added from %s" $configFileOverridesFile }}
+{{- $configFileLinesToAppend := .Files.Get $configFileOverridesFile }}
+{{- if $configFileLinesToAppend }}
+{{ $configFileMsg0 | indent 4 }}
+{{ $configFileLinesToAppend | indent 4 }}
+{{ $configFileMsg1 | indent 4 }}
+{{- end }}
+{{- end }}

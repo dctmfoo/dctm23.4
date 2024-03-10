@@ -1,0 +1,92 @@
+# Default values for publisher.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+
+# number of seconds publisher waits before timing out on a file upload request
+cssUploadTimeout:
+
+replicas: 1
+
+image:
+  name: otiv-publisher
+
+# potential loglevel values: ERROR, WARN, INFO, DEBUG, TRACE
+loglevel:
+  example: DEBUG
+  #artifacts: DEBUG
+  #config: DEBUG
+  #conversion: DEBUG
+  #discovery: DEBUG
+  #metrics: DEBUG
+  #netty: DEBUG
+  #retrieval: DEBUG
+  #sequencing: DEBUG
+  #spi: DEBUG
+  #spiAjira: DEBUG
+  #spiMkondo: DEBUG
+  #spiPithos: DEBUG
+  #spiSoteria: DEBUG
+  #system: DEBUG
+  #util: DEBUG
+  #vertx: DEBUG
+  #zmq: DEBUG
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 9092
+  # adds listed annotations to all otiv services
+  # each entry needs to be a single string that contains a colon ( : ) that separates
+  #   the property name and value
+  annotations: []
+
+resources:
+  enabled: false
+  requests:
+    cpu: 200m
+    memory: 0.5Gi
+  limits:
+    memory: 1.5Gi
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 240
+  timeoutSeconds: 3
+  periodSeconds: 30
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  timeoutSeconds: 2
+  periodSeconds: 60
+  failureThreshold: 3
+
+## Available as of kubernetes version 1.16
+startupProbe:
+  enabled: true
+  initialDelaySeconds: 60
+  timeoutSeconds: 2
+  periodSeconds: 25
+  failureThreshold: 22
+
+# Adds entries to the publisher's /etc/hsots file. For more info, see:
+#   https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/
+#hostAliases:
+#- ip: "127.0.0.1"
+#  hostnames:
+#  - "foo.local"
+#  - "bar.local"
+
+markup:
+  port: 80
+
+# set to true to add write_any_markups scope to the iv-publisher OAuth client
+#   this enables the publishing agent to create or update markups
+writeMarkups: false
+
+metricsProvider: dropwizard
+
+## set to true if needed to convert Office documents on FIPS compliant hardware
+fipsEnabled: false

@@ -1,0 +1,29 @@
+{{- if .Values.d2.logback.enable }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configMap.d2_configMap_name }}
+data:
+  logback: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <configuration scan="true" scanPeriod="60 seconds">
+       <appender class="ch.qos.logback.core.rolling.RollingFileAppender" name="RootFileAppender">
+         <file>{{ .Values.d2.logback.file }}</file>
+         <append>true</append>
+         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+           <level>{{ .Values.d2.logback.logLevel }}</level>
+         </filter>
+         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+           <fileNamePattern>{{ .Values.d2.logback.fileNamePattern }}</fileNamePattern>
+           <MaxHistory>5</MaxHistory>
+         </rollingPolicy>
+         <layout class="ch.qos.logback.classic.PatternLayout">
+           <pattern>%-27(%date{yyyy-MM-dd HH:mm:ss} [%-5level]) [%thread] - %-40(%C{18}[%-20(%mdc{methodName})]) : %message%n</pattern>
+         </layout>
+       </appender>
+       <root>
+         <level value="{{ .Values.d2.logback.logLevel }}"/>
+         <appender-ref ref="RootFileAppender"/>
+       </root>
+    </configuration>
+{{- end }}    

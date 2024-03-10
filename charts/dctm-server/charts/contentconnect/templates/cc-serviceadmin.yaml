@@ -1,0 +1,28 @@
+##########################################################
+# Services for OpenText Content Connect
+##########################################################
+
+##########################################################
+# OpenText Content Connect
+# Not exposed outside the kubernetes cluster
+# Uncomment LoadBalancer line below if this is needed
+##########################################################
+
+kind: Service
+apiVersion: v1
+metadata: 
+  name: {{ .Values.serviceadmin.name }}
+  namespace: {{ .Values.namespace}}
+  labels:
+    app: {{ .Values.serviceadmin.name }}
+spec:
+    type: ClusterIP
+    ports:
+      - name: "admin" 
+        port: {{ .Values.serviceadmin.ports.port }}
+        targetPort: {{ .Values.serviceadmin.ports.targetport }}
+        protocol : {{ .Values.serviceadmin.ports.protocol }}
+    selector: 
+      app: {{ .Values.deployment.app }}
+     
+     

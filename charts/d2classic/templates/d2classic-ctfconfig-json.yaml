@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2classic-ctfconfig-json
+  {{- template "configMap.labels" . }}
+data:
+  ctfConfig.json: |-
+    {
+     "windows":{
+        "chrome": {
+          "version": "1.0",
+          "installer_url": "https://chrome.google.com/webstore/detail/emc-content-transfer-exte/kapenncbbdmooanjhhaokalmincfphkf"
+        },
+        "ie": {
+            "version": "23.4.0000.0142",
+            "installer_url": "/ctf/CompleteCTFInstaller.msi"
+        },
+        "firefox":{
+          "version": "2.1",
+    	  "installer_url":"/ctf/opentext_documentum_client_manager.xpi"
+        },
+        "nativeApplication": {
+          "version": "23.4.0000.0142",
+          "installer_url": "/ctf/CTFNativeAppInstaller.exe",
+          "app_name": "com.emc.ctf.native.app",
+          "ssl_config_data":"SYSTEM_KEY_STORE",
+          "_comment":"ssl_config_data can be SYSTEM_KEY_STORE, CERTIFI_KEY_STORE, DISABLE_VALIDATION, path to CA bundle in local machine(Ex:c:/cacert.pem)"
+        },
+       	"WSNativeApplication": {
+          "version": "23.4.0000.0142",
+          "installer_url": "/ctf/DCMAppInstaller.msi",
+          "app_name": "dcm",
+          "ssl_config_data":"SYSTEM_KEY_STORE",
+          
+          "_comment":"ssl_config_data can be SYSTEM_KEY_STORE, CERTIFI_KEY_STORE, DISABLE_VALIDATION, path to CA bundle in local machine(Ex:c:/cacert.pem)",
+    	  "tryPortRange": [10024,64025]
+        }
+      },
+      "mac":{
+      	"safari": {
+          "version": "1.0",
+          "installer_url": "/ctf/DCMInstaller.pkg"
+        },
+        "nativeApplication": {
+          "version": "23.4.0000.0142",
+          "installer_url": "/ctf/DCMAppInstaller.pkg",
+          "app_name": "com.emc.ctf.native.app",
+          "ssl_config_data":"DISABLE_VALIDATION",
+          "_comment":"ssl_config_data can be True, CERTIFI_KEY_STORE, DISABLE_VALIDATION, path to CA bundle in local machine(Ex:~/cacert.pem)"
+        },
+       	"WSNativeApplication": {
+          "version": "23.4.0000.0142",
+          "installer_url": "/ctf/DCMWSAppInstaller.pkg",
+          "app_name": "dcm",
+          "ssl_config_data":"SYSTEM_KEY_STORE",
+          "_comment":"ssl_config_data can be SYSTEM_KEY_STORE, CERTIFI_KEY_STORE, DISABLE_VALIDATION, path to CA bundle in local machine(Ex:c:/cacert.pem)",
+    	  "tryPortRange": [10024,64025]
+        }
+      },
+      "X3.properties":{
+      	"download.forceParallelSizeInMB": "30",
+      	"download.useParallel": "true",
+      	"download.maxNumberParallelDownloadStreams": "5",
+      	"bocs.url.prefix": "/bocs/servlet/ACS",
+      	"acs.url.prefix": "/ACS/servlet/ACS",
+      	"cc.customProperties" : {
+          "update_properties" : "false",
+          "file_types" : "docx,xlsx",
+          "property_names" : "objectid, product_name"
+        },
+        "pac_enabled" : "true"
+      }
+    }

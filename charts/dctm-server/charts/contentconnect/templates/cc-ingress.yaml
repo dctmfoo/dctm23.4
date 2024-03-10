@@ -1,0 +1,74 @@
+{{- if eq .Values.ingress.enabled true }}
+{{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+apiVersion: networking.k8s.io/v1
+{{ else }}
+apiVersion: extensions/v1beta1
+{{ end }}
+kind: Ingress
+metadata:
+  name: {{ .Values.ingress.name }}
+  namespace: {{ .Values.namespace}}
+  annotations: 
+{{- if not (.Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress") }}
+{{- if .Values.ingress.class }}
+    kubernetes.io/ingress.class: {{ .Values.ingress.class }}
+{{- end }}
+{{- end }}
+{{- range $key, $value := .Values.ingress.annotations }}
+    {{ $key }}: {{ $value | squote }}
+{{- end }}
+spec:
+{{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+  ingressClassName: {{ .Values.ingress.class }}
+{{- end }}
+{{- if eq .Values.ingress.tls.enable true }}
+  tls:
+  - hosts: 
+    - {{ .Values.ingress.tls.hosts }}
+    secretName : {{ .Values.ingress.tls.secretName }}
+{{ end }}
+  rules:
+  - http:
+      paths:
+      {{ if eq (.Values.platform | toString) "aws" }}
+      - path : "/{{ .Values.configmap.extension }}{{ .Values.service.servicepath }}*"
+      {{ else }}
+      - path : "/{{ .Values.configmap.extension }}{{ .Values.service.servicepath }}"
+      {{ end }}
+      {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: {{ .Values.serviceadmin.name }}
+            port:
+              number: {{ .Values.serviceadmin.ports.port }}
+      {{- else }}
+        backend:
+          serviceName: {{ .Values.serviceadmin.name }}
+          servicePort: {{ .Values.serviceadmin.ports.port }}
+      {{- end }}
+    
+      {{ if eq (.Values.platform | toString) "aws" }}
+      - path : "/{{ .Values.configmap.extension }}*"
+      {{ else }}
+      - path : "/{{ .Values.configmap.extension }}"
+      {{ end }}
+      {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: {{ .Values.service.name }}
+            port:
+              number: {{ .Values.service.ports.port }}
+      {{- else }}
+        backend:
+          serviceName: {{ .Values.service.name }}
+          servicePort: {{ .Values.service.ports.targetport }}
+      {{- end }}
+      
+    {{- if .Values.ingress.configureHost }}
+    {{- if eq ( .Values.ingress.rules.host | toString | regexFind "\\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}\\b") ("" | toString) }}
+    host: {{ .Values.ingress.rules.host }}.{{ .Values.ingress.tls.hosts }}
+    {{- end }}
+    {{- end }}                        
+{{- end }}

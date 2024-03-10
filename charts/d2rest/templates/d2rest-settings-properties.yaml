@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2rest-settings-properties
+  {{- template "configMap.labels" . }}
+data:
+  settings.properties: |-
+    # If the D2 Smart View app server is behind a reverse proxy, the following line must be uncommented and its value set
+    # accordingly in order for UI to work correctly. For example, if the reverse proxy has DNS name or alias "reverseproxy"
+    # and uses the default https port 443 and the path on reverse proxy mapped to app server context root is "D2", then the
+    # value of connection.remote.url would be https://reverseproxy/D2
+    #
+    {{- if .Values.settings.connectionRemoteUrl }} 
+    connection.remote.url={{ .Values.settings.connectionRemoteUrlProtocol }}://{{ .Values.settings.connectionRemoteUrl | toString | replace "[" "" | replace "]" "" | replace "/ " "/" }} 
+    {{- else }} 
+    #connection.remote.url={{ .Values.settings.connectionRemoteUrlProtocol }}://{{ .Values.settings.connectionRemoteUrl | toString | replace "[" "" | replace "]" "" | replace "/ " "/" }} 
+    {{- end }}
+    
+    # If mobile view is disabled, then on mobile browsers too the desktop view will be presented
+    #
+    # If the mobile.view.enabled setting below is commented out, the effective value is true.
+    #
+    mobile.view.enabled = true
+    
+    # Browser plugin mode - specify browser plugin modes that clients of this server can use
+    #
+    # There are two possible modes:
+    #
+    #     thin  - no plugins:    use HTML5 for file upload and download
+    #     wsctf - wsctf plugin:  use java-free Content Transfer Framework plugin (CTF) without browser extensions
+    #                                (Documentum Client Manager v2) for file upload and download.  This utilizes a
+    #                                web socket connection between the web page and CTF instead of a browser extension.
+    #
+    # The browser.plugin.mode setting below can be given one of the following values:
+    #
+    #     thin
+    #     wsctf
+    #     wsctf,thin
+    #
+    #     The behavior for each of these setting values is given in the table that follows below.
+    #
+    #     +---------------------+-----------------------------------------------------------------------------+
+    #     | browser.plugin.mode | Behavior                                                                    |
+    #     +---------------------+-----------------------------------------------------------------------------+
+    #     | thin                | Always use thin client mode for all users.                                  |
+    #     +---------------------+-----------------------------------------------------------------------------+
+    #     | wsctf               | Always use wsctf mode for all users.  Fallback to thin client mode if the   |
+    #     |                     | browser supports wsctf mode but cannot load the wsctf app.                  |
+    #     +---------------------+-----------------------------------------------------------------------------+
+    #     | wsctf,thin          | Default to wsctf mode for all users.  Fallback to thin client mode if the   |
+    #     |                     | browser supports wsctf mode but cannot load the wsctf app.                  |
+    #     |                     | Users can choose to use wsctf or thin client mode from the user settings    |
+    #     |                     | dialog when configured modes are supported by browser.                      |
+    #     +---------------------+-----------------------------------------------------------------------------+
+    #
+    # If the browser.plugin.mode setting below is commented out, the effective value is thin.
+    #
+    browser.plugin.mode = wsctf,thin
+    
+    
+    #If geolocation.enabled is set to true to enable the tracking of geolocation.
+    # Default value is false if not set
+    geolocation.enabled	= false
+    
+    # geolocation.required is used to enforce the user to provide geolocation. Only applicable if geolocation feature is enabled.
+    # Default value is false if not set
+    geolocation.required = false
+    
+    #Default counter in seconds for the session timout warning dialog
+    # Default value is 60
+    sessiontimeout.counter = 60
+{{- $configFileOverridesFile := printf "%s/%s" .Values.configFileOverrideFilesDir "settings.properties" }}
+{{- $configFileMsg0 := printf "\n\n##### Begin lines added from %s\n" $configFileOverridesFile }}
+{{- $configFileMsg1 := printf "##### End lines added from %s" $configFileOverridesFile }}
+{{- $configFileLinesToAppend := .Files.Get $configFileOverridesFile }}
+{{- if $configFileLinesToAppend }}
+{{ $configFileMsg0 | indent 4 }}
+{{ $configFileLinesToAppend | indent 4 }}
+{{ $configFileMsg1 | indent 4 }}
+{{- end }}

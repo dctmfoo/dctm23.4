@@ -1,0 +1,208 @@
+#######################################################
+# Documentum Foundation Services default values.      #
+# This is a YAML-formatted file.                      #
+# Declare variables to be passed into your templates. #
+#######################################################
+
+serviceName: <sname>dfs-server
+    
+#Replica count
+replicaCount: 1
+installOwner:
+secretsChange:
+imagePullSecrets:
+
+serviceAccount:
+  serviceAccountName:
+  createServiceAccount: false
+
+cs:
+  #configmap for dfc.properties file. Dockbroker config map can be used here
+  useCSDfcConfigMap: true
+  configMapName: <sname>dbr.configmap
+
+containers:
+  initcontainer:
+    name: dfsinit
+    image:
+      repository: artifactory.otxlab.net/bpdockerhub
+      path: dctm-dfs
+      tag: 23.4
+      pullPolicy: IfNotPresent
+
+  ### DFS Container ###
+  dfs:
+    name: dfs
+    kubernetes: true
+    #DFS Docker image
+    image:
+      repository: artifactory.otxlab.net
+      path: bpdockerhub/common/dctm-tomcat
+      tag: 23.4
+      pullPolicy: IfNotPresent
+    containerHttpPort: 8080
+    containerSslPort: 8443
+    probing:
+      url: /dfs/services/core/QueryService?wsdl 
+      port: 8080
+      failureThreshold: 2
+      successThreshold: 1
+      timeoutSeconds: 120
+      readinessProbe:
+        enable: true
+        initialDelaySeconds: 60
+        periodSeconds: 60        
+      livenessProbe:
+        enable: true
+        initialDelaySeconds: 180
+        periodSeconds: 120
+
+  ### Fluentd container ### 
+  fluentd:
+    enable: false
+    TCPPort: 24224
+    RESTPort: 8888
+    compressionMode: gzip
+    bufferingMode: FILEBUFFER
+    flushInterval: 3s   
+
+  # Name and tag of fluentd image
+    name: fluentd
+    pullPolicy: Always
+    restartPolicy: Always
+    fluentdLogFolder: fluentd-logging
+    fluentdConfigFolder: fluentd-config-map
+    servicedataPVCName: fluentd-data-pvc
+
+    image: artifactory.otxlab.net/bpdockerhub/fluentd:4.1.7
+    readiness:
+      enable: false
+    kafkabroker:
+      port: 9092
+      name: <sname>-kfk
+      domain: cfcr-lab.bp-paas.otxlab.net
+      replica: 3
+
+    #Kafka topic name. This name should be same as the topic name which is given while setting up the kafka. 
+    kafkaTopic: Cs-Audit-Topic
+    #Kafka user name/password. This is the user to connect to kafka. This is provided while setting up the kafka. 
+    kafkaUser: kafka-user
+    kafkaUsrPasswd: kafka-password
+
+  ### Graylog container ### 
+  graylog:
+    enabled: false
+    name: graylog
+    image: 
+    imagePullPolicy: Always
+    server: 
+    port: 9000
+    tags: "[\"linux\",\"apache\"]"
+    serviceToken:
+
+
+#Tomcat Admin credentials:
+tomcat:
+  # Tomcat manager username
+  username: admin
+  # Tomcat manager password
+  password: password 
+  # Enabling Tomcat Clusering in case of multiple DFS pods 
+  tomcatClusterEnabled: true
+  home: /opt/tomcat
+
+certificate:
+  use_certificate: false
+  dbrserviceName: <sname>dbr
+  dfcTrustStorePassword: password
+  
+dbrpersistentVolume:
+  dbrdataPVCName: certdbr-data-pvc
+
+##########################################################################################
+# dfc.properties configurations in the case of Content Server config map not used.       #
+# In the case of useCSDfcConfigMap=false The below values will be used to populate       #
+# dfc.properties file. Update or uncomment the below listed parameters with appropriate  # 
+#  values of dfc.properties and ensure to toggle the flag useDfcConfigMap to false.      #
+# The values mentioned in addtionalProperties parameter will be added into dfc.properties# 
+# file as it is.                                                                         #
+##########################################################################################
+dfc:
+  docbroker: <sname>dbr
+  docbase:
+  port: 1489
+  globalRegistryRepository: docbase1
+  globalRegistryUsername: dm_bof_registry
+  globalRegistryPassword: password
+  connectionMode: try_native_first
+  cryptoRepository: docbase1
+
+  # DFC data directory. Need not be changed
+  dataDir: /var/documentum
+  #End User details
+  client:
+    should_use_enduserinfo: false
+    should_use_eventhub: false
+    eventhub:
+      #Event Log level values 0 - 5 , 
+      # 0 - NO LOG, 1 - ERROR, 2 - WARN, 3 - INFO, 4 - DEBUG, 5 - TRACE
+      log_level: 4
+      #The size of the events buffered at DFC layer. 
+      queue_size: 1000
+    #UNCOMMENT THE BELOW OR ADD ANY ADDITIONAL dfc properties to use in dfc.properties file
+    additionalProperties:
+    #- dfc.security.ssl.truststore=/opt/dctm/certificate/dfc.keystore
+    #- dfc.tokenstorage.enable=false
+    #- dfc.security.ssl.use_anonymous_cipher=true
+    #- dfc.security.ssl.use_existing_truststore=false
+
+
+log4j:
+  # Log Level for DFS packages
+  rootLogLevel: WARN
+  rtLogLevel: WARN
+  datamodelLogLevel: WARN
+  servicesLogLevel: WARN
+  toolsLogLevel: WARN
+  traceLogLevel: WARN
+
+service:
+  ports:
+    httpPort: 8080
+    sslPort: 8443
+
+### resources ###
+resources:
+  limits:
+    cpu: 4000m
+    memory: 8Gi
+  requests:
+    cpu: 100m
+    memory: 400Mi
+
+newrelic:
+  enable: false
+  license_key: f8731ab76f6077a0d61a05f043efff6ebac1f93b
+  #follow the naming convention as <MacroService*>_<MicroService>-<ENV>-<Platform_DC>-<BU>-<Customer*>
+  dfs_application_name: DFS-PROD-OT2_CFCR_LI3-EIM-TenantName_SubscriptionID
+  proxy_host: bp2-prox01-l001.otxlab.net
+  proxy_port: 3128
+
+### ConfigMap metadata ###
+configMap:
+  fluentd_configMap_name: <sname>dfsfluentd-configmap
+
+### Volume Claim Template###
+volumeClaimTemplate:
+  logVctAccessModes: ReadWriteOnce
+  size: 1Gi
+  # storage class for the volumeClaimTemplates Ex : azurefile
+  logVctStorageClass: trident-nfs
+  logVctSize: 2Gi
+extensionPVC:
+  createPVC: true
+  PVCAccessMode: ReadWriteOnce
+  PVCStorageClass: trident-nfs
+  PVCSize: 2Gi
+  useCommonPVC: false
+  commonPVCName:

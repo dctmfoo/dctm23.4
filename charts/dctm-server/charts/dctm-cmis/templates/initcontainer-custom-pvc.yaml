@@ -1,0 +1,16 @@
+{{- if ( eq .Values.cmis.useCommonPVC false )  }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.cmis.pvcName }}
+spec:
+  accessModes:
+    - {{ .Values.cmis.pvcAccessModes }}
+  storageClassName: {{ .Values.cmis.storageClass }}
+{{ if .Values.cmis.existVolumePv }}
+  volumeName: {{ .Values.cmis.existVolumePv }}
+{{ end }}
+  resources:
+    requests:
+      storage: {{ .Values.cmis.pvcSize }}
+{{- end }}

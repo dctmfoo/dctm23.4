@@ -1,0 +1,146 @@
+#Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.prefix }}
+  labels:
+    app: {{ .Values.prefix }}
+spec:
+  replicas: {{ default "1" .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.prefix }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.prefix }}      
+    spec:
+{{- if .Values.serviceAccount.serviceAccountName }}
+      serviceAccountName: {{ .Values.serviceAccount.serviceAccountName }}
+{{- end }}
+{{- if .Values.fsGroup }}
+      securityContext:
+        fsGroup: {{ .Values.fsGroup }}
+{{- end }}
+{{- if and .Values.initImage.pullSecrets .Values.image.pullSecrets }}
+      imagePullSecrets:
+      - name: {{ .Values.image.pullSecrets }}
+{{ end }}
+      # These containers are run during pod initialization
+      initContainers:
+      - name: {{ .Values.prefix }}-init
+        image: {{ .Values.initImage.repository }}/{{ .Values.initImage.name }}:{{ .Values.initImage.tag }}
+        imagePullPolicy: {{ .Values.initImage.pullPolicy }}
+        command: ['sh', '-c', "until $(wget -O /home/xcpuser/init.log http://{{ .Values.docbaseConnection.jmsservicename }}:{{ .Values.docbaseConnection.jmshttpport }}/bpm/modules.jsp); do echo waiting for CS Service; sleep 45; done"]       
+      containers:
+      - name: {{ .Values.prefix }}
+        image: {{ .Values.image.repository }}/{{ .Values.image.name }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        resources:
+{{ toYaml .Values.resources | indent 12 }}         
+        env:
+        - name: KUBERNETES
+          value: "true"
+        - name: CONTAINER_NAME
+          value: {{ .Values.prefix }}
+        - name: DOCBROKER_HOST
+          value: {{ .Values.docbaseConnection.docbroker }}
+        - name: DOCBROKER_PORT
+          value: {{ .Values.docbaseConnection.port | quote }}
+        - name: DOCBASE_NAME
+          value: {{ .Values.docbaseConnection.docbase }}
+        - name: DOCBASE_SUPER_USER
+          value: {{ .Values.docbaseConnection.superUser }}
+        - name: DOCBASE_SUPER_USER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.prefix }}-secret
+              key: superUserPassword
+{{ if .Values.docbaseConnection.use_certificate }}
+        - name: DOCBASE_USE_CERTIFICATES
+          value: {{ .Values.docbaseConnection.use_certificate | quote }}
+{{ end }}          
+####        - name: TOMCAT_ADMIN_USER
+####          value: {{ .Values.tomcat.username }}
+####        - name: TOMCAT_ADMIN_PWD
+####          valueFrom:
+####            secretKeyRef:
+####              name: {{ .Values.prefix }}-secret
+####              key: tomcatPassword
+        - name: TOMCAT_JAVA_OPTS
+          value: {{ .Values.tomcat.javaOptions }}              
+      {{- if .Values.newrelic.enable }}
+        - name: NEWRELIC_ENABLE
+          value: {{ .Values.newrelic.enable | quote  }}
+        - name: NEWRELIC_APP_NAME
+          value: {{ .Values.newrelic.app_name }}.{{ .Release.Namespace }}
+        - name: NEWRELIC_PROXY_HOST
+          value: {{ .Values.newrelic.proxy_host }}
+        - name: NEWRELIC_PROXY_PORT
+          value: {{ .Values.newrelic.proxy_port | quote  }}
+        - name: NEWRELIC_LICENSE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: {{ .Values.newrelic.licenseKeyName }}
+      {{- end }}              
+        ports:
+        - containerPort: 8080
+          name: webdesignerport
+        livenessProbe:
+          httpGet:
+            path: /{{ .Values.contextPath }}
+            port: webdesignerport
+          initialDelaySeconds: {{ .Values.liveness.initialDelay }}
+          periodSeconds: {{ .Values.liveness.period }}
+          failureThreshold: {{ .Values.liveness.failure }}
+          successThreshold: 1
+          timeoutSeconds: {{ .Values.liveness.timeout }}
+        readinessProbe:
+          httpGet:
+            path: /{{ .Values.contextPath }}
+            port: webdesignerport
+          initialDelaySeconds: {{ .Values.readiness.initialDelay }}
+          periodSeconds: {{ .Values.readiness.period }}
+          failureThreshold: {{ .Values.readiness.failure }}
+          successThreshold: 1
+          timeoutSeconds: {{ .Values.readiness.timeout }}          
+        volumeMounts:
+          - mountPath: /opt/tomcat/CustomConf
+            name: custom-conf-volume
+          - mountPath: /opt/tomcat/webapps/DocumentumWorkflowDesigner/WEB-INF/logger
+            name: custom-log-volume
+          - mountPath: /opt/tomcat/logs
+            name: {{ .Values.prefix }}
+            subPath: dctm-workflow-designer_logs
+{{ if eq .Values.docbaseConnection.use_certificate true }}
+          - mountPath: /opt/dctm/certificate
+            name: {{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+            subPath: certificate/{{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+{{ end }}            
+      volumes:
+        - name: {{ .Values.prefix }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.prefix}}-pvc      
+        - name: custom-conf-volume
+          configMap:
+            name: {{ .Values.prefix }}-dctm-workflow-designer-config
+            items:
+              - key: dfc
+                path: dfc.properties
+              - key: rest-api-runtime
+                path: rest-api-runtime.properties       
+              - key: deployment
+                path: deployment.properties
+        - name: custom-log-volume
+          configMap:
+            name: {{ .Values.prefix }}-dctm-workflow-designer-log-config
+            items:
+              - key: log4j2
+                path: log4j2.properties
+{{ if eq .Values.docbaseConnection.use_certificate true }}
+        - name: {{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.docbaseConnection.docbroker }}-pvc
+{{- end }}               
+      restartPolicy: Always

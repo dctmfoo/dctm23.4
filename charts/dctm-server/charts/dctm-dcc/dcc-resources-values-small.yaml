@@ -1,0 +1,53 @@
+consul:
+  resources:
+    limits:
+      cpu: 800m
+      memory: 800Mi
+    requests:
+      cpu: 400m
+      memory: 400Mi
+      
+metadata:
+  resources:
+    limits:
+      cpu: 800m
+      memory: 800Mi
+    requests:
+      cpu: 400m
+      memory: 400Mi
+
+syncagent:
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+      
+syncnshareManual:
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+      
+coreNotification:
+  resources:
+    limits:
+      cpu: 800m
+      memory: 800Mi
+    requests:
+      cpu: 400m
+      memory: 400Mi
+
+mailService:
+  resources:
+    limits:
+      cpu: 800m
+      memory: 800Mi
+    requests:
+      cpu: 400m
+      memory: 400Mi

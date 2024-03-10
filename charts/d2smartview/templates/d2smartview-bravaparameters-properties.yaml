@@ -1,0 +1,251 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2smartview-bravaparameters-properties
+  {{- template "configMap.labels" . }}
+data:
+  brava_parameters.properties: |-
+    # Brava! For D2 SmartView Configuration Parameters
+    
+    # Brava Server host Name.
+    ServerHostName=$PROTOCOL$://$APP_SERVER$:$APP_PORT$
+    
+    #D2 Smart View application URL
+    # This is an optional parameter, By default Brava! for D2-SmartView integration works with the relative url.
+    # This should be only used when we want to overwrite the D2-SmartView URL being used by B!D2-Smartview integration by default as stated above.
+    D2URL=$D2_PROTOCOL$://$D2_APP_SERVER$:$D2_APP_PORT$/D2-Smartview
+    
+    #Documentum Server Group(s) to permit Brava! Configuration
+    BravaConfigurationGroups=dm_sysadmin,admingroup
+    
+    #3D Attribute Name.  If this parameter populated, the 3d_attribute_value must have values
+    3d_attribute_name=
+    #3D Attribute Value.  If this parameter populated, the 3d_attribute_name must have values
+    3d_attribute_value=
+    #3D format name. If multiple formats enter delimited by comma (ie. acad,dwg)
+    3d_format_name=
+    #3D type name. If multiple types enter delimited by comma (ie. your3Dtype0,your3Dtype1)
+    3d_type_name=
+    
+    #HTML Viewer Width.  Must be in Percent
+    HtmlViewerWidth=100%
+    #HTML Viewer Height.  Must be in Percent
+    HtmlViewerHeight=100%
+    
+    # Client Logging
+    #Valid string values are as follows:
+    #"0" - ALL
+    #"1" - DEBUG
+    #"2" - INFO
+    #"3" - WARN
+    #"4" -ERROR
+    #"5" -FATAL
+    ClientLogging=4
+    AuditBravaView=TRUE
+    AutoNameMarkup=FALSE
+    BannerFontSize=
+    WatermarkBannerFontName=
+    WatermarkBannerFontStyle=
+    UseACSIfAvailable=FALSE
+    #BOCS
+    UseBOCSIfAvailable=FALSE
+    #BOCS Network location Id
+    bocs.network.location.id=
+    
+    WatermarkFolders=FALSE
+    WatermarkFolderName=
+    
+    # EnablePrinting  can be overridden with the below printing controls
+    EnablePrinting=TRUE
+    disable_printing_for_these_formats=
+    
+    #Preload Markups Configurations
+    PreLoadMarkupName=
+    PreloadReadOnlyMarkupNames=
+    
+    #rendition viewing related
+    UsePdfRendition=FALSE
+    PDF_Rendition_Control_For_Groups=
+    PDF_Rendition_Control_For_Users=
+    disable_These_Groups_For_Viewing_PDF_Rendition=
+    disable_These_Users_For_Viewing_PDF_Rendition=
+    
+    EnableMarkupConsolidate=FALSE
+    
+    AutoLoadChangemark=
+    
+    # Annotation options for Documentum
+    
+    # Enable markup save 'private' checkbox
+    EnablePrivate=TRUE
+    # Enable markup save 'keep with version' checkbox
+    EnableVersion=TRUE
+    
+    #
+    #Markup Permissions
+    #
+    #Default Markup Permissions for users with READ access
+    #
+    
+    EnableMarkupReview=TRUE
+    
+    #
+    #PRINTING CONTROLS - ALLOWS THE DISABLING OF PRINTING FOR SPECIFIC USERS/GROUPS
+    #
+    Printing_Control_For_Groups=FALSE
+    Printing_Control_For_Users=FALSE
+    
+    # List of disabled printing groups separated by a ,
+    disable_These_Groups_For_Printing=
+    # List of disabled printing users separated by a ,
+    disable_These_Users_For_Printing=
+    #Allow these groups to control Stamp templates
+    Allow_These_Groups_To_Control_Stamp_Templates=
+    #Allow these users to control Stamp templates
+    Allow_These_Users_To_Control_Stamp_Templates=
+    
+    #These groups will have redacted view of document based on script configured
+    Add_These_Groups_To_Redacted_Rendition_View=
+    #These users will have redacted view of document based on script configured
+    Add_These_Users_To_Redacted_Rendition_View=
+    #Redaction script files path in D2 deployment directory on application server
+    Html_Redaction_Scripts_Path=/ui/igc/config
+    
+    #
+    #LICENSING CONTROLS
+    # users/group lists by comma-separated values (i.e. group1,group2,group3)
+    Licensing_Control_For_CAD_Groups=FALSE
+    license_These_Groups_For_CAD=
+    
+    Licensing_Control_For_CAD_Users=FALSE
+    license_These_Users_For_CAD=
+    
+    Licensing_Control_For_Documents_Groups=FALSE
+    license_These_Groups_For_Documents=
+    
+    Licensing_Control_For_Documents_Users=FALSE
+    license_These_Users_For_Documents=
+    
+    # Supported Brava Video Format
+    SupportedVideoFormats=F4V,MOV,MP4,264,m4v,mpeg-4v
+    
+    #************************************HTML Viewer Parameters BEGIN*******************************************************
+    #HTML Viewer in SimpleMode
+    html.showInSimpleMode=FALSE
+    #HTML Viewer in DesktopMode
+    html.showInDesktopMode=FALSE
+    #HTML Viewer Show Theme in Light Color
+    html.showThemeInLightColor=FALSE
+    
+    html.viewer.setSinglePageLayout=FALSE
+    
+    html.viewer.backgroundcolor=
+    html.viewer.BOOKMARK_CONTROLS=TRUE
+    html.viewer.THUMBNAIL_CONTROLS=TRUE
+    
+    #HTML Markup feature
+    html.markupsFeature.EnableEdit=TRUE
+    html.markupsFeature.EnableReview=TRUE
+    html.markupsFeature.EnableCloseReview=TRUE
+    html.markupsFeature.EnableChangemarkReplies=TRUE
+    html.markupsFeature.EnableMarkupOverwrite=TRUE
+    html.markupsFeature.EnableVersion=TRUE
+    html.markupsFeature.EnableDefaultVersion=FALSE
+    html.markupsFeature.EnablePrivate=TRUE
+    html.markupsFeature.EnableDefaultPrivate=FALSE
+    html.markupsFeature.EnableCommonOwnership=
+    html.markupsFeature.SYMBOL_CONFIG_URI=
+    html.markupsFeature.EnableMarkupStampTool=TRUE
+    html.markupsFeature.MarkupSaveDescription=FALSE
+    #Consolidate all existing markups before enabling this flag. After enabling this flag, only the
+    #latest markup file will have all the changes (if exists otherwise a new file will be created)
+    html.markupsFeature.EnableSingleEditableMarkup=FALSE
+    
+    #HTML Markup Ownership feature
+    html.enable.Markup.changeOwner=
+    html.enable.Markup.TakeOwnershipOnConsolidate=
+    
+    #HTML Markup Menu feature
+    html.markupMenu.EnableNew=TRUE
+    html.markupMenu.EnableOpen=TRUE
+    html.markupMenu.EnableSave=TRUE
+    html.markupMenu.EnableSaveAs=TRUE
+    html.markupMenu.EnableClose=TRUE
+    html.markupMenu.EnableConsolidate=TRUE
+    
+    #HTML Printing Feature
+    html.printFeature.Enabled=TRUE
+    html.printFeature.default.Grayscale=
+    
+    #HTML Publish/Export Feature
+    html.publishFeature.Enabled=TRUE
+    html.publishFeature.EnablePDF=TRUE
+    html.publishFeature.EnableTIF=TRUE
+    html.publishFeature.EnableUserControls=FALSE
+    html.publishFeature.ColorMode=
+    html.publishFeature.OverrideColorModeUserSetting=FALSE
+    
+    #List of Users/Groups allowed to publish locally and to the Documentum Server in the HTML Viewer
+    html.publish.local.users=
+    html.publish.local.groups=
+    html.publish.vault.users=
+    html.publish.vault.groups=
+    
+    #HTML Redaction Feature
+    html.max.cache.size.file.cached=50
+    html.max.cache.size.file.not.cached=8
+    html.number.preloaded.pages.file.not.cached=3
+    
+    #HTML view Features
+    html.viewmodeFeature.InitialZoom=
+    html.viewmodeFeature.default.Grayscale=
+    html.viewmodeFeature.default.BlackAndWhite=
+    html.rendition.thumbnail.size=100
+    html.rendition.thumbnail.dimension=width
+    html.rendition.view.size=1440
+    html.rendition.view.dimension=width
+    html.rendition.max.raster.dimension=3500
+    
+    #HTML view search default options
+    html.searchFeature.DefaultTermHits=
+    html.searchFeature.IgnoreTermHitScale=
+    html.searchFeature.MatchCase=
+    html.searchFeature.ShowDialog=
+    html.searchFeature.WholeWord=
+    
+    #Below parameter has been added to enable Markup Consolidate and ChangeOwnership for user's only having higher permissions than provided value
+    #Accepts values 3 or 4 or 5 or 6 for permissions DF_PERMIT_READ,DF_PERMIT_RELATE,DF_PERMIT_VERSION,DF_PERMIT_WRITE respectively
+    # e.g. html.markup.enable.consolidate.changeownership.with.higher.permission.than=4
+    html.markup.enable.consolidate.changeownership.with.permission.higher.than=
+    
+    #When enabled we use document objectId as cacheFileName in displayListCache else document name is used as cacheFilename
+    #By default, it is false and use document name as cacheFilename
+    useDocumentIdAsCacheFilename=
+    
+    #Enable/Disable copy text on HTML VIewer
+    html.enable.copy.text=true
+    
+    #*******************************************Excluded format from ActiveX and Html Viewer
+    activex.html.excluded.formats=avi,mpg,quicktime,java,win32shrlib,unknown,wmv,jar,wav,jsp,js,class,bin,exe,bat,tar,iso,mp3,
+    
+    #**************Validation for various input attributes
+    Validator.Extended.Common=^[a-zA-Z0-9\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF \\-&*()_+|~=`{}\\[\\]:;'<>?,.]{0,900}$
+    Validator.Basic.AlphaNum=^[a-zA-Z0-9\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF \\-_|~:,.]{0,900}$
+    Validator.User.AlphaNum=^[a-zA-Z0-9\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF @\\-&*()_+|~=`{}\\[\\]:;'<>?,.]{0,900}$
+    Validator.URL.AlphaNum=^[a-zA-Z0-9\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF @\\-&/_+|=:;?.]{0,900}$
+    
+    #*********** Default Markup Tool ******************#
+    #Use default markup from the following list to set default in the dropdown. Default it will be set to Annotations
+    #List [Annotations,Changemarks,Drawings,Lines,Redactions,Stamps,Text Editing]
+    #default_markup_tool=Annotations
+    
+    html.markup.default.font.size=0.3
+{{- $configFileOverridesFile := printf "%s/%s" .Values.configFileOverrideFilesDir "brava_parameters.properties" }}
+{{- $configFileMsg0 := printf "\n\n##### Begin lines added from %s\n" $configFileOverridesFile }}
+{{- $configFileMsg1 := printf "##### End lines added from %s" $configFileOverridesFile }}
+{{- $configFileLinesToAppend := .Files.Get $configFileOverridesFile }}
+{{- if $configFileLinesToAppend }}
+{{ $configFileMsg0 | indent 4 }}
+{{ $configFileLinesToAppend | indent 4 }}
+{{ $configFileMsg1 | indent 4 }}
+{{- end }}

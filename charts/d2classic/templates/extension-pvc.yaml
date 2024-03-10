@@ -1,0 +1,16 @@
+{{- if .Values.extension.createPVC }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.extension.pvcName }}
+spec:
+  accessModes:
+    - {{ .Values.extension.PVCAccessMode }}
+  storageClassName: {{ .Values.extension.PVCStorageClass }}
+  {{- if .Values.extension.staticPVName }}
+  volumeName: {{ .Values.extension.staticPVName }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.extension.PVCSize }}
+{{- end }}

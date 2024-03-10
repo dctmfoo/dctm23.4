@@ -1,0 +1,62 @@
+{{- if .Values.containers.fluentd.enable }}
+# Create the configmap when fluentd is enabled
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configMap.fluentd_configMap_name }}
+data:
+  fluentd.conf: |
+    <source>
+        @type forward
+        @id input_forward
+        port {{ .Values.containers.fluentd.TCPPort | default 24224 }}
+        bind 0.0.0.0
+    </source>
+    <source>
+        @type http
+        @id input_http
+        port {{ .Values.containers.fluentd.RESTPort | default 8888 }}
+    </source>
+    <source>
+        @type debug_agent
+        @id input_debug_agent
+        bind 127.0.0.1
+        port 24230
+    </source>
+    <source>
+        @type udp
+        tag DCTMEventHub.events # required
+        port {{ .Values.containers.fluentd.UDPPort | default 20001 }}
+        bind 0.0.0.0
+        <parse>
+            @type json
+        </parse>
+    </source>
+    <match *.**>
+        @type kafka2
+        sasl_over_ssl false
+        use_event_time true
+{{- if eq .Values.containers.fluentd.bufferingMode "FILEBUFFER" }}
+        <buffer {{ .Values.containers.fluentd.kafkaTopic }}>
+            @type file
+            path /var/log/td-agent/buffer/td
+            flush_interval {{ .Values.containers.fluentd.flushInterval | default "3s" }}
+        </buffer>
+{{ else }}
+        <buffer {{ .Values.containers.fluentd.kafkaTopic }}>
+            @type memory
+        </buffer>
+{{- end }}
+        <format>
+            @type json
+        </format>
+        brokers {{ template "generatekfklist" .Values }}
+        scram_mechanism sha512
+        username {{ .Values.containers.fluentd.kafkaUser }}
+        password {{ .Values.containers.fluentd.kafkaUsrPasswd }}
+        topic_key {{ .Values.containers.fluentd.kafkaTopic }}
+        topic {{ .Values.containers.fluentd.kafkaTopic }}
+        required_acks -1
+        compression_codec {{ .Values.containers.fluentd.compressionMode | default "nil" }}
+    </match>
+{{- end }}

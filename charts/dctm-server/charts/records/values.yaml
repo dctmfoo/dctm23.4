@@ -1,0 +1,197 @@
+#######################################################
+# Records default values.                             #
+# This is This is a YAML-formatted file.              #
+# Declare variables to be passed into your templates. #
+#######################################################
+
+# Specify the namespace name.
+namespace:
+userName: dmadmin
+
+custom:      
+  scriptinPVC: false
+  scriptPVCname: shared-pvc
+  PVCSubPath: customscripts  
+  useInitContainers: false
+# Specify Persistent Volume Claim details.
+persistentVolumeClaim:  
+  pvcName: recordspvc
+  # Applicable modes ReadWriteMany and ReadWriteOnce.
+  accessMode: ReadWriteOnce
+  size: 1Gi
+  storageClass: trident-nfs
+  awsEFSCSIDriver: efs.csi.aws.com
+  awsEFSCSIHandle:     
+
+# Specify Service details.
+service:
+  name: records-svc
+  type: ClusterIP
+  port: 8080  
+  
+# Ingress details
+ingress:
+    name: records-ingress     
+    enable: false   
+    # Ingress host name will be prepended to cluster domain name.
+    ingressHostName: records-ingress-host
+    clusterDomainName: docu.cfcr-lab.bp-paas.otxlab.net   
+    annotations: 
+      nginx.ingress.kubernetes.io/proxy-body-size: 5g
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: 30m 
+    # Uncomment for deploying on azure.
+    # kubernetes.io/ingress.class: nginx    
+    # nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # kubernetes.io/tls-acme: "true"  
+  
+### Docbroker ###
+
+docbroker:
+  replicaCount: 2
+  serviceName: dbr
+  port: 1489
+  
+### Environment ###
+env:
+  domain: rm-docu.svc.cluster.local
+  # Only used in cloud tenant environment to add subscriptionName query string 
+  # parameter to the OTDS authentication URL when redirecting the user.
+  #subscriptionName: subscription1
+
+# Content Server Helm deployment details.
+cs:   
+  useCSDfcConfigMap: true             
+  configMapName: cedbr.configmap
+  csSecretConfigName: cecs-secret-config
+  allowTrustedLogin: false
+  
+  
+certificate:
+  useCertificate: false
+  dbrServiceName: cedbr
+  dbrDataPVCName: certdbr-data-pvc
+  
+ ####################################################################################
+# Suppose Content Server config map not used                                       #
+# then update the below listed parameters with appropriate values of dfc.properties#
+# and ensure to toggle the flag useDfcConfigMap to false.                          #
+####################################################################################
+dfc:  
+  properties:
+  - dfc.data.dir=/opt/dctm
+  - dfc.tokenstorage.dir=/opt/dctm/apptoken
+  - dfc.tokenstorage.enable=false
+  - dfc.docbroker.host[0]=<DOCBROKER_SERVICE_NAME>
+  - dfc.docbroker.port[0]=<PORT_NO>
+  - dfc.crypto.repository=<CRYPTO_REPO_NAME>
+  - dfc.globalregistry.repository=<GLOBAL_REPO>
+  - dfc.session.secure_connect_default=try_secure_first
+  - dfc.globalregistry.username=dm_bof_registry
+  - dfc.globalregistry.password=<GLOBAL_REPO_PASSWORD>
+  - dfc.security.ssl.use_anonymous_cipher=true
+  - dfc.session.allow_trusted_login=false
+  - dfc.security.ssl.truststore=/opt/dctm/certificate/dfc.keystore
+
+# RECORDS Deployment details 
+deployment:  
+  name: records  
+  strategyType: RollingUpdate   
+
+# Specify Docker images details
+
+images:
+  records:
+     repository: artifactory.otxlab.net/bpdockerhub
+     name: dctm-records
+     tag: 23.4
+     pullPolicy: IfNotPresent
+     pullSecrets:
+  graylog:
+    enable: true
+    image: artifactory.otxlab.net/bpdockerhub/graylog-sidecar@sha256:d8ed2bf68399e34bafc68f883d8f4fb14feb9575e78d63722e544c1529f37db9
+    pullPolicy: IfNotPresent    
+    name: graylog-sidecar
+    server: 10.9.57.15
+    port: 9000
+
+# Containers details    
+containers:
+  records:    
+    name: records      
+    containerPort: 8080
+    docbaseName:  <DOCBASE_NAME>
+    recordsSingleHelm: false
+    probing:
+      healthPort: 8080
+      failureThreshold: 2
+      successThreshold: 1
+      timeoutSeconds: 120
+      readinessProbe:      
+        initialDelaySeconds: 120
+        periodSeconds: 120     
+      livenessProbe:
+        initialDelaySeconds: 120
+        periodSeconds: 120
+# OTDS SSO details.
+# Following mentioned values will be updated in otdsoauth.properties file of records if enabled.
+records:
+  replicaCount: 2
+otds:
+  enable: false
+  url: http://otdsapi-highland.dev.bp-paas.otxlab.net/otdsws
+  clientID: records
+  scheme: https
+  authentication:
+    useDefaultDocbase: true
+    repoSelectionPageRequired: true
+    loginTicketTimeout: 250
+    renewtokenafterlogout: true
+
+###############################################################################
+# To update the wdk/app.xml file take hierarchal structure and form parameter #
+# as below. Exclude tags <scope> and <config>.                                #
+#<application>                                                                #
+#     <language>                                                              #
+#        <supported_locales>                                                  #
+#           <locale>                                                          #
+# this should be converted to application.language.supported_locales.locale   #
+# and add equals operator then value                                          #
+#                                                                             #
+###############################################################################
+wdkAppXmlConfig:  
+  tagsnvalues:
+  # Syntax for specifying both English and Japanese language pack 
+  # application.language.supported_locales.locale=[en_US, ja_JP]
+  - application.language.supported_locales.locale=[en_US]
+  - application.language.default_locale=en_US
+ 
+# log4j2 logging config details.
+logging:  
+  rootLoggerLevel: WARN
+  consoleThresholdLevel: WARN
+  filename: documentum.log
+  logFileSize: 10MB
+  maxLogFiles: 5
+  
+userProvidedServices:
+  newrelic:
+    enable: true    
+    appName: <MY_APPLICATION>
+    proxyHost: 
+    proxyPort:
+    proxyScheme: https
+  
+dfcTracing:
+  enable: false
+  configMapName: records-dfcTracing-configMap
+  filePrefix: dfcTrace
+  logLevel: DEBUG  
+
+serviceAccount:
+  createserviceaccount: false
+  serviceAccountName: documentum-sa
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

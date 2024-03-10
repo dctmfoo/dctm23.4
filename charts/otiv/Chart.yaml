@@ -1,0 +1,37 @@
+apiVersion: v2
+appVersion: "7.7"
+dependencies:
+- condition: amqp.enabled
+  name: amqp
+  repository: ""
+- condition: asset.enabled
+  name: asset
+  repository: ""
+- condition: config.enabled
+  name: config
+  repository: ""
+- condition: highlight.enabled
+  name: highlight
+  repository: ""
+- condition: markup.enabled
+  name: markup
+  repository: ""
+- condition: publication.enabled
+  name: publication
+  repository: ""
+- condition: publisher.enabled
+  name: publisher
+  repository: ""
+- condition: viewer.enabled
+  name: viewer
+  repository: ""
+- condition: otds.enabled
+  name: otds
+  repository: ""
+- condition: postgresql.enabled
+  name: postgresql
+  repository: https://charts.bitnami.com/bitnami
+description: Intelligent Viewing micro-services
+name: otiv
+type: application
+version: 23.4.0

@@ -1,0 +1,46 @@
+#These are specific configuration values passed for AWS ALB. Other values for dctm-ingress still need to be configured in main values.yaml only
+consul:
+  ingress:
+    uipath: ui*
+    backendpath: v1*
+    
+syncagent:
+  ingress:
+    path: syncagent*
+
+syncnshareManual:
+  ingress:
+    path: syncnshare-manual*
+    
+## If create pv is true in the values.yaml then provide the driver and handler here
+pvc:
+  createPV: true
+  awsEFSCSIDriver: <AWS EFS Driver> 
+  awsEFSCSIHandle: <AWS EFS CSI Handle>
+
+ingress:
+  #platform
+  platform: AWS
+  #annotations for the ingress object
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/subnets: <public subnet of the associated VPC>
+    alb.ingress.kubernetes.io/target-type: 'ip'    
+    alb.ingress.kubernetes.io/target-group-attributes: stickiness.enabled=true,stickiness.lb_cookie.duration_seconds=1200
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=600
+    alb.ingress.kubernetes.io/group.name: dctm-group
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    ##Use values, for HTTP: [{"HTTP":80}], for HTTPS: [{"HTTPS": 443}], for both: [{"HTTP":80}, {"HTTPS": 443}]
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/load-balancer-name:  <load balancer name>
+    ##Uncomment below to enable tls
+    alb.ingress.kubernetes.io/certificate-arn: <arn of the certificate>
+  domain: 
+  ### enable TLS ###
+  tls:
+    ## to be set false as it is not required for AWS and all the remaining fields to tls to be kept empty.
+    enabled: false
+    secretName: 
+    tlscrt: 
+    tlskey: 

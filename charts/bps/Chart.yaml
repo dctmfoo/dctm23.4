@@ -1,0 +1,5 @@
+apiVersion: v2
+appVersion: "23.4"
+description: A Helm chart for PI on Kubernetes
+name: bps
+version: "23.4"

@@ -1,0 +1,1 @@
+Copy the xDA Trust Store file and paste it in this secrets folder.

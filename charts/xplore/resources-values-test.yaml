@@ -1,0 +1,29 @@
+
+### xPlore CPS ###
+cps:
+  replicaCount: 1
+persistentVolume:
+  size: 200Gi
+### Resources ###
+resources:
+  indexserver:
+    requests:
+      memory: 8Gi
+      cpu: 2000m
+    limits:
+      memory: 16Gi
+      cpu: 4000m
+  indexagent:
+    requests:
+      memory: 8Gi
+      cpu: 2000m
+    limits:
+      memory: 16Gi
+      cpu: 4000m
+  cps:
+    requests:
+      memory: 8Gi
+      cpu: 1000m
+    limits:
+      memory: 16Gi
+      cpu: 2000m

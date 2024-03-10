@@ -1,0 +1,31 @@
+{{- if eq .Values.enabled true }}
+{{- if eq .Values.enableBootstrapConfig true }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ template "otdsws.name" . }}-bootstrap
+{{- if .Values.global.namespace }}
+  namespace: {{ .Values.global.namespace }}
+{{- end }}
+  labels:
+    {{- include (printf "%s%s" .Chart.Name ".labels" ) . | nindent 4 }}
+data:
+{{- if .Values.existingBootstrapConfig }}
+{{/*
+Support custom local bootstrap config files
+*/}}
+  config.yml: |-
+    {{ .Values.existingBootstrapConfig | b64enc }}
+{{- else }}
+{{/*
+Support multiple OTDS bootstrap config files in subdirectory of Helm Charts
+*/}}
+    {{ range $path, $_ :=  .Files.Glob  "config/*.yml" }}
+    {{ $subdir := dir $path }}
+    {{ $currentFilename := ($path | replace (printf "%s/" $subdir) "" ) }}
+    {{ $currentFilename | indent 2 }}: |-
+        {{ tpl ($.Files.Get $path) $ | b64enc }}
+    {{ end }}
+{{ end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,360 @@
+dctm-server:
+  db:
+    database:
+      replicaCount: 2
+    alterParam:
+      max_connections: 1000
+      shared_buffers: 8GB
+    persistentVolume:
+      size: 200Gi
+    resources:
+      limits:
+        cpu: 40000m
+        memory: 32Gi
+      requests:
+        cpu: 24000m
+        memory: 24Gi
+  docbroker:
+    docbroker:
+      replicaCount: 4
+    persistentVolume:
+      size: 1Gi
+    resources:
+      limits:
+        cpu: 600m
+        memory: 2Gi
+      requests:
+        cpu: 300m
+        memory: 1Gi
+  content-server:
+    contentserver:
+      replicaCount: 6
+      docbrokersCount: 4
+    persistentVolume:
+      size: 21Gi
+    dbrpersistentVolume:
+      size: 1Gi
+    resources:
+      limits:
+        cpu: 6000m
+        memory: 24Gi
+      requests:
+        cpu: 3000m
+        memory: 20Gi
+  dctm-rest:
+    replicaCount: 4
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 8Gi
+      requests:
+        cpu: 2000m
+        memory: 6Gi
+  dctm-cmis:
+    replicaCount: 4
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 8Gi
+      requests:
+        cpu: 2000m
+        memory: 6Gi
+  dctm-workflow-designer:
+    replicaCount: 1
+    persistentVolume:
+      size: 2Gi
+    volumeClaimTemplates:
+      size: 200Mi
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 4Gi
+      requests:
+        cpu: 500m
+        memory: 3Gi
+  dfs:
+    replicaCount: 4
+    volumeClaimTemplate:
+      size: 1Gi
+      # storage class for the volumeClaimTemplates Ex : azurefile
+      logVctSize: 2Gi
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 8Gi
+      requests:
+        cpu: 2000m
+        memory: 6Gi
+  contentconnect:
+    replicaCount: 3
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+    contentconnectdb:
+      replicaCount: 1
+      resources:
+        limits:
+          cpu: 0.5
+          memory: 600Mi
+        requests:
+          cpu: 0.4
+          memory: 500Mi
+  dtrbase:
+    persistentVolumeClaim:
+      size: 1Gi
+    deployment:
+      replicaCount: 1
+    resources:
+      limits:
+        cpu: 1600m
+        memory: 12Gi
+      requests:
+        cpu: 800m
+        memory: 6Gi
+  da:
+    replicaCount: 1
+    persistentVolumeClaim:
+      size: 1Gi
+    resources:
+      limits:
+        cpu: 400m
+        memory: 4Gi
+      requests:
+        cpu: 200m
+        memory: 2Gi
+  records:
+    records:
+      replicaCount: 2
+    resources:
+      limits:
+        cpu: 1600m
+        memory: 12Gi
+      requests:
+        cpu: 800m
+        memory: 6Gi
+  rqm:
+    containers:
+      rqm:
+        replicaCount: 1
+    resources:
+      limits:
+        cpu: 1600m
+        memory: 12Gi
+      requests:
+        cpu: 800m
+        memory: 6Gi
+otds:
+  otdsws:
+    replicas: 2
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 2000m
+        memory: 1.5Gi
+d2classic:
+  replicaCount: 4
+  graylog:
+    volumeClaimTemplate:
+      logVctSize: 6Gi
+  persistentVolume:
+    size: 1Gi
+  resources:
+    limits:
+     cpu: 1600m
+     memory: 12Gi
+    requests:
+     cpu: 800m
+     memory: 6Gi
+d2config:
+  replicaCount: 1
+  graylog:
+    volumeClaimTemplate:
+      logVctSize: 6Gi
+  persistentVolume:
+    size: 1Gi
+  extension:
+    PVCSize: 8Gi
+  resources:
+    limits:
+     cpu: 1000m
+     memory: 12Gi
+    requests:
+     cpu: 200m
+     memory: 4Gi
+d2smartview:
+  replicaCount: 4
+  graylog:
+    volumeClaimTemplate:
+      logVctSize: 6Gi
+  persistentVolume:
+    size: 1Gi
+  resources:
+    limits:
+     cpu: 2800m
+     memory: 12Gi
+    requests:
+     cpu: 1400m
+     memory: 5.5Gi
+d2rest:
+  replicaCount: 3
+  graylog:
+    volumeClaimTemplate:
+      logVctSize: 6Gi
+  persistentVolume:
+    size: 1Gi
+  resources:
+    limits:
+     cpu: 2800m
+     memory: 12Gi
+    requests:
+     cpu: 1400m
+     memory: 5.5Gi
+xplore:
+  cps:
+    replicaCount: 2
+  persistentVolume:
+    size: 2851Gi
+  resources:
+    indexserver:
+      limits:
+        cpu: 4000m
+        memory: 24Gi
+      requests:
+        cpu: 2000m
+        memory: 12Gi
+    indexagent:
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+    cps:
+      limits:
+        cpu: 4000m
+        memory: 12Gi
+      requests:
+        cpu: 2000m
+        memory: 6Gi
+smartviewm365:
+  replicaCount: 2
+  resources:
+    limits:
+     cpu: 800m
+     memory: 4Gi
+    requests:
+     cpu: 300m
+     memory: 2.5Gi
+appworks-gateway:  
+  replicaCount: 2  
+  resources:
+    limits:
+      cpu: 100m
+      memory: 0.4Gi
+    requests:
+      cpu: 100m
+      memory: 0.4Gi
+otiv:
+  amqp:
+    replicaCount: 2  
+    persistence:
+      size: 1Gi
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+  asset:
+    replicaCount: 4  
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1.2Gi
+      requests:
+        cpu: 250m
+        memory: 0.6Gi
+  config:
+    replicaCount: 4 
+    resources:
+      limits:
+        cpu: 500m
+        memory: 2.9Gi
+      requests:
+        cpu: 250m
+        memory: 1.5Gi
+  highlight:
+    replicaCount: 4  
+    resources:
+      limits:
+        cpu: 500m
+        memory: 0.7Gi
+      requests:
+        cpu: 250m
+        memory: 0.35Gi
+  markup:
+    replicaCount: 4  
+    resources:
+      limits:
+        cpu: 500m
+        memory: 0.7Gi
+      requests:
+        cpu: 250m
+        memory: 0.35Gi        
+  publication:
+    replicaCount: 4  
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 3.7Gi
+      requests:
+        cpu: 500m
+        memory: 1.85Gi        
+  publisher:
+    replicaCount: 10  
+    resources:
+      limits:
+        cpu: 1500m
+        memory: 2.5Gi
+      requests:
+        cpu: 750m
+        memory: 1.25Gi    
+  viewer:
+    replicaCount: 3  
+    resources:
+      limits:
+        cpu: 500m
+        memory: 0.7Gi
+      requests:
+        cpu: 250m
+        memory: 0.35Gi
+bps:
+  replicaCount: 2
+  volumeClaimTemplates:  
+    size: 1Gi  
+  bpsConfig:
+    maxReplicas: 6
+    minReplicas: 4
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 16Gi
+    requests:
+      cpu: 3000m
+      memory: 14Gi  
+xda:
+  replicaCount: 1  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 4Gi          

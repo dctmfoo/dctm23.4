@@ -1,0 +1,140 @@
+
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+namespace:
+
+### Service for CC ### 
+service:
+  name: cc
+  #path: /cc
+  ports:
+    targetport: 8080
+    protocol: TCP
+    port: 8080
+  servicepath: /service
+
+### Service for CC Admin ### 
+serviceadmin:
+  name: cc-admin
+  #path: /cc/service
+  ports:
+    targetport: 2500
+    protocol: TCP    
+    port: 80
+    
+### Config Map ### 
+configmap:
+  name: cc-config
+  DB_IP:
+  DB_PORT:
+  DB_DB: 
+  DB_USERNAME:
+  DB_TYPE:
+  DB_TABLESPACE_NAME:
+  authType:
+  otdsUrl: 
+  otdsClientID: 
+  clientId:
+  clientSecret: 
+  tenantId: 
+  extension: 
+  protocol:
+
+newrelic:
+#   new_relic_enabled: true
+    new_relic_no_config_file: true
+#   new_relic_app_name: <NEWRELIC-APPNAME>
+#   new_relic_license_key: <NEWRELIC-LICENSEKEY>
+#   new_relic_proxy_url: <NEWRELIC-PROXYURL>
+  
+
+  
+### Ingress ### 
+ingress:
+  name: cc-ingress
+  enabled:
+  configureHost:
+  annotations:
+  class: 
+#    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+#    kubernetes.io/ingress.class: nginx
+#    nginx.ingress.kubernetes.io/affinity: cookie
+#    nginx.ingress.kubernetes.io/session-cookie-hash: sha1
+#    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+#    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+#    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+#    nginx.ingress.kubernetes.io/session-cookie-name: route
+  tls:
+    enable: 
+    hosts: 
+    secretName: cctlssecret
+  rules:
+    host:
+    
+#graylog:
+#  enable: true
+    
+###Docker Image details ### 
+#images:
+#  cc:
+#    repository: artifactory.otxlab.net/bpdockerhub
+#    name: dctm-content-connect
+#    tag: 21.4.0066
+#    pullPolicy: IfNotPresent
+#  ccdb:
+#    repository: artifactory.otxlab.net/bpdockerhub
+#    name: contentconnect_cs5
+#    tag: latest
+#    pullPolicy: IfNotPresent
+
+dbdeployment:
+  name: ccdb
+  containers:
+    name: ccdb   
+    
+serviceAccount:
+  createserviceaccount: 
+  serviceAccountName:    
+### Deployment ### 
+deployment:
+  name: cc
+  app: cc
+  containername: cc
+  readinessProbe:
+    initialDelaySeconds: 360
+    periodSeconds: 60
+    failureThreshold: 3
+    successThreshold: 1
+    timeoutSeconds: 60
+  livenessProbe:
+    initialDelaySeconds: 360
+    periodSeconds: 60
+  startupProbe:
+    initialDelaySeconds: 360
+    periodSeconds: 60
+    failureThreshold: 3
+    successThreshold: 1
+    timeoutSeconds: 60
+ 
+ 
+  ports:
+    containerport1: 8080
+    containerport2: 2500
+
+### Secrets ###
+secret: 
+ name: cc-secret 
+ type: Opaque
+ DB_PASSWORD:
+
+### Set value to true if Database creation is needed else false ###
+#contentconnectdb:
+#  value: true
+
+#certificatesecret:
+#  crt:
+#    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
+#  key: 
+#    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
+

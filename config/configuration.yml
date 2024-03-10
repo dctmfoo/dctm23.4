@@ -1,0 +1,1042 @@
+otds:
+  global:
+    otdsUseReleaseName: false
+  otdsws:
+  ## statefulSet controls if the OTDS server gets deployed as a statefulSet
+  ## Kubernetes resource. If OTDS needs to have static pod name which is needed
+  ## especially in some on-prem scenarios e.g. sync master host.
+    statefulSet: false
+  ## A sample config.yml file is in the otdsws chart directory
+    enableBootstrapConfig: false
+  ## The Hostname should be in the format of
+  ## <value specified for 'ingress.hostShortName' in ingress helm chart's value.yaml >.<value specified for 'ingress.hostDomainName' in ingress helm chart's value.yaml>
+    publicHostname:
+      dctm-ingress.d2.cfcr-lab.bp-paas.otxlab.net
+    additionalJavaOpts:    
+    otdsdb:
+      url: jdbc:postgresql://db-pg-0.db-pg.<namespace>.svc.cluster.local:5432/postgres
+    ## newrelic.* define NewRelic APM integration settings
+    newrelic:
+      NEW_RELIC_APP_NAME: OTDS_documentum-PROD-OT2_CFCR_LI3-EIM_<namespace>
+      NEW_RELIC_LOG_FILE_NAME: STDOUT
+      NEW_RELIC_LOG_LEVEL: info
+      NEW_RELIC_BROWSER_MONITORING_AUTO_INSTRUMENT: "false"
+      JAVA_OPTS: -javaagent:/opt/newrelic/newrelic.jar
+
+dctm-server:
+  cs-secrets:
+      docbase:
+        password: Password@1234567890
+        licenses:
+          recordManager: 
+          prm: 
+          fedRecdService: 
+          rps: 
+          snaplockstore: 
+          storageaware: 
+          trusted: 
+          highVolumeServer:
+      docbroker:
+        certificate:
+          password:
+          aekpassphrase:
+          trustpassword:
+          pemCertPrivKey:
+          pemCertificate:
+      contentserver:
+        aek:
+          passphrase: Password@1234567890  
+        certificate:
+          password:
+          trustpassword:
+          pemCertPrivKey:
+          pemCertificate:
+        install:
+          appserver:
+            admin:
+              password: Password@1234567890  
+          
+      kms:
+        apiKey: <KMS_API_KEY>
+      ### Database ###
+      database:
+        userName: postgres
+        password: password
+      ### Thumbnail Server ###
+      thumbnailServer:
+        appServerPassword: password@123
+
+      ### S3 Store ###
+      s3Store:
+        s3StoreBaseUrl:
+        s3StoreCredentialID:
+        s3StoreCredentialKEY:
+        ### S3 Store ssl certificate, below value is for (otx-sgws01-l000.otxlab.net) change accordnigly ###
+        certificate: |
+          -----BEGIN CERTIFICATE-----
+          MIICzDCCAbSgAwIBAgIJAOd7/dcwQv9dMA0GCSqGSIb3DQEBCwUAMBcxFTATBgNV
+          BAMMDCoub3R4bGFiLm5ldDAeFw0xODAxMDMxODUyMTdaFw0yODAxMDExODUyMTda
+          MBcxFTATBgNVBAMMDCoub3R4bGFiLm5ldDCCASIwDQYJKoZIhvcNAQEBBQADggEP
+          ADCCAQoCggEBAMbvOwEkeDIgua+tMEQkp7qAr59K9mzFjAlPp4Ng4dYTa5T8JH/A
+          t28K7TGHj2hl2PZEhN177xtBl1U2LAufE5fbItqVQu1JPnYr4wrOdyA6Aiz7yR7w
+          KblDiQdtz3BCLcQy+PURxfR9LQhY2AKxt4DUtpMbLG2FYwbCiOToW/yF1e2f0BaN
+          MAOQxvqqZbCgZv3UagoROX+ZX7F3SZES6bGuPwufo80tGX+3ZgpblRSVf+z8ANIv
+          zuNGL29OIYSBXg+vdH0lNb+XYCFd3tP3/hLRC992WSDibf4phgrD4VC1I9qUN7B1
+          eN2iemVGtSs9jO/IW4zHBMN8UxG8PErqyj8CAwEAAaMbMBkwFwYDVR0RBBAwDoIM
+          Ki5vdHhsYWIubmV0MA0GCSqGSIb3DQEBCwUAA4IBAQAUX6bZDeKKkMXxOV1DgQGq
+          w4QUvtqYkxQhwPPXP9cbVaA6fJ359HzJkrggP63Ko9e+xcI9OiYMlZ6xfnkzMMUs
+          EYw2l62BnxHXYPqN0h5NqDm1BT/UK4prHecRzyjw18RyQf80/1QQlSULCwfloWfh
+          PFC9AyJv/CVpqTswi8+OmVyT7dIUHAoPFGUTyJ2U5jD7QyI1ifqN+QmN0aXH//QP
+          glZkTA57ZvbLRwT8atpRh+a4VsDioTHuJAhc1C6H49kAq2wCd2vGUalvMPk2Q3p2
+          YVui1RhsHuFm2UPApDFvtYvKXdm0Ma+jBoBqu1Ofita6kFLn6M4MGKHkiZ4qY8Gm
+          -----END CERTIFICATE-----
+      ### Rest Store ###
+      restStore:
+          restStoreBaseUrl:
+          restStoreCredentialID:
+          restStoreCredentialKEY:
+      ## rest Store ssl certificate, below value is for (gcp blob store) change accordnigly ###
+          gcpcertificate: |
+              -----BEGIN CERTIFICATE-----
+              MIIGMzCCBRugAwIBAgIRAJd3etXbkJKwCgAAAAEZUxowDQYJKoZIhvcNAQELBQAw
+              RjELMAkGA1UEBhMCVVMxIjAgBgNVBAoTGUdvb2dsZSBUcnVzdCBTZXJ2aWNlcyBM
+              TEMxEzARBgNVBAMTCkdUUyBDQSAxQzMwHhcNMjExMTAxMDI1MTQ2WhcNMjIwMTI0
+              MDI1MTQ1WjAjMSEwHwYDVQQDDBgqLnN0b3JhZ2UuZ29vZ2xlYXBpcy5jb20wWTAT
+              BgcqhkjOPQIBBggqhkjOPQMBBwNCAAQ7+P3BXMNvpJ2v4Kmw0y2JkeAqGkv8GaDY
+              4shOybeVnR6I+MtyouPCraWL51HHyf0Gzca6bTBCEMALArX3pPNJo4IECDCCBAQw
+              DgYDVR0PAQH/BAQDAgeAMBMGA1UdJQQMMAoGCCsGAQUFBwMBMAwGA1UdEwEB/wQC
+              MAAwHQYDVR0OBBYEFEI98U54udbUMuVCUUP1lg06mKCXMB8GA1UdIwQYMBaAFIp0
+              f6+Fze6VzT2c0OJGFPNxNR0nMGoGCCsGAQUFBwEBBF4wXDAnBggrBgEFBQcwAYYb
+              aHR0cDovL29jc3AucGtpLmdvb2cvZ3RzMWMzMDEGCCsGAQUFBzAChiVodHRwOi8v
+              cGtpLmdvb2cvcmVwby9jZXJ0cy9ndHMxYzMuZGVyMIIBuQYDVR0RBIIBsDCCAayC
+              GCouc3RvcmFnZS5nb29nbGVhcGlzLmNvbYIQKi5nb29nbGVhcGlzLmNvbYIgY29t
+              bW9uZGF0YXN0b3JhZ2UuZ29vZ2xlYXBpcy5jb22CIiouY29tbW9uZGF0YXN0b3Jh
+              Z2UuZ29vZ2xlYXBpcy5jb22CFnN0b3JhZ2UuZ29vZ2xlYXBpcy5jb22CG3N0b3Jh
+              Z2UubXRscy5nb29nbGVhcGlzLmNvbYIkKi5hcHBzcG90LmNvbS5zdG9yYWdlLmdv
+              b2dsZWFwaXMuY29tgiAqLmNvbnRlbnQtc3RvcmFnZS5nb29nbGVhcGlzLmNvbYIj
+              Ki5jb250ZW50LXN0b3JhZ2UtcDIuZ29vZ2xlYXBpcy5jb22CJyouY29udGVudC1z
+              dG9yYWdlLXVwbG9hZC5nb29nbGVhcGlzLmNvbYIpKi5jb250ZW50LXN0b3JhZ2Ut
+              ZG93bmxvYWQuZ29vZ2xlYXBpcy5jb22CHyouc3RvcmFnZS11cGxvYWQuZ29vZ2xl
+              YXBpcy5jb22CISouc3RvcmFnZS1kb3dubG9hZC5nb29nbGVhcGlzLmNvbTAhBgNV
+              HSAEGjAYMAgGBmeBDAECATAMBgorBgEEAdZ5AgUDMDwGA1UdHwQ1MDMwMaAvoC2G
+              K2h0dHA6Ly9jcmxzLnBraS5nb29nL2d0czFjMy96ZEFUdDBFeF9Gay5jcmwwggED
+              BgorBgEEAdZ5AgQCBIH0BIHxAO8AdQApeb7wnjk5IfBWc59jpXflvld9nGAK+PlN
+              XSZcJV3HhAAAAXzZn+c4AAAEAwBGMEQCIGO+IZVN97FGP/abVOo9X8caOCeO33Yo
+              snpzT9q3ggzfAiAUuOoEigNnreDRI1HtsBqLNPX6Q6/9owl4t32SOQbL1wB2AEHI
+              yrHfIkZKEMahOglCh15OMYsbA+vrS8do8JBilgb2AAABfNmf58MAAAQDAEcwRQIh
+              AOgoy+PE/ewRAn6ZaQSjEX6DzAiZh/GRr18gVq0g/WsWAiAZwNNkcvsKhaMvzKHk
+              bhAx3DQlmMuBFmkOPMb6JLI4/jANBgkqhkiG9w0BAQsFAAOCAQEAodBh51uJBnc0
+              2gDIxKgC1dQQqfWNSj9DgS1p6V8li28Ew6S3aR04dlF9kwYm4NDgwUKklsEQKUOk
+              2K4ORBXAoqZkSw5tJ+1qzzIiXQULaC3AGWr2GxEzebV4DQ/qO68jER0lyiWU5PWw
+              kRrdmMMpaBmePzKo3OfBFXmW070i0l1+wmYEiJ5xXdU96evXNBP0njanoskSI7Ud
+              F0A7I4zBT6x+lTSPwiT3rvLFy9Ro0rg7PFSHDxrYMN6AcqMccHihkJklas9gC/zz
+              0obtpEh4VmKp4dRvl/h4DWrNlJQ/4BEQXE7rgym9JKO6qxg3t70MZS7neBU+7gIH
+              mdq9LUXTcg==
+              -----END CERTIFICATE-----
+              -----BEGIN CERTIFICATE-----
+              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
+              -----END CERTIFICATE-----
+              -----BEGIN CERTIFICATE-----
+              MIIFYjCCBEqgAwIBAgIQd70NbNs2+RrqIQ/E8FjTDTANBgkqhkiG9w0BAQsFADBX
+              MQswCQYDVQQGEwJCRTEZMBcGA1UEChMQR2xvYmFsU2lnbiBudi1zYTEQMA4GA1UE
+              CxMHUm9vdCBDQTEbMBkGA1UEAxMSR2xvYmFsU2lnbiBSb290IENBMB4XDTIwMDYx
+              OTAwMDA0MloXDTI4MDEyODAwMDA0MlowRzELMAkGA1UEBhMCVVMxIjAgBgNVBAoT
+              GUdvb2dsZSBUcnVzdCBTZXJ2aWNlcyBMTEMxFDASBgNVBAMTC0dUUyBSb290IFIx
+              MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAthECix7joXebO9y/lD63
+              ladAPKH9gvl9MgaCcfb2jH/76Nu8ai6Xl6OMS/kr9rH5zoQdsfnFl97vufKj6bwS
+              iV6nqlKr+CMny6SxnGPb15l+8Ape62im9MZaRw1NEDPjTrETo8gYbEvs/AmQ351k
+              KSUjB6G00j0uYODP0gmHu81I8E3CwnqIiru6z1kZ1q+PsAewnjHxgsHA3y6mbWwZ
+              DrXYfiYaRQM9sHmklCitD38m5agI/pboPGiUU+6DOogrFZYJsuB6jC511pzrp1Zk
+              j5ZPaK49l8KEj8C8QMALXL32h7M1bKwYUH+E4EzNktMg6TO8UpmvMrUpsyUqtEj5
+              cuHKZPfmghCN6J3Cioj6OGaK/GP5Afl4/Xtcd/p2h/rs37EOeZVXtL0m79YB0esW
+              CruOC7XFxYpVq9Os6pFLKcwZpDIlTirxZUTQAs6qzkm06p98g7BAe+dDq6dso499
+              iYH6TKX/1Y7DzkvgtdizjkXPdsDtQCv9Uw+wp9U7DbGKogPeMa3Md+pvez7W35Ei
+              Eua++tgy/BBjFFFy3l3WFpO9KWgz7zpm7AeKJt8T11dleCfeXkkUAKIAf5qoIbap
+              sZWwpbkNFhHax2xIPEDgfg1azVY80ZcFuctL7TlLnMQ/0lUTbiSw1nH69MG6zO0b
+              9f6BQdgAmD06yK56mDcYBZUCAwEAAaOCATgwggE0MA4GA1UdDwEB/wQEAwIBhjAP
+              BgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTkrysmcRorSCeFL1JmLO/wiRNxPjAf
+              BgNVHSMEGDAWgBRge2YaRQ2XyolQL30EzTSo//z9SzBgBggrBgEFBQcBAQRUMFIw
+              JQYIKwYBBQUHMAGGGWh0dHA6Ly9vY3NwLnBraS5nb29nL2dzcjEwKQYIKwYBBQUH
+              MAKGHWh0dHA6Ly9wa2kuZ29vZy9nc3IxL2dzcjEuY3J0MDIGA1UdHwQrMCkwJ6Al
+              oCOGIWh0dHA6Ly9jcmwucGtpLmdvb2cvZ3NyMS9nc3IxLmNybDA7BgNVHSAENDAy
+              MAgGBmeBDAECATAIBgZngQwBAgIwDQYLKwYBBAHWeQIFAwIwDQYLKwYBBAHWeQIF
+              AwMwDQYJKoZIhvcNAQELBQADggEBADSkHrEoo9C0dhemMXoh6dFSPsjbdBZBiLg9
+              NR3t5P+T4Vxfq7vqfM/b5A3Ri1fyJm9bvhdGaJQ3b2t6yMAYN/olUazsaL+yyEn9
+              WprKASOshIArAoyZl+tJaox118fessmXn1hIVw41oeQa1v1vg4Fv74zPl6/AhSrw
+              9U5pCZEt4Wi4wStz6dTZ/CLANx8LZh1J7QJVj2fhMtfTJr9w4z30Z209fOU0iOMy
+              +qduBmpvvYuR7hZL6Dupszfnw0Skfths18dG9ZKb59UhvmaSGZRVbNQpsg3BZlvi
+              d0lIKO2d1xozclOzgjXPYovJJIultzkMu34qQb9Sz/yilrbCgj8=
+              -----END CERTIFICATE-----
+
+      ### GCP Store credentials ###
+      # update the gcp store credentials in the below format
+      # gcpStore_credentials: |
+      # {
+      # JSON credential Object of GCP store.
+      # }
+      gcpStore_credentials: 
+  docbroker:
+      persistentVolume:
+        awsEFS: false
+        awsEFSCSIDriver: efs.csi.aws.com
+        awsEFSCSIHandle:
+        existVolumePv:
+        awsEFSCSIClaimPolicy: Retain
+      kms:
+        masterkey_id: <KMS_MASTERKEY_ID>
+      #External Docbroker
+      ExtDocbroker:
+        extNativeNodePort:
+        extSSLNodePort:
+        createExtService: true
+        useELB: false
+        useLBAnnotations: false
+        LBAnnotations:
+      newrelic:
+          c_app_name : DBR_documentum-PROD-OT2_CFCR_LI3-EIM
+
+  content-server:
+      ### Docbase ###
+      docbase:
+        id: 123456
+        existing: false
+        index: DM_<docbase_name>_DOCBASE
+      contentserver:
+        externalUserEnable: false
+        kms:
+          masterkey_id: <KMS_MASTERKEY_ID>
+        localeName: en
+        #It will switch from Dsearch query plugin to Solr query plugin in Documentum Server setup if we set it true
+        fulltextEngineSSVCEnable: false
+      ###External CS###
+      ExtCS:
+        tcp_route: 10.0.0.0
+        nativeExtPort:
+        sslExtPort:
+        extDbrPort: 1491
+        createExtService: true
+        useELB: false
+        useLBAnnotations: false
+        LBAnnotations:
+      ### Database ###
+      database:
+        host: db-pg-0.db-pg.<namespace>.svc.cluster.local
+        databaseServiceName: MyPostgres
+        port: 5432
+        sslEnabled: false
+        paasEnv: false
+        docbaseOwnerPasswordChange: false
+      persistentVolume:
+        awsEFS: false
+        awsEFSCSIDriver: efs.csi.aws.com
+        awsEFSCSIHandle:
+        existVolumePv:
+        #Make sure to specify existing PVC name to reuse key from other deployment
+        #Set to empty if each deployment should create its own key
+        shareKeyPVCName: ""
+        createPVC: true
+      ### S3 store enable ###
+      s3Store:
+        enable: false
+        default: false
+        name:
+        proxyHost:
+        proxyPort:
+        proxyProtocal: http
+        noProxy: localhost,127.0.0.1,*.otxlab.net
+        isworm: false
+        vendor:
+        region:
+        enable_md5: true
+        enable_v4signing: true
+
+      ### Rest store enable ###
+      restStore:
+        enable: false
+        name:
+        restStoreType: 0
+        proxyHost:
+        proxyPort:
+        proxyProtocal: http
+        noProxy: localhost,127.0.0.1,*.otxlab.net
+
+      ### GCP store enable ###
+      gcpStore:
+        enable: false
+
+      ### newrelic agent configuration. ###
+      newrelic:
+        app_name: DCS_JMS-PROD-OT2_CFCR_LI3-EIM
+        c_app_name : DCS_documentum-PROD-OT2_CFCR_LI3-EIM
+
+      ingress:
+        host: dctm-ingress.d2.cfcr-lab.bp-paas.otxlab.net
+        disableUpdateAcsUrl: false
+
+      extraEnv:
+        - name: LOG4J_FORMAT_MSG_NO_LOOKUPS
+          value: "true"
+        - name: CERTIFICATE_1
+          value: ""
+        - name: OTDS_REST_TICKET_URL
+          value: ""
+        - name: <docbase_name>_resource_id
+          value: ""
+        - name: <docbase_name>_secretKey
+          value: ""
+        - name: TOKENTIMEOUT
+          value: "30"
+        - name: INACTIVE_DELETED_USER
+          value: "T"
+        - name: INACTIVE_UNSUBSCRIBED_USER
+          value: "F"
+        - name: LSS_CC_ENABLED
+          value: "T"
+        - name: DA_PRIVILEGE_ENABLED
+          value: "T"
+        - name: ACTIVATE_POSTMEMBER_ENABLED
+          value: "T"
+        - name: MIGRATE_LDAP_USERS
+          value: "F"
+        - name: MIGRATE_LDAP_DOCBASES
+          value: "<docbase_name>"
+        - name: LDAP_CONFIGS_TOKENIZER
+          value: ","
+        - name: <docbase_name>_MIGRATE_LDAP_CONFIGS
+          value: ""
+        - name: isCORSAllowed
+          value: "false"
+        - name: CUSTOM_JOB_ENABLED
+          value: "F"
+        - name: CUSTOM_USER_RENAMEJOB
+          value: ""
+        - name: CUSTOM_USER_RENAME_METHOD
+          value: ""
+        - name: CUSTOM_DAR_INSTALL_ON_RESTART
+          value: "false" #Update this value to true when the custom dars are updated and not the CS/D2 upgrade
+        - name: LOGIN_TICKET_TIMEOUT
+          value: "30"
+        #Uncomment the addWebServerPort name and value below when email configuration is done in Content Server
+        # - name: addWebServerPort
+        #   value: "true"
+
+
+  dctm-ingress:
+    enabled: true
+    #prefix for the ingress name
+    ingressPrefix: dctm
+    ingress:
+      #No need to configure host: and clusetrDomainName: if configureHost is false.
+      configureHost: true
+      host: dctm-ingress
+    #extraPaths is used to define additional ingress resources for custom wars
+    #For aws path should be as follows path: /<path>*
+    #extraPaths:
+      #      - backend:
+      #          serviceName: <servicename>
+      #          servicePort: 8080        
+      #        path: /<path> 
+    jmsService:
+      enable: true
+      
+    jmsBase:
+      enable: false
+
+    acsService:
+      enable: true
+      
+    tnsService:
+      enable: true
+
+    d2clientService:
+      enable: true
+
+    d2configService:
+      enable: true
+
+    d2smartview:
+      enable: true
+
+    d2rest:
+      enable: true
+
+    otdsadmin:
+      enable: true
+
+    otdsws:
+      enable: true
+    otdstenant:
+      enable: false
+    daService:
+      enable: true
+
+    appHostService:
+      enable: false
+
+    bamService:
+      enable: false
+
+    bpsService:
+      enable: true
+
+    xdaService:
+      enable: true
+      
+    dsearchadminService:
+      enable: true
+    
+
+    indexagentService:
+      enable: true
+
+    openshifttls:
+      enable: false
+    tls:
+      enable: false
+
+    dtrbaseService:
+      enable: true
+
+    restService:
+      enable: true
+
+    dmotdsrestService:
+      enable: false
+
+    dfsService:
+      enable: true
+
+    workflowDesignerService:
+      enable: true
+      
+    bpm:
+      enable: true
+
+    recordsService:
+      enable: true
+      
+    dcc:
+      enable: false
+      
+      syncagent:
+        enabled: false
+      
+      syncnshareManual:
+        enabled: false
+
+    ccService:
+      enabled: true
+      
+    ccadminService:
+      enabled: true
+      
+    smartviewm365:
+      enable: true 
+      
+
+  dctm-rest:
+      fluentdConf:
+        kafkaTopic: <KAFKA TOPIC NAME>
+        kafkaUser: <kfkuser>
+        kafkaUsrPasswd: <password>
+
+      otds:
+        #the otds service should be in the format https://<OTDS server url>:<port>/otdsws
+        url: https://dctm-ingress.d2.cfcr-lab.bp-paas.otxlab.net/otdsws
+
+  dctm-workflow-designer:
+      docbaseConnection:
+          truststorePassword: password
+          port: 1489
+      otds:
+        url: https://dctm-ingress.d2.cfcr-lab.bp-paas.otxlab.net
+        reverseproxy_url: https://dctm-ingress.d2.cfcr-lab.bp-paas.otxlab.net
+        client_secret: <CLIENT_SECRET>
+      newrelic:
+          app_name: DCTM_WFD-PROD-OT2_CFCR_LI3-EIM
+
+  contentconnect:
+      secret:
+        DB_PASSWORD: password
+      #Configmap
+      configmap:
+        DB_IP: db-pg-0.db-pg.<namespace>.svc.cluster.local
+        DB_PORT: 5432
+        DB_USERNAME: postgres
+        DB_DB: cc_db
+        DB_TYPE: postgres
+        DB_TABLESPACE_NAME:
+        otdsUrl: https://dctm-ingress.d2.cfcr-lab.bp-paas.otxlab.net/otdsws
+        #CC app registration details in azure portal for using Microsoft MS Graph API, This is a Pre-requisite to deploy CC pod
+        clientId: <CLIENT-ID>
+        clientSecret: <CLIENT-SECRET> 
+        tenantId: <TENANT-ID>
+        protocol: IPV6
+      #newrelic
+      newrelic:
+        new_relic_app_name: <NEWRELIC-APPNAME>
+      #Ingress
+      ingress:
+        enabled: false
+        configureHost: true
+        tls:
+          enable: false
+          secretName: cctlssecret
+        rules:
+        #Ingress prefix value should be given here
+          host:  cccshost
+
+  dtrbase:
+    docbroker:
+      port: 1489
+    containers:
+      dtrbase:
+        drServiceUserEmailID: dctmreports@ot.com
+        ingressHost: dctm-ingress.ids.ids.cfcr-lab.bp-paas.otxlab.net
+        drCoreServerTimeout: 00:30:00
+        drCoreSmtpPort: 25
+        drCoreSmtpAuthRequired: true
+        drCoreMailSubject: test eMail from DR Job
+        drCoreMaxAttachmentSize: 0
+        drCoreAttachAsZip: false
+        drCoreSmtpUser: username
+        drCoreUrlTimeout: 30000
+        drCoreSmtpStarttlsEnable: true
+        drCoreSmtpHost: smtp.org.net
+        drCoreFromAddress: user@opentext.com
+        drCoreSmtpPassword: pwd
+        drCoreReportServlet: http://localhost:8080/DCTM-Reports
+        drCoreReportCacheTimeout: 00:30:00
+    newrelic:
+      appName: DOCUMENTUM_DTR-PROD-OT2_CFCR_BP2-ECD
+
+  da:
+      persistentVolumeClaim:
+        pvcName: da-pvc
+        awsEFSCSIDriver: efs.csi.aws.com
+        awsEFSCSIHandle:
+      cs:
+        useCSDfcConfigMap: true
+      # dfc:
+        # properties:
+          # - dfc.data.dir=/opt/dctm
+          # - dfc.tokenstorage.dir=/opt/dctm/apptoken
+          # - dfc.tokenstorage.enable=false
+          # - dfc.security.ssl.use_anonymous_cipher=true
+          # - dfc.security.ssl.truststore=/opt/dctm/certificate/dfc.keystore
+          # - dfc.security.ssl.use_existing_truststore=false
+          # - dfc.docbroker.host[0]=dbr-0.dbr.<namespace>.svc.cluster.local
+          # - dfc.docbroker.port[0]=1489
+          # - dfc.crypto.repository=<docbase_name>
+          # - dfc.globalregistry.repository=<docbase_name>
+          # - dfc.session.secure_connect_default=try_secure_first
+          # - dfc.globalregistry.username=dm_bof_registry
+          # - dfc.session.allow_trusted_login=false
+      newrelic:
+          # Provide descriptive name, its mandatory, if this service is used.
+        appName: DOCUMENTUM_DA-PROD-OT2_CFCR_BP2-ECD
+
+  dfs:
+    #Tomcat Admin credentials:
+    tomcat:
+      # Tomcat manager username
+      username: admin
+      # Tomcat manager password
+      password: password
+
+    certificate:
+      dfcTrustStorePassword: password
+
+    docbaseConnection:
+      port: 1489
+    newrelic:
+      dfs_application_name: DFS-PROD-OT2_CFCR_LI3-EIM-TenantName_SubscriptionID
+
+  records:
+      persistentVolumeClaim:
+        awsEFSCSIDriver: efs.csi.aws.com
+        awsEFSCSIHandle:
+      ingress:
+          name: records-ingress-test
+          enable: false
+          ingressHostName: records-ingress-host
+      docbroker:
+          port: 1489
+      otds:
+        url: https://dctm-ingress.d2.cfcr-lab.bp-paas.otxlab.net/otdsws
+      userProvidedServices:
+        newrelic:
+          appName: DOCUMENTUM_RECORDS-PROD-OT2_CFCR_BP2-ECD
+
+  rqm:
+      persistentVolumeClaim:
+        awsEFSCSIDriver: efs.csi.aws.com
+        awsEFSCSIHandle:
+      containers:
+        rqm:
+          rqmSysAdminName: recordsadmin
+          rqmSysAdminPass: password
+          docbrokerhostname: dbr.<namespace>.svc.cluster.local
+          docbrokerport: 1489
+      docbroker:
+          port: 1489
+      userProvidedServices:
+        newrelic:
+          appName: DOCUMENTUM_RQM-PROD-OT2_CFCR_BP2-ECD
+
+
+d2config:
+    env:
+      # By Default the appTitle is "D2-Config" that gets displayed on the Browser tab.
+      # Update to a custom appTitle below when required 
+      appTitle: 
+    extension:  
+      createPVC: true
+      pvcName: d2-extension-pvc
+    
+     ### Custom Configuration ###
+    customConfigurations:
+       custom: true
+       hook_approach: false
+       createPVC: false
+       persistentVolume:
+         awsEFS: false
+         awsEFSCSIDriver: efs.csi.aws.com
+         awsEFSCSIHandle:
+         existVolumePv:
+         size: 2Gi
+       #In a multi repo deployment when d2configs need to be imported in multirepo, then update the filename as below
+       #filename: docbase1:config1.zip,config2.xml,config3.zip;docbase2:config1.zip,config2.xml,config3.zip
+       #If there is a need for multiple config import in the single repo deployment, then update the filename parameter as below with comma-separated format
+       #filename: config1.zip,config2.xml,config3.zip
+       #Uncomment the filename value given below if DTR(DCTM REPORTS) is enabled
+       filename: <docbase_name>:DCTM-Reports-Application-22.4.0-Export-Config.zip
+       locale:
+
+    tomcat:
+      connectionTimeoutInMilliseconds: 60000 
+      logfilerotation: 7  #Log files are rotated "logfilerotation" times before being removed 
+      logfilesize: 5M  #Log files are rotated only if they grow bigger then "logfilesize" bytes
+      logrotateFrequency: 1d  #Log files are rotated every "logrotateFrequency". Ex., 10m, 10h, 10d         
+# if k8s version is < 1.19  default initial delay is set to 250 seconds and 60 seconds if k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+    readinessProbe:
+      initialDelaySeconds: 
+# if k8s version is < 1.19  default initial delay is set to 250 seconds and 60 seconds if k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+    livenessProbe:
+      initialDelaySeconds: 
+      
+    startupProbe:
+      initialDelaySeconds: 180  
+    newrelic:
+      app_name: DOCUMENTUM_D2CONFIG-PROD-OT2_CFCR_BP2-ECD
+
+d2classic:
+    env:
+      # By Default the appTitle is "D2" that gets displayed on the Browser tab.
+      # Update to a custom appTitle below when required 
+      appTitle: 
+    settings:
+       allowedFrameOrigins:
+    esapi:
+        forcedSecureCookies: false
+    d2report:
+      enable: true
+      dctm_reports_iis_host: dctm-ingress.d2.cfcr-lab.bp-paas.otxlab.net
+      d2_host: dctm-ingress.d2.cfcr-lab.bp-paas.otxlab.net
+      dctm_reports_port: "443"
+      d2_port: "443"
+      d2_scheme: "https:"
+      dctm_reports_scheme: "https"
+
+    extension:  
+      createPVC: false
+      pvcName: d2-extension-pvc
+
+    
+    ### Custom Configuration ###
+    customConfigurations:
+       custom: false
+       hook_approach: false
+       createPVC: false
+       persistentVolume:
+         awsEFS: false
+         awsEFSCSIDriver: efs.csi.aws.com
+         awsEFSCSIHandle:
+         existVolumePv:
+         size: 2Gi
+       locale:
+
+    tomcat:
+      # As per D2 best practice, setting timeout value to 15 minutes
+      connectionTimeoutInMilliseconds: 900000
+      maxHttpHeaderSize: 100000
+      logfilerotation: 7  #Log files are rotated "logfilerotation" times before being removed 
+      logfilesize: 5M  #Log files are rotated only if they grow bigger then "logfilesize" bytes
+      logrotateFrequency: 1d  #Log files are rotated every "logrotateFrequency". Ex., 10m, 10h, 10d
+# if k8s version is < 1.19  default initial delay is set to 250 seconds and 60 seconds if k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+    readinessProbe:
+      initialDelaySeconds: 
+# if k8s version is < 1.19  default initial delay is set to 250 seconds and 60 seconds if k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+    livenessProbe:
+      initialDelaySeconds: 
+      
+    startupProbe:
+      initialDelaySeconds: 180  
+    newrelic:
+      app_name: DOCUMENTUM_D2CLIENT-PROD-OT2_CFCR_BP2-ECD
+d2smartview:
+    extension:  
+      createPVC: false
+      pvcName: d2-extension-pvc   
+    ### Custom Configuration ###
+    customConfigurations:
+       custom: false
+       hook_approach: false
+       createPVC: false
+       persistentVolume:
+         awsEFS: false
+         awsEFSCSIDriver: efs.csi.aws.com
+         awsEFSCSIHandle:
+         existVolumePv:
+         size: 2Gi
+       locale:
+    restApiRuntime:
+        ##When CC/D2 Mobile is enabled, enable the CookieConfiguration to true to set SameSite and session cookie attributes
+        CookieConfiguration:
+          enable: false
+        ContentConnect:
+          enable: false
+          restAllowedOrigins: 
+        # Crypto salt for client token encryption and decryption
+        # For a multi-node deployment of REST servers, this property MUST be consistently set across all REST servers. For a
+        # single-node deployment of REST servers, this property is optional. The value CAN be any ascII characters. We recommend
+        # that you specify a text no less than 8 characters.    
+        cryptoKeySalt: 
+
+    tomcat:
+      connectionTimeoutInMilliseconds: 60000
+      maxHttpHeaderSize: 100000
+      logfilerotation: 7  #Log files are rotated "logfilerotation" times before being removed 
+      logfilesize: 5M  #Log files are rotated only if they grow bigger then "logfilesize" bytes
+      logrotateFrequency: 1d  #Log files are rotated every "logrotateFrequency". Ex., 10m, 10h, 10d
+
+    # Adds entries to the smartview pod's /etc/hosts file.
+    #hostAliases:
+    #- ip: "127.0.0.1"
+    #  hostnames:
+    #  - "foo.local"
+    #  - "bar.local"
+
+# if k8s version is < 1.19  default initial delay is set to 300 seconds and 60 seconds if k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+    readinessProbe:
+      initialDelaySeconds: 
+# if k8s version is < 1.19  default initial delay is set to 300 seconds and 60 seconds if k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+    livenessProbe:
+      initialDelaySeconds: 
+      
+    startupProbe:
+      initialDelaySeconds: 180  
+    newrelic:
+      app_name: DOCUMENTUM_D2SMARTVIEW-PROD-OT2_CFCR_BP2-ECD
+
+d2rest:
+
+    restApiRuntime:
+       #The "ContentConnect" attribute earlier is now replaced as "AllowCors"
+       AllowCors:
+          enable: false
+          #The restAllowedOrigins value should be in the format- https://<Ingress URL>
+          restAllowedOrigins:
+    msgraphConfig:
+      enable: true
+      clientsecret: ""
+      tenantid: ""
+      scope: Mail.read offline_access
+      proxy_host: ""
+      proxy_port: ""
+    extension:  
+      createPVC: false
+      pvcName: d2-extension-pvc
+    
+    ### Custom Configuration ###
+    customConfigurations:
+       custom: true
+       hook_approach: false
+       createPVC: false
+       persistentVolume:
+         awsEFS: false
+         awsEFSCSIDriver: efs.csi.aws.com
+         awsEFSCSIHandle:
+         existVolumePv:
+         size: 2Gi
+       locale:
+
+    tomcat:      
+      connectionTimeoutInMilliseconds: 60000
+      logfilerotation: 7  #Log files are rotated "logfilerotation" times before being removed 
+      logfilesize: 5M  #Log files are rotated only if they grow bigger then "logfilesize" bytes
+      logrotateFrequency: 1d  #Log files are rotated every "logrotateFrequency". Ex., 10m, 10h, 10d
+# if k8s version is < 1.19  default initial delay is set to 250 seconds and 60 seconds if k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+    readinessProbe:
+      initialDelaySeconds: 
+# if k8s version is < 1.19  default initial delay is set to 250 seconds and 60 seconds if k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+    livenessProbe:
+      initialDelaySeconds: 
+      
+    startupProbe:
+      initialDelaySeconds: 180  
+    newrelic:
+      app_name: DOCUMENTUM_D2REST-PROD-OT2_CFCR_BP2-ECD
+
+appworks-gateway:
+    database:
+      vendor: PostgreSql # Valid values PostgreSql/Oracle/MsSqlServer
+      server:
+        host: db-pg-0.db-pg.<namespace>.svc.cluster.local
+        port: 5432
+      admin:
+        user: postgres
+        password: password
+        database: postgres
+      appworksdb:
+        user: gateway201 # will be created by pg init container if not exist
+        password: password
+        # database will be created by pg init container only for PostgreSql if it does not exist
+        # database is not required for Oracle instead will use service
+        database: postgresdatabase
+      useSSL: false
+      trustDbCerts : false
+
+    otds:
+      admin:
+        user: admin
+        password: "otds"
+      partition:
+        new: otag17
+        customPartition:
+      resource:
+        new: OTAG17
+    awg:
+      admin:
+        newadminuser: otag17
+        newadminpassword: password
+      externalurl: "https://appworks-gateway.d2.cfcr-lab.bp-paas.otxlab.net" # must not be localhost or 127.0.0.1
+
+    service:
+      type: ClusterIP
+      port: 80
+
+    ingress:
+      hosts:
+        - host: appworks-gateway.d2.cfcr-lab.bp-paas.otxlab.net
+          paths:
+            - path: /
+              pathType: ImplementationSpecific
+      tls:
+        enabled: false
+        info:
+          - secretName:
+              name: otawg-tls-secret
+              create: false
+              key: #provide the .crt file value
+              cert: #provide the .key file value
+            hosts:
+              - appworks-gateway.d2.cfcr-lab.bp-paas.otxlab.net
+    newrelic:
+      appName: APPWORKS GATEWAY     
+xplore:
+    ingress:
+      hostName: dctm-ingress
+    cps:
+      #To use blow extraEnv paramters with #, please uncomment them.
+      extraEnv:
+      #  ESS_PASSWORD: your_new_password
+
+    indexserver:
+      #To use blow extraEnv paramters with #, plaese uncomment them.
+      extraEnv:
+      #  PASSWORD: your_new_password
+    ### Persistent Volume ###
+    persistentVolume:
+      awsEFS: false
+      awsEFSCSIDriver: efs.csi.aws.com
+      awsEFSCSIHandle:
+      ### Below parameter is used to provide aws PV name if AWS EFS CSI is used ###
+      awsEFSCSIPvName:
+    newRelic:
+      # Please ensure your application name is unique. xPlore will construct application name as '$NODE_NAME'-'$appNameSuffix' in newrelic.yml
+      appNameSuffix: DCS_XPLORE-PROD-OT2_CFCR_LI3-EIM-ce
+
+otiv:
+  global:
+    database:
+        ## Valid values are postgresql and oracle
+        type: postgresql
+        hostname: db-pg-0.db-pg.<namespace>.svc.cluster.local
+        port: 5432
+        ## Database name that psql initially connects with prior to command execution
+        adminDatabase: postgres
+        # set to true if database is configured to for SSL communication
+        ssl: false
+        # if above ssl property is true, the specified ssl mode will be used
+        #  valid values are (in ascending order of security) -> prefer, require, verify-ca, verifyfull
+        sslMode: prefer
+         # http/https calls to the access source documents are routed through the proxy if the host
+      #  and port properties are set, and the url is not specified in the excludes property
+    
+    amqp:
+      ssl: false
+      # if not set, defaults to 5671 if ssl is true, and 5672 if ssl is false
+      port:
+      password: rabbpass
+    
+    
+    proxy:
+      ## proxy hostname or IP. If username/password required, format is username:password@some.proxy.net
+      host:
+      port: 3128
+      # list can be either | or , delimited, i.e.  "10.*|192.168.*|otds|*.company.net"
+      # IP and DNS entries to internal k8s services should be included in the excludes list
+      excludes: "10.*|otds"
+    enforceForwardedHosts: false
+
+    # a comma-separated list of FQDNs (cannot specify protocols such as https) that are used
+    #   for validating the Forwarded/X-Forwarded-* headers.
+    forwardedHostsList:
+
+    # a regex pattern to match FQDNs
+    # The metacharacter * is a modifier and matches the preceding character 0 or more times;
+    #  so * needs to be after another character; typically this will be the metacharacter . (dot)
+    #  which represents any single character, e.g.: .*site.sample.*
+    forwardedHostsRegex:
+
+    # If set to true, requests will be only be accepted from the servers listed in corsOriginsList
+    #  or corsOriginsRegex; if both are defined, corsOriginRegex has precedence
+    # If these properties are defined at service level (i.e. publication.corsOriginList),
+    #   the service level definition takes precedence
+    enforceCorsOrigins: false
+
+    # a comma-separated list of servers that OTIV services will allow origin requests from
+    # each origin should start with https:// or http://
+    corsOriginsList:
+
+    # a regex pattern for servers that OTIV services will allow origin requests from
+    # The metacharacter * is a modifier and matches the preceding character 0 or more times;
+    #  so * needs to be after another character; typically this will be the metacharacter . (dot)
+    #  which represents any single character. The expression needs to match a url that can begin
+    #  with http. An example value would be: .*site.sample.*
+    corsOriginsRegex:
+    newRelic:
+      # new relic base app name
+      # Each service appends its service name to the new relic app name
+      # if empty, defaults to global.ingressDomainName
+      baseAppName:
+    # These properties take a comma delimited set of origins, i.e. http(s)://<hostname><:port>
+    #   where source files to be converted are allowed to be retrieved from.
+    # If neither trustedSourceOrigins nor trustedSourceOriginsAnonymous is set, then there is
+    #   no origin restriction and IV attempts to retrieve source files from the requested
+    #   file url; however, if the file url is at an http endpoint (as opposed to https), no
+    #   Authorization header is sent with the request.
+    # If either property is defined, then retrievals are restricted to the defined origins.
+    # Origins defined in trustedSourceOrigins will pass along an Authorization header,
+    #   whereas origins defined in trustedSourceOriginsAnonymous won't include an
+    #   Authorization header. The same origin should not be listed in both properties.
+    trustedSourceOrigins:
+    trustedSourceOriginsAnonymous:
+  amqp: 
+    rabbitmq:
+      password: rabbpass
+      
+      # define configuration for rabbitmq;
+    extraConfiguration: |-
+      #consumer_timeout=10800000   # 3 hours; default is 2 hours
+smartviewm365:    
+    tomcat:      
+      connectionTimeoutInMilliseconds: 60000
+      maxHttpHeaderSize: 100000      
+      logfilerotation: 7  #Log files are rotated "logfilerotation" times before being removed 
+      logfilesize: 5M  #Log files are rotated only if they grow bigger then "logfilesize" bytes
+      
+    # if k8s version is < 1.19  default initial delay is set to 300 seconds and 60 seconds if k8s version is >= 1.19
+    # Increase the initialDelaySeconds and add the value below if default value is not enough
+    readinessProbe:
+      initialDelaySeconds: 
+    # if k8s version is < 1.19  default initial delay is set to 300 seconds and 60 seconds if k8s version is >= 1.19
+    # Increase the initialDelaySeconds and add the value below if default value is not enough
+    livenessProbe:
+      initialDelaySeconds: 
+
+    startupProbe:
+      initialDelaySeconds: 180 
+      
+    extension:
+      createPVC: false  
+    newrelic:
+      app_name: SMARTVIEWM365
+
+    ccsv: 
+      appname: xECM Documentum for M365
+      teamsrootpath: "/TeamsM365"
+      loglevel: "WARN"
+      window: false
+      consoleRe: false
+      performancetimestamp: false
+      timing: false  
+      d2rest_url: "https://dctm-ingress.d2.cfcr-lab.bp-paas.otxlab.net/d2-rest"
+      
+    customConfigurations:
+      custom: false
+      locale:
+      
+bps:
+  #Tomcat JavaOpts:
+  tomcat:
+    javaOptions: '' 
+  #BPS config:
+  bpsConfig:
+    #polling interval in seconds
+    pollingInterval: 300
+    # Message store home dir is optional. If not required, comment the varibale 'messageStoreHomeDir' and unconfigure message store directory. 
+    # Also, comment the message store volume mount configuration in bps-statefulset.yaml to avoid persisting of the messages stored in message store in the event of pod failure.
+    messageStoreHomeDir: /home/xcpuser/documentum/msgstore
+    instanceName: bps
+    haEnabled: true
+    #DFC properties:
+    #Below path should always be /home/xcpuser/<any_folder_name>  

@@ -1,0 +1,156 @@
+#######################################################
+# Documentum Reports Base default values.            #
+# This is This is a YAML-formatted file.              #
+# Declare variables to be passed into your templates. #
+#######################################################
+
+persistentVolumeClaim:  
+  pvcName: dtr-pvc
+  accessMode: ReadWriteOnce
+  size: 1Gi
+  storageClass: trident-nfs
+  PVCSubPath: dtr-customscript
+ 
+imagePullSecrets:
+serviceAccount:
+  createserviceaccount: false
+  serviceAccountName: 
+
+service:
+  name: dtrbase
+  type: ClusterIP
+  dtrBasePort: 8080
+  dtrCoreport: 5001
+
+cs:  
+  useCSDfcConfigMap: true            
+  configMapName: dbr.configmap
+  csSecretConfigName: cs-secret-config
+  installOwnerKey: installOwner
+  installOwnerPasswordkey: installOwnerPassword
+  globalRegistryPasswordKey: globalRegistryPassword
+  allowTrustedLogin: false  
+####################################################################################
+# Suppose Content Server config map not used                                       #
+# then uncomment and update the below listed parameters with appropriate values of # 
+# dfc.properties and ensure to toggle the flag useDfcConfigMap to false.           #
+####################################################################################
+#dfc:  
+#  properties:
+#  - dfc.data.dir=/opt/dctm
+#  - dfc.tokenstorage.dir=/opt/dctm/apptoken
+#  - dfc.tokenstorage.enable=false
+#  - dfc.security.ssl.use_anonymous_cipher=true
+#  - dfc.security.ssl.truststore=/opt/dctm/certificate/dfc.keystore
+#  - dfc.security.ssl.use_existing_truststore=false
+#  - dfc.docbroker.host[0]=dbr-1.dbr.docu.svc.cluster.local
+#  - dfc.docbroker.port[0]=1489
+#  - dfc.crypto.repository=docbase2
+#  - dfc.globalregistry.repository=docbase2
+#  - dfc.session.secure_connect_default=try_secure_first
+#  - dfc.globalregistry.username=dm_bof_registry
+#  - dfc.globalregistry.password=password   
+#  - dfc.session.allow_trusted_login=false
+
+docbroker:
+  port: 1489
+  replicaCount: 2
+  serviceName: dbr  
+
+env:
+  domain: <namespace>.svc.cluster.local
+
+methodsvr:
+  containerName: dcs-pg
+
+   
+deployment:  
+  name: dtrbase
+  appName: dtrbase
+  replicaCount: 1
+  strategyType: RollingUpdate
+  
+images:
+  dtrbase:
+    repository: artifactory.otxlab.net/bpdockerhub
+    name: dctm-reports-base
+    tag: 22.4.0002.0054
+    pullPolicy: IfNotPresent
+    
+  graylog:
+    enable: true
+    image: artifactory.otxlab.net/bpdockerhub/graylog-sidecar@sha256:d8ed2bf68399e34bafc68f883d8f4fb14feb9575e78d63722e544c1529f37db9
+    pullPolicy: IfNotPresent
+    name: graylog-sidecar
+    server: 10.9.57.15
+    port: 9000
+    tags: "[\"linux\",\"apache\"]"
+    userhomedir: /home/daadmin
+   
+containers:
+  dtrbase:
+    name: dtrbase
+    kubernetes: true
+    dtrKubernetesInstall: true
+    darInstallRepo: <docbase-name>
+    drServiceUserEmailID: dctmreports@ot.com
+    ingressHost: <fully qualified ingress-host Ex:dtr-ingress-host.dctmrpt.cfcr-lab.bp-paas.otxlab.net>  
+    drCoreDefaultStyleFile: /opt/dtr_build/DCTM-ReportsCore/App_Data/SimpleList.sts
+    drCoreServerTimeout: 00:30:00      
+    drCoreSmtpPort: 25
+    drCoreSmtpAuthRequired: true
+    drCoreMailSubject: test eMail from DR Job
+    drCoreMaxAttachmentSize: 0        
+    drCoreAttachAsZip: false
+    drCoreSmtpUser: username
+    drCoreUrlTimeout: 30000
+    drCoreSmtpStarttlsEnable: true
+    drCoreSmtpHost: smtp.org.net 
+    drCoreFromAddress: user@opentext.com
+    drCoreSmtpPassword: pwd
+    drCoreReportServlet: http://localhost:8080/DCTM-Reports
+    drCoreAllowPlainTextParamsInReportUrl: false
+    drCoreEnableSessionValidationWithClientIp: false           
+    drCoreReportCacheTimeout: 00:30:00    
+    externalFolderPath: /opt/tomcat/webapps/DCTM-Reports/external-configurations
+    execQueryByBatch: false
+    rowNumThreshholdForJob: 200000
+    containerPort: 8080
+    #probing:
+    healthPath: /dtr/TestServletConnection
+    healthPort: 5001
+
+# log4j2 logging config details.
+logging:  
+  rootLoggerLevel: WARN
+  consoleThresholdLevel: WARN
+  filename: /opt/dtr_build/logs/Reports-Servlet.log
+  logFileSize: 100MB
+  maxLogFiles: 5
+  
+newrelic:
+  enable: false
+  appName: DOCUMENTUM_DTR-PROD-OT2_CFCR_BP2-ECD
+  licenseKeyName: newrelicLicensekey
+  proxyHost: bp2-prox01-l001.otxlab.net
+  proxyPort: 3128
+  proxyScheme: http
+
+certificate:
+  useCertificate: false
+  dbrServiceName: dbr
+  dbrDataPVCName: certdbr-data-pvc 
+  
+resources:
+  limits:
+    cpu: 1500m
+    memory: 4Gi
+  requests:
+    cpu: 800m
+    memory: 2Gi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

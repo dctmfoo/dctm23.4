@@ -1,0 +1,237 @@
+# Default values for d2rest.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+### Environment ###
+env:
+  tomcatJVMArgs: ""
+  webappName: &webappName d2-rest
+  domain: 
+## serviceAnnotations define custom annotations that need to be assigned to d2rest service.
+## For example:
+##  cloud.google.com/backend-config: '{"ports": {"80": "abcd-d2rest-backend"}}'
+##  cloud.google.com/neg: '{"ingress": true}'
+serviceAnnotations: {}
+
+serviceAccount: 
+  createserviceaccount: true
+  serviceAccountName: documentum-sa
+
+### Tomcat ###  
+tomcat:
+  catalinaHome: /opt/tomcat
+  connectionTimeoutInMilliseconds: 60000
+  logfilerotation: 7  #Log files are rotated "logfilerotation" times before being removed 
+  logfilesize: 5M  #Log files are rotated only if they grow bigger then "logfilesize" bytes
+  logrotateFrequency: 1d  #Log files are rotated every "logrotateFrequency". Ex., 10m, 10h, 10d
+
+### Docbroker ###
+docbroker:
+  count: 2
+  serviceName: dbr
+  port: 1489
+
+cs:
+  custom:
+    scriptinPVC: true
+    ##In the case of  hybrid installers approach, volumeMountName value should be custom-script-pvc and scriptPVCname value should be shared-pvc
+    volumeMountName: dcs-data-pvc
+    scriptPVCname: dcs-pg-pvc
+    PVCSubPath: initcontainercustomscripts/dcs-pg
+    
+methodsvr:
+  containerName: dcs-pg
+
+session:
+  allowTrustedLogin: false
+  
+removeDocumentation: true  
+  
+### Docbase ###
+docbase:
+  name: docbase1
+# if k8s version is < 1.19  default initial delay is set to 250 seconds and 60 seconds if k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+readinessProbe:
+  initialDelaySeconds: 
+# if k8s version is < 1.19  default initial delay is set to 250 seconds and 60 seconds if k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+livenessProbe:
+  initialDelaySeconds: 
+
+startupProbe:
+  initialDelaySeconds: 180  
+
+replicaCount: 2
+
+fsGroup: 1000
+
+images:
+  repository : artifactory.otxlab.net/bpdockerhub
+  name : common/oraclelinux-openjdk-tomcat
+  tag : "dctm-oraclelinux9-openjdk17.0.6-tomcat9.0.71"
+  pullPolicy: IfNotPresent
+  pullSecrets:
+
+extensionImage:
+  repository: artifactory.otxlab.net/bpdockerhub
+  name : dctm-d2pp-rest
+  tag : 23.2.0
+  pullPolicy: Always
+
+extraInitContainers: []
+### Secret ###
+secret:
+  csConfigName: cs-secret-config
+
+nameOverride: ""
+fullnameOverride: ""
+
+### Persistent Volume ###
+persistentVolume:
+  vctAccessModes: ReadWriteOnce
+  storageClass: trident-nfs
+  size: 1Gi
+
+certificate:
+  use_certificate: false
+  dbrserviceName: dbr
+
+dbrpersistentVolume:
+  dbrdataPVCName: certdbr-data-pvc
+
+### Graylog Enabled by default, set to false if logs mount to PVC ###
+graylog:
+  enable: true
+  volumeClaimTemplate:
+    logVctAccessModes: ReadWriteOnce
+    logVctSize: 2Gi
+    logVctStorageClass: trident-nfs
+
+serviceType: ClusterIP
+### D2Rest Extension image ###
+extension:  
+  createPVC: true
+  PVCAccessMode: ReadWriteMany
+  PVCStorageClass: trident-nfs
+  PVCSize: 4Gi
+  pvcName: d2-extension-pvc
+  #Update the below parameters in case of Static Provisioning in AWS
+  staticPVName:
+  reclaimPolicy:
+  awsEFSCSIDriver: efs.csi.aws.com
+  awsEFSCSIHandle:
+
+### Custom Configuration ###
+customConfigurations:
+  custom: false
+  hook_approach: false
+  createPVC: false
+  scriptPVCname: d2custom-shared-pvc
+  persistentVolume:
+    awsEFS: false
+    awsEFSCSIDriver: efs.csi.aws.com
+    awsEFSCSIHandle:
+    existVolumePv:
+    reclaimPolicy: Retain
+    storageClass: trident-nfs
+    size: 2Gi
+  locale: 
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #  cpu: 100m
+  #  memory: 128Mi
+  # requests:
+  #  cpu: 100m
+  #  memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+###############################################################
+#  BEGIN parameter value definitions for D2 REST configuration files
+###############################################################
+
+# directory in chart holding any .properties config file "coda" files.
+# These files are appended to the corresponding default .properties config
+# file in the resulting config map definition.  This provides a convenient
+# way for solutions built on top of D2 to override settings in D2FS.properties,
+# settings.properties etc.
+configFileOverrideFilesDir: configFileOverrideFiles
+
+# parameters used to compose d2rest-logback-xml config map
+logback:
+   file: 
+   - /opt/tomcat/webapps/
+   - *webappName
+   - /logs/rest-api-logback.log
+   fileNamePattern: 
+   - /opt/tomcat/webapps/
+   - *webappName
+   - /logs/rest-api-logback-%d{yyyy-MM-dd}-%i.log.zip 
+   logLevel: info   
+
+# parameters used to compose d2rest-log4j-properties config map
+log4j:
+   file: 
+   - /opt/tomcat/webapps/
+   - *webappName
+   - /logs/rest-api-log4j.log
+   logLevel: WARN
+
+restApiRuntime:   
+   OTDS:
+      enable: true
+      authSvcProtocol: https
+      authSvc: d2-ingress.d2.cfcr-lab.bp-paas.otxlab.net/otdsws      
+      clientId: d2_oauth_client
+      appName: Documentum D2 CE 23.4
+   #The "ContentConnect" attribute earlier is now replaced as "AllowCors"
+   AllowCors:
+      enable: false
+      #the restAllowedOrigins value should be in the format- https://<Ingress URL>
+      restAllowedOrigins: 
+      
+   CSRF:
+      enable: true
+# parameters used to compose d2rest-settings-properties config map
+settings:   
+   # "connection.remote.url" setting in "settings.properties"
+   # When using Ingress to expose webapp service inside the cluster to the outside user, 
+   # the ingress is behaving like the reverse proxy. The connectionRemoteUrl should be the 
+   # set to the URL of the Ingress resource that the outside user uses to access the 
+   # webapp inside the cluster.
+   connectionRemoteUrlProtocol: https
+   connectionRemoteUrl: 
+   - d2-ingress.d2.cfcr-lab.bp-paas.otxlab.net/
+   - *webappName     
+
+msgraphConfig:
+    enable: false
+    clientid: ""
+    clientsecret: ""
+    tenantid: ""
+    scope: Mail.read offline_access
+    proxy_host: ""
+    proxy_port: ""
+    
+    
+#############################################################
+#  END parameter value definitions for D2 REST configuration files
+#############################################################      
+
+### New Relic Configuration ###
+
+newrelic:
+  enable: false
+  app_name: DOCUMENTUM_D2REST-PROD-OT2_CFCR_BP2-ECD
+  proxy_host: 
+  proxy_port: 

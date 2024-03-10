@@ -1,0 +1,89 @@
+# Default values for xDA.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+#Prefix. Give a suitable prefix to distinguish the xDA pods
+prefix: <prefix>-xda
+
+#Docker Image Details
+image:
+  #Registry and/or Repository details of xDA Docker image.Ex: 10.8.176.180:5000/xcp/centos/stateless/xcp-xda
+  repository: <repository>
+  #Name of xDA Docker image
+  name: <xda_image_name>
+  #Tag of xDA Docker image
+  tag : 23.4
+  #Image Pull Policy for xDA Docker image
+  pullPolicy: IfNotPresent
+  pullSecrets:
+  
+#Redirection Parameters.
+redirectionParameters: 
+  redirectToHTTPS: true
+  redirectPort: 443
+
+#Docbase Connection Info
+docbaseConnection:
+  use_certificate: false
+  truststorePassword: <truststore_password>
+  docbroker: <dbr>
+  
+#Volume used by CS and Broker to store CS and Broker certificates. Should match the persistentVolume name given in Broker values.yaml
+dbrpersistentVolume:
+  dbrdataPVCName: certdbr-data-pvc
+
+#CS Secret. Used to fetch TrustStore Password and Newrelic License Value  
+secret:
+  name: <cs_secret_name>
+  
+#Newrelic agent configuration
+newrelic:
+  enable: false
+  #Key Name of Newrelic License Key in CS Secrets. This value is referenced from yaml file of CS Secrets, needs to be changed accordingly. 
+  licenseKeyName: newrelicLicensekey
+  app_name: <newrelic_app_name>
+  proxy_host: <newrelic_proxy_host>
+  proxy_port: <newrelic_proxy_port>
+  
+#Persistent Volume Details
+persistentVolume:
+  #Name of the Persistent Volume Claim for persistent data
+  #ex : storageClass: bp-paas-nfs
+  storageClassReadWriteOnce: <storageClassName>
+  size: 1Gi
+
+resources: {}
+# We usually recommend not to specify default resources and to leave this as a conscious
+# choice for the user. This also increases chances charts run on environments with little
+# resources, such as Minikube. If you do want to specify resources, uncomment the following
+# lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+ # limits:
+  #  cpu: 4000m
+   # memory: 12Gi
+  #requests:
+    #cpu: 100m
+    #memory: 4Gi
+    
+#xDA Admin Console service Port
+adminConsoleServicePort: 7000
+  
+dfcTracing:
+  isEnabled: false
+
+# xDA TrustStore
+trustStore:
+  enable: false
+  # Name of xDA Trust Store file, xDA Trust Store file should be kept inside xda/secrets folder
+  fileName: <trustStoreFileName>
+  # Password of xDA Trust Store 
+  password: <trustStorePassword>
+
+#CIS Info
+cis:
+  ip:
+  hostname:
+
+#Service Account
+serviceAccount:
+  createserviceaccount: true
+  serviceAccountName: documentum-sa

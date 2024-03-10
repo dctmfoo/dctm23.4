@@ -1,0 +1,108 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2rest-rest-api-runtime-properties
+  {{- template "configMap.labels" . }}
+data:
+  rest-api-runtime.properties: |-
+    #
+    # Copyright 2021 Open Text. All Rights Reserved
+    #
+    # Sets user defined runtime properties below. Settings in this file override the default ones defined in specific
+    # libraries. Please refer to file 'rest-api-runtime.properties.template' for available runtime configurations.
+    
+    
+    # Custom config location to initialize D2 rest java configuration
+    rest.context.config.location=com.emc.d2.rest.context.jc,com.opentext.d2.rest.context.jc
+    
+    {{- if not .Values.restApiRuntime.OTDS.enable }}
+    rest.security.auth.mode=basic-ct
+    {{- else }}
+    rest.security.auth.mode=ct-otds_token
+    rest.security.realm.name=com.documentum.rest
+    rest.security.otds.login.appName={{ .Values.restApiRuntime.OTDS.appName }}
+    rest.security.otds.login.url={{ .Values.restApiRuntime.OTDS.authSvcProtocol }}://{{ .Values.restApiRuntime.OTDS.authSvc }}/login?response_type=token&client_id={{ .Values.restApiRuntime.OTDS.clientId }}
+    rest.security.otds.logout.url={{ .Values.restApiRuntime.OTDS.authSvcProtocol }}://{{ .Values.restApiRuntime.OTDS.authSvc }}/logout?client_id={{ .Values.restApiRuntime.OTDS.clientId }}
+    rest.security.otds.esignoff.url={{ .Values.restApiRuntime.OTDS.authSvcProtocol }}://{{ .Values.restApiRuntime.OTDS.authSvc }}/login?response_type=id_token&client_id={{ .Values.restApiRuntime.OTDS.clientId }}&prompt=login&authcontext=sign&scope=openid
+    {{- end }}
+    
+    # Determines whether the CSRF protection is enabled for Client Token. The default value is true.
+    {{- if not .Values.restApiRuntime.CSRF.enable }}
+    rest.security.csrf.enabled={{ .Values.restApiRuntime.CSRF.enable }}
+    {{- else if .Values.restApiRuntime.CSRF.enable }}
+    rest.security.csrf.enabled={{ .Values.restApiRuntime.CSRF.enable }}
+    rest.security.csrf.http_methods=POST,PUT,DELETE
+    rest.security.csrf.generation.method=server
+    rest.security.csrf.header_name=DOCUMENTUM-CSRF-TOKEN
+    rest.security.csrf.parameter_name=csrf-token
+    rest.security.csrf.token.length=256
+    rest.security.sso.fallback.auth.mode=
+    {{- end}}
+    {{- if and .Values.customConfigurations.custom .Values.customConfigurations.locale }}
+    rest.error.message.supported.locales=en,{{ .Values.customConfigurations.locale }}
+    {{- else }}
+    rest.error.message.supported.locales=en
+    {{- end }}
+    
+    # Url patterns of anonymous resources.
+    rest.security.anonymous.url.patterns = /d2-configurations/**
+    
+    # Ensure that client token cookie is scoped at each repository level
+    rest.security.client.token.cookie.scoped=true
+    
+    # Ensure that client token cookie is a session cookie which gets destroyed when browser is closed
+    rest.security.client.token.session.cookie=true
+    
+    #Specifies the URL to redirect after the successful logout. When it is not specified, the server returns no content for the success logout.
+    rest.security.logout.success.url=
+    {{- if .Values.restApiRuntime.AllowCors.enable }}
+    rest.cors.enabled=true
+    rest.security.client.token.cookie.samesite=none
+    rest.cors.allowed.origins={{ .Values.restApiRuntime.AllowCors.restAllowedOrigins }}
+    rest.cors.allowed.methods=GET, POST, PUT, DELETE, OPTIONS, HEAD
+    rest.cors.allowed.headers=DOCUMENTUM-CUSTOM-UNAUTH-SCHEME, Authorization, Content-Type, Accept, X-CLIENT-LOCATION, X-CLIENT-APPLICATION-NAME
+    rest.cors.exposed.headers=Accept-Ranges, Content-Encoding,Content-Length, Content-Range, Authorization, Content-Disposition
+    rest.dql.access.mode=all
+    {{- end }}
+    
+    # Provides a facility to disallow dql execution on the configured documentum type objects.
+    # It is recommended to use this property to avoid DQL related security concerns on either documentum config
+    # objects (such as docbase config, serve config, bocs config etc) or the types on which an acl can not be defined.
+    # This property disallows DQL execution on the configured types only for the users who are neither having admin
+    # nor super user privileges.
+    {{- if .Values.restApiRuntime.AllowCors.restAllowedOrigins }}
+    dql.disallowed.types=dm_acs_config,dm_cont_transfer_config,dm_network_location_map,
+                         dm_cache_config,dmc_mq_config,dm_bocs_config,dm_dms_config,dm_docbase_config,dm_server_config,
+                         dm_acl,dm_role,dm_group,dmr_containment,dm_assembly,dm_tasks_all,dmi_package,
+                         dmi_queue_item,dm_mount_point,dm_store,dm_process,dm_workflow,dmi_audit_attrs,
+                         dm_java,dm_basic,dm_public_key_certificate,dmc_java_library,dmi_change_record,
+                         dm_func_expr,dm_location,dmi_dd_attr_info,dm_relation_ssa_policy,dm_aggr_domain,dmi_change_record,
+                         dm_validation_descriptor,dm_client_registration,dm_replica_catalog,dmi_wf_attachment,dmi_registry,
+    					 dmc_aspect_type,dm_fulltext_index,dm_lifecycle,dmc_java_library
+    {{- else }}
+    dql.disallowed.types=dmr_content,dm_relation,dm_acs_config,dm_cont_transfer_config,dm_network_location_map,
+                         dm_cache_config,dmc_mq_config,dm_bocs_config,dm_dms_config,dm_docbase_config,dm_server_config,
+                         dm_user,dm_acl,dm_role,dm_group,dmr_containment,dm_assembly,dm_tasks_all,dmi_package,
+                         dmi_queue_item,dm_format,dm_mount_point,dm_store,dm_type,dm_process,dm_workflow,dmi_audit_attrs,
+                         dm_java,dm_basic,dm_public_key_certificate,dmi_type_info,dmc_java_library,dmi_change_record,
+                         dm_func_expr,dm_location,dmi_dd_attr_info,dm_relation_ssa_policy,dm_aggr_domain,dmi_change_record,
+                         dm_validation_descriptor,dm_client_registration,dm_replica_catalog,dmi_wf_attachment,dmi_registry,
+                         dmc_aspect_type,dm_fulltext_index,dm_lifecycle,dmc_java_library
+    {{- end }}
+    
+    
+    # Crypto salt for client token encryption and decryption
+    # For a multi-node deployment of REST servers, this property MUST be consistently set across all REST servers. For a
+    # single-node deployment of REST servers, this property is optional. The value CAN be any ascII characters. We recommend
+    # that you specify a text no less than 8 characters.
+    #
+    rest.security.crypto.key.salt=
+{{- $configFileOverridesFile := printf "%s/%s" .Values.configFileOverrideFilesDir "rest-api-runtime.properties" }}
+{{- $configFileMsg0 := printf "\n\n##### Begin lines added from %s\n" $configFileOverridesFile }}
+{{- $configFileMsg1 := printf "##### End lines added from %s" $configFileOverridesFile }}
+{{- $configFileLinesToAppend := .Files.Get $configFileOverridesFile }}
+{{- if $configFileLinesToAppend }}
+{{ $configFileMsg0 | indent 4 }}
+{{ $configFileLinesToAppend | indent 4 }}
+{{ $configFileMsg1 | indent 4 }}
+{{- end }}

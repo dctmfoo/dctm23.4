@@ -1,0 +1,193 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.serviceName }}
+spec:
+  strategy:
+   type: {{ .Values.strategyType}}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "dctm-cmis.custom-labels" . | indent 6 }}
+  template:
+    metadata:
+        labels:
+          {{- include "dctm-cmis.custom-labels" . | indent 10 }}
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.serviceAccountName }}
+      initContainers:
+          - name: {{ .Values.cmisInitContainers.name }}
+            image: {{ .Values.cmisInitContainers.image }}:{{ .Values.cmisInitContainers.imageTag }}
+            imagePullPolicy: {{ .Values.cmisInitContainers.imagePullPolicy }}
+            volumeMounts: 
+              {{- if (eq .Values.cmis.useCommonPVC true) }}
+              - name: common-volume
+              {{- else  }}
+              - name: {{ .Values.serviceName }}-pvc
+              {{- end }}
+                mountPath: /home/dmadmin/dctmcmisextension
+                subPath: dctmcmisextension
+
+{{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+{{ end }}        
+      containers:
+          {{- if eq .Values.graylog.enabled true }}
+          - name: graylog-sidecar-{{ .Values.serviceName }}
+            image: {{ .Values.graylog.image | quote }}
+            imagePullPolicy: Always
+            env:
+              - name: GRAYLOG_SERVER
+                value: {{ .Values.graylog.server | quote }}
+              - name: GRAYLOG_PORT
+                value: {{ .Values.graylog.port | quote }}
+              - name: GRAYLOG_SERVICE_TOKEN
+                value: {{ .Values.graylog.serviceToken | quote }}
+              - name: TAGS
+                value: {{ .Values.graylog.tags | quote }}
+              - name: NODE_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: spec.nodeName
+              - name: NAMESPACE_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+            volumeMounts:
+              - name: {{ .Values.serviceName }}-graylog
+                mountPath: /pod-data    
+          {{- end }}        
+          - name: {{ .Values.containerName }}
+            image: {{ .Values.image }}/{{ .Values.path }}:{{ .Values.imageTag }}
+            imagePullPolicy: {{ .Values.imagePullPolicy }}
+            command: ['bin/sh', '-c', 'mkdir -p /home/dmadmin/cmisextnscriptfolder/;chmod 755 /home/dmadmin/cmisextnscriptfolder/;cp /home/dmadmin/dctmcmisextension/extensionstartup.sh /home/dmadmin/cmisextnscriptfolder/;chmod +x /home/dmadmin/cmisextnscriptfolder/extensionstartup.sh;/home/dmadmin/cmisextnscriptfolder/extensionstartup.sh {{ .Values.java.javaOptions }}']
+            env:
+              {{- if (.Values.newrelic.enabled) }}
+              - name: NEW_RELIC_PROXY_HOST
+                value: {{ quote .Values.newrelic.proxy_host }}
+              - name: NEW_RELIC_PROXY_PORT
+                value: {{ quote .Values.newrelic.proxy_port }}
+              - name: NEW_RELIC_PROXY_SCHEME
+                value: {{ quote .Values.newrelic.proxy_protocol }}
+              {{- if (.Values.content_server.secretName) }}
+              - name: NEW_RELIC_LICENSE_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.content_server.secretName }}
+                    key: newrelicLicensekey
+              {{- end }}
+              - name: NEW_RELIC_APP_NAME
+                value: {{ quote .Values.newrelic.app_name }}
+              - name: NEW_RELIC_FILE
+                value: {{ .Values.extraConfigMountPath }}/{{ .Values.newrelic.configurationFile }}
+              {{- if (.Values.newrelic.addNodeNamePrefix) }}
+              - name: NODE_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: spec.nodeName
+              {{- end }}
+              {{- end }}
+              - name: KUBERNETES
+                value: "true"
+              - name: SINGLE_HELM_ENABLED
+                value: {{ .Values.single_helm.enable | quote }}
+              - name: ACS_HOST
+                value: {{ .Values.acsService.serviceName | quote }}
+              - name: ACS_PORT
+                value: {{ .Values.acsService.servicePort | quote }}
+              {{ if eq .Values.log4j.formatMsgNoLookups true }}
+              - name: LOG4J_FORMAT_MSG_NO_LOOKUPS
+                value: "true"
+              {{ end }}
+            volumeMounts:
+              - name: cmis-config-volume
+                mountPath: /home/dmadmin/config
+              {{- if (.Values.newrelic.enabled) }}
+              - name: ext-conf-volume
+                mountPath: {{ .Values.extraConfigMountPath }}
+              {{- end}}
+              {{- if eq .Values.graylog.enabled true }}
+              - name: {{ .Values.serviceName }}-graylog
+                mountPath: /opt/tomcat/logs
+              {{- end}}
+              {{- if .Values.docbroker.useCertificate }}
+              - name: dbr-cert-volume
+                mountPath: /home/dmadmin/dbr-cert
+                subPath: {{ .Values.docbroker.pvcCertSubPath }}
+              {{- end }}
+              {{- if (eq .Values.cmis.useCommonPVC true) }}
+              - name: common-volume
+              {{- else  }}
+              - name: {{ .Values.serviceName }}-pvc
+              {{- end }}
+                mountPath: /home/dmadmin/dctmcmisextension
+                subPath: dctmcmisextension
+            resources:
+              requests:
+                memory: {{ .Values.resources.requests.memory | quote }}
+                cpu: {{ .Values.resources.requests.cpu | quote }}
+              limits:
+                memory: {{ .Values.resources.limits.memory | quote }}
+                cpu: {{ .Values.resources.limits.cpu | quote }}
+            readinessProbe:
+              httpGet:
+                path: /dctm-cmis/main
+                port: {{ .Values.httpPort }}
+              initialDelaySeconds: 40
+              periodSeconds: 15
+              timeoutSeconds: 10
+            {{- if (.Values.livenessProbe.enabled) }}
+            livenessProbe:
+              httpGet:
+                scheme: {{ .Values.livenessProbe.scheme }}
+                path: {{ .Values.livenessProbe.probeUrl }}
+                {{- if eq .Values.livenessProbe.scheme "HTTP"}}
+                port: {{ .Values.httpPort }}
+                {{- end }}
+                {{- if eq .Values.livenessProbe.scheme "HTTPS"}}
+                port: {{ .Values.httpsPort }}
+                {{- end }}
+              initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+              periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+              timeoutSeconds: 10
+            {{- end }}
+      volumes:
+        - name: cmis-config-volume
+          projected:
+            sources:
+            - configMap:
+                name: {{ .Values.serviceName }}-configmap
+            - configMap:
+                name: {{ .Values.serviceName }}-logging-configmap
+            {{- if (.Values.existingConfigMap) }}
+            - configMap:
+                name: {{ .Values.existingConfigMap }}
+            {{- end }}
+        {{- if eq .Values.graylog.enabled true }}
+        - name: {{ .Values.serviceName }}-graylog
+          emptyDir: {}
+        {{- end}}
+        {{- if (eq .Values.cmis.useCommonPVC true) }}
+        - name: common-volume
+          persistentVolumeClaim:
+            claimName: {{ .Values.cmis.commonPVCname }}
+        {{- else  }}
+        - name: {{ .Values.serviceName }}-pvc
+          persistentVolumeClaim:
+            claimName: {{ .Values.cmis.pvcName }}        
+        {{- end }}
+        {{- if .Values.docbroker.useCertificate }}
+        - name: dbr-cert-volume
+          persistentVolumeClaim:
+            claimName: {{ .Values.docbroker.dbrServiceName }}-pvc
+        {{- end }}
+        {{if (.Values.newrelic.enabled) }}
+        - name: ext-conf-volume
+          configMap:
+            name: {{ .Values.serviceName }}-configmap-ext
+        {{- end }}

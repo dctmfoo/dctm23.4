@@ -1,0 +1,12 @@
+{{- if eq .Values.cs.useCSDfcConfigMap false }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rqm-dfcproperties-configmap
+  namespace: {{ .Values.namespace }}
+data:
+  dfc.properties: |
+   {{- range .Values.dfc.properties }}
+   {{ . }}
+   {{- end }}
+{{ end }}

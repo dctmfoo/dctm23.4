@@ -1,0 +1,22 @@
+{{- if eq .Values.dfcTracing.enable true }} 
+apiVersion: v1
+kind: ConfigMap
+metadata:  
+  name: {{ .Values.dfcTracing.configMapName }}
+  namespace:   
+data:
+  dfc.properties: |
+    dfc.tracing.enable=true
+    dfc.logging.level_to_force_stack = all
+    dfc.tracing.verbose=true
+    dfc.tracing.include_rpcs=true
+    dfc.tracing.max_stack_depth=20
+    dfc.tracing.timing_style=date
+    dfc.tracing.date_column_width=12
+    dfc.tracing.date_format=dd-mm-yyyy hh:mm:ss.SSS
+    dfc.tracing.mode=standard
+    dfc.tracing.file_prefix={{ .Values.dfcTracing.filePrefix }}
+    dfc.tracing.log.level={{ .Values.dfcTracing.logLevel }}
+    dfc.bof.cache.append_name=true
+    dfc.tracing.print_exception_stack=true    
+{{ end }}     

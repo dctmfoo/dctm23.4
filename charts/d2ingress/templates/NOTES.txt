@@ -1,0 +1,6 @@
+You can use IE browser with http://{{ .Values.ingress.hostShortName }}.{{ .Values.ingress.hostDomainName }}/D2-Config to access the D2-Config webapp
+You can use any browser with http://{{ .Values.ingress.hostShortName }}.{{ .Values.ingress.hostDomainName }}/D2 to access the D2 client webapp.
+You can use any browser with http://{{ .Values.ingress.hostShortName }}.{{ .Values.ingress.hostDomainName }}/D2-Smartview to access the D2 smartview webapp.
+You can use any browser with http://{{ .Values.ingress.hostShortName }}.{{ .Values.ingress.hostDomainName }}/d2-rest to access D2 rest.
+You can use any browser with http://{{ .Values.ingress.hostShortName }}.{{ .Values.ingress.hostDomainName }}/otds-admin to access OTDS admin site.
+	

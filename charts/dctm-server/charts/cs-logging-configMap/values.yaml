@@ -1,0 +1,122 @@
+# Logging configurations for CS and the applications running under Documentum  java method server such as ServerApps, ACS, D2, BPM etc .
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+###User Name/ID
+serviceName: <sname>
+
+###Set this value to same as the one which is set in content server values.yaml file
+jmsVersion: tomcat10.1.13
+
+  
+### ConfigMap metadata ###
+configMap:
+  cs_configMap_name: <sname>cs-logging-configmap
+  acs_configMap_name: <sname>acs-logging-configmap
+  serverApps_configMap_name: <sname>serverapps-logging-configmap
+  bpm_configMap_name: <sname>bpm-logging-configmap
+  otdsauth_configMap_name: <sname>otdsauth-logging-configmap
+  dmotdsrest_configMap_name: <sname>dmotdsrest-logging-configmap
+  saml_configMap_name: <sname>saml-logging-configmap
+  oauth_configMap_name: <sname>oauth-logging-configmap
+  fluentd_configMap_name: <sname>fluentd-configmap
+  logrotate_configmap_name: <sname>logrotate-configmap
+  d2_configMap_name: <sname>d2-logback-configmap
+
+### Logging configuration for CS depolyment/container ###
+loggingConfiguration:
+  containerName: <sname>dcs-pg
+
+### DFC EventHUb related traces
+dfcEventHubTracing:
+  enable: false
+  level: 0
+### dfc trace ###
+dfcTraceing:
+  enable: false
+
+### docbase trace. Provide docbase trace options to enable and comma separated ###
+docbaseTrace:
+  enable: false
+  options: rpctrace,trace_authentication
+ 
+### Server Apps ###  
+serverApps:
+  log4j:
+    # Log Levels for ServerApps application. Valid values are DEBUG, INFO, WARN, ERROR, FATAL
+    rootLogLevel: WARN
+    layout_type: PatternLayout
+    layout_pattern: "%d{ABSOLUTE} %5p [%t] %c - %m%n"
+    monitorInterval: 30
+
+otdsauth:
+  log4j:
+    rootLogLevel: INFO
+    
+dmotdsrest:
+  log4j:
+    rootLogLevel: INFO
+    dmotdsrestLogLevel: INFO    
+    
+saml:
+  log4j:
+    rootLogLevel: INFO
+
+oauth:
+  log4j:
+    rootLogLevel: INFO
+
+### ACS Server ###
+acs:
+  log4j:
+    # Log Levels for ACS application. Valid values are DEBUG, INFO, WARN, ERROR, FATAL
+    rootLogLevel: WARN
+    acsLogLevel: WARN
+    atmosLogLevel: WARN
+
+### BPM ###
+bpm:
+  log4j:
+    enable: false
+    # Log Levels for BPM application. Valid values are DEBUG, INFO, WARN, ERROR, FATAL
+    rootLogLevel: WARN
+    bpmLogLevel: WARN
+    bpsLogLevel: WARN 
+    traceLogLevel: DEBUG
+    
+d2:
+  logback:
+    enable: false
+    file: /tmp/D2-JMS.log
+    fileNamePattern: /tmp/D2-JMS-%d{yyyy-MM-dd}.log.zip
+    logLevel: info
+    
+logrotate:
+  enable: false
+  configmap: |-
+   /opt/dctm/<env>TOMCAT<env>/logs/catalina.out <openbrace>
+   copytruncate
+   dateext dateformat -%Y-%m-%d-%s
+   rotate 7
+   size 10M
+   <closebrace>
+   /opt/dctm/dba/log/<env>SERVER_CONFIG_NAME<env>.log <openbrace>
+   copytruncate
+   dateext dateformat -%Y-%m-%d-%s
+   rotate 7
+   size 10M
+   <closebrace>
+
+### Fluentd config ### 
+fluentdConf:
+   enable: false
+   TCPPort: 24224
+   RESTPort: 8888
+   UDPPort: 20001
+   kafkaTopic: Cs-Audit-Topic
+   kafkaUser: kfkuser
+   kafkaUsrPasswd: password
+   compressionMode: gzip
+   bufferingMode: FILEBUFFER
+   flushInterval: 3s  
+   kafkaBrokerList: localhost:9092 

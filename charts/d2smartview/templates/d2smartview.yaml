@@ -1,0 +1,388 @@
+#Service
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ .Chart.Name }}
+  {{- with .Values.serviceAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.serviceType }}
+  ports:
+    - port: 8080
+  selector:
+    app: {{ .Chart.Name }}
+---
+#Persistent Volume when efs is enabled for hook approach
+{{- if and .Values.customConfigurations.persistentVolume.awsEFS .Values.customConfigurations.hook_approach }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.customConfigurations.persistentVolume.existVolumePv }}
+spec:
+  capacity:
+    storage: {{ .Values.customConfigurations.persistentVolume.size }}
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: {{ .Values.customConfigurations.persistentVolume.reclaimPolicy }}
+  storageClassName: {{ .Values.customConfigurations.persistentVolume.storageClass }}
+  csi:
+    driver: {{ .Values.customConfigurations.persistentVolume.awsEFSCSIDriver }}
+    volumeHandle: {{ .Values.customConfigurations.persistentVolume.awsEFSCSIHandle }}
+{{- end }}
+
+---
+
+#Persistent Volume Claim when createPVC is true for hook approach
+{{- if and .Values.customConfigurations.createPVC .Values.customConfigurations.hook_approach }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.customConfigurations.scriptPVCname }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: {{ .Values.customConfigurations.persistentVolume.storageClass }}
+  {{- if .Values.customConfigurations.persistentVolume.existVolumePv }}
+  volumeName: {{ .Values.customConfigurations.persistentVolume.existVolumePv }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.customConfigurations.persistentVolume.size }}
+{{- end }}
+---
+
+#StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+   name: {{ .Chart.Name }}
+spec:
+  serviceName: "{{ .Chart.Name }}"
+  replicas: {{ .Values.replicaCount }}  
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}
+    spec: 
+      securityContext:
+        fsGroup: {{ .Values.fsGroup }}    
+{{- if .Values.images.pullSecrets }}
+      imagePullSecrets:
+      - name: {{ .Values.images.pullSecrets }}
+{{ end }}
+      {{- with .Values.hostAliases }}
+      hostAliases:
+{{ toYaml . | indent 6 }}
+      {{- end }}
+      initContainers:
+      - name: d2smartviewextension
+        image: {{ .Values.extensionImage.repository }}/{{ .Values.extensionImage.name }}:{{ .Values.extensionImage.tag }}
+        imagePullPolicy: {{ .Values.extensionImage.pullPolicy }}
+        command: ['/bin/sh', '-c', '. /opt/d2smartview/initstartup.sh']
+        volumeMounts:
+          - name: extensionpvc
+            mountPath: /opt/d2extension
+            subPath: d2smartview
+{{- if .Values.extraInitContainers }}
+{{ toYaml .Values.extraInitContainers | indent 6 }}
+{{- end }}
+{{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+{{- end }}
+      serviceAccountName: {{ .Values.serviceAccount.serviceAccountName }}
+      containers:
+      - name: {{ .Chart.Name }}
+        image: {{ .Values.images.repository }}/{{ .Values.images.name }}:{{ .Values.images.tag }}
+        imagePullPolicy: {{ .Values.images.pullPolicy }}
+{{- if .Values.customConfigurations.custom }}
+        command: ['bin/sh', '-c', 'mkdir -p /opt/D2-install;sudo cp -Rf /opt/d2extension/d2smartview/* /opt/D2-install/;sudo chown -Rf 1000:1000 /opt/D2-install/;. /opt/D2-install/extensionstartup.sh']
+{{- else }}
+        command: ['bin/sh', '-c', 'mkdir -p /opt/D2-install;cp -Rf /opt/d2extension/d2smartview/* /opt/D2-install/;sudo chown -Rf 1000:1000 /opt/D2-install/;. /opt/D2-install/extensionstartup.sh']
+{{- end }}        
+        env:
+        - name: KUBERNETES
+          value: "true"
+        - name: CONTAINER_NAME
+          value: {{ .Chart.Name | quote }}
+        - name: D2INSTALL_USE_CS_CUSTOM_SCRIPTS_APPROACH
+          value: "true"        
+        - name: DOCBROKERS_COUNT
+          value: {{ .Values.docbroker.count | quote}}
+        - name: DOCBROKER_SERVICE_NAME
+          value: {{ .Values.userName  }}{{ .Values.docbroker.serviceName  }}
+        - name: DOCBROKER_CLUSTER_SPACE
+          value: {{ .Values.env.domain  }}
+        - name: DOCBROKER_PORT
+          value: {{ .Values.docbroker.port | quote }}                     
+        - name: METHOD_SVR_HOST
+          value: {{ .Values.methodsvr.containerName }}-jms-service
+        - name: METHOD_SVR_PORT
+          value: "9080"
+        - name: GLOBAL_REGISTRY_DOCBASE_NAME
+          value: {{ .Values.docbase.name }}
+        - name: BOF_REGISTRY_USER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.csConfigName }}
+              key: globalRegistryPassword          
+        - name: INSTALL_OWNER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.csConfigName }}
+              key: installOwner        
+        - name: INSTALL_OWNER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.csConfigName }}
+              key: installOwnerPassword
+        - name: DOCBASE_NAME
+          value: {{ .Values.docbase.name }}         
+        - name: ENABLE_OTDS
+          value: {{ .Values.restApiRuntime.OTDS.enable | quote }}
+        - name: OTDS_AUTH_SVC_PROTOCOL
+          value: '{{ .Values.restApiRuntime.OTDS.authSvcProtocol }}'        
+        - name: OTDS_AUTH_SVC
+          value: {{ .Values.restApiRuntime.OTDS.authSvc | quote }}        
+        - name: OTDS_CLIENT_ID
+          value: {{ .Values.restApiRuntime.OTDS.clientId | quote }}
+        - name: TOMCAT_JVM_ARGS
+          value: {{ .Values.env.tomcatJVMArgs }} 
+        - name: WEBAPP_NAME
+          value: {{ .Values.env.webappName }}
+        - name: TOMCAT_LOG_FILE_ROTATION
+          value: {{ .Values.tomcat.logfilerotation | quote }}
+        - name: TOMCAT_LOG_FILE_SIZE
+          value: {{ .Values.tomcat.logfilesize | quote }}
+        - name: TOMCAT_LOGROTATE_FREQUENCY
+          value: {{ .Values.tomcat.logrotateFrequency | quote }}
+        - name: REMOVE_DOCU
+          value: {{ .Values.removeDocumentation | quote }}           
+{{ if eq .Values.certificate.use_certificate true }}
+        - name: DOCBASE_USE_CERTIFICATES
+          value: {{ .Values.certificate.use_certificate | quote }}
+{{ end }}
+      {{- if .Values.newrelic.enable }}
+        - name: NEWRELIC_ENABLE
+          value: {{ .Values.newrelic.enable | quote  }}            
+        - name: NEWRELIC_APP_NAME
+          value: {{ .Values.newrelic.app_name }}.{{ .Release.Namespace }}
+        - name: NEWRELIC_PROXY_HOST
+          value: {{ .Values.newrelic.proxy_host }}
+        - name: NEWRELIC_PROXY_PORT
+          value: {{ .Values.newrelic.proxy_port | quote  }}
+        - name: NEWRELIC_LICENSE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.csConfigName }}
+              key: newrelicLicensekey
+      {{- end }}
+{{- if .Values.customConfigurations.custom }}
+        - name: CUSTOM_IMPORT
+          value: {{ .Values.customConfigurations.custom | quote }}
+        - name: LOCALE_NAME
+          value: {{ .Values.customConfigurations.locale | quote }}
+{{- end }}
+{{- if .Values.customConfigurations.hook_approach }}
+        - name: HOOK_APPROACH
+          value: {{ .Values.customConfigurations.hook_approach | quote }}
+{{- end }}    
+      {{- if .Values.bravatls.enable }}
+        - name: BRAVA_CERTIFICATE
+          value: {{ .Values.bravatls.certName | quote }}
+      {{ end }}      
+        - name: DFC_SSL_TRUSTSTORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.csConfigName }}
+              key: csCertTrustPassword      
+{{- if .Values.extraEnv }}
+{{ toYaml .Values.extraEnv | indent 8 }}
+{{- end }}             
+        ports:
+        - containerPort: 8080
+          name: clientport
+        volumeMounts:
+{{- if .Values.bravatls.enable }}
+    {{ $chartName := .Chart.Name }}
+    {{ range $path, $_ :=  .Files.Glob "certificates/*" }}
+        - mountPath: /opt/brava/certificates/{{ base $path }}
+          name: {{ $chartName }}-brava-certs
+          subPath: {{ base $path }}
+    {{ end }}
+{{- end }}        
+        - mountPath: {{ .Values.tomcat.catalinaHome }}/CustomConf/DFCKeystore
+          name: {{ .Chart.Name }}-vct
+          subPath: {{ .Chart.Name }}_dfc_keystore_file                    
+{{- if .Values.cs.custom.scriptinPVC }}
+        - mountPath: /opt/D2CS-install
+          name: {{ .Values.cs.custom.volumeMountName }}
+          subPath: {{ .Values.cs.custom.PVCSubPath }}/d2
+{{- else }}            
+        - mountPath: /opt/D2CS-install
+          name: dcs-data-pvc
+          subPath: D2CS-install/d2-dcs 
+{{- end }}
+{{ if eq .Values.certificate.use_certificate true }}
+        - mountPath: /opt/dctm/certificate
+          name: {{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+          subPath: certificate/{{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+{{ end }}
+        - mountPath: {{ .Values.tomcat.catalinaHome }}/CustomConf
+          name: {{ .Chart.Name }}-conf-files
+        - mountPath: {{ .Values.tomcat.catalinaHome }}/conf/server.xml
+          name: {{ .Chart.Name }}-appserver-server-xml
+          subPath: server.xml
+        - mountPath: {{ .Values.tomcat.catalinaHome }}/conf/web.xml
+          name: {{ .Chart.Name }}-appserver-web-xml
+          subPath: web.xml
+{{- if and .Values.customConfigurations.custom .Values.customConfigurations.hook_approach }}
+        - mountPath: /opt/D2-install/custom
+          name: customconfig
+          subPath: d2smartview
+{{- else if .Values.customConfigurations.custom }}
+        - mountPath: /opt/D2-install/custom
+          name: customconfig
+{{- end }}
+        - mountPath: /opt/d2extension/
+          name: extensionpvc
+          subPath: d2smartview
+{{ if eq .Values.graylog.enable false }}
+        - mountPath: {{ .Values.tomcat.catalinaHome }}/webapps/{{ .Values.env.webappName }}/logs/
+          name: shared-logs
+          subPath: {{ .Values.env.webappName }}/logs
+        - mountPath: {{ .Values.tomcat.catalinaHome }}/logs/
+          name: shared-logs
+          subPath: logs
+{{- end }}
+{{ $kubeversion := printf "%s.%s" .Capabilities.KubeVersion.Major .Capabilities.KubeVersion.Minor | replace "+" "" | float64 }}
+        resources:
+{{ toYaml .Values.resources | indent 12 }}
+        readinessProbe:
+          httpGet:
+            path: /{{ .Values.env.webappName }}/services
+            port: 8080
+{{- if ge $kubeversion 1.19 }}
+          initialDelaySeconds: {{ default 60 .Values.readinessProbe.initialDelaySeconds }}
+{{- else }}
+          initialDelaySeconds: {{ default 300 .Values.readinessProbe.initialDelaySeconds }}
+{{- end }}
+          periodSeconds: 60
+          failureThreshold: 5
+          successThreshold: 1
+          timeoutSeconds: 60
+        livenessProbe:
+          httpGet:
+            path: /{{ .Values.env.webappName }}/servlet/live
+            port: 8080
+{{- if ge $kubeversion 1.19 }}
+          initialDelaySeconds: {{ default 60 .Values.livenessProbe.initialDelaySeconds }}
+{{- else }}
+          initialDelaySeconds: {{ default 300 .Values.livenessProbe.initialDelaySeconds }}
+{{- end }}
+          periodSeconds: 60
+          failureThreshold: 5
+{{ if ge $kubeversion 1.19 }}  
+        startupProbe:
+          httpGet:
+            path: /{{ .Values.env.webappName }}/servlet/live
+            port: 8080
+          initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
+          failureThreshold: 5
+          successThreshold: 1
+          timeoutSeconds: 60
+          periodSeconds: 60  
+ {{- end }}            
+      volumes:
+{{ if eq .Values.graylog.enable false }}
+        - name: shared-logs
+          emptyDir: {}
+{{ end }}
+{{- if and .Values.customConfigurations.custom .Values.customConfigurations.hook_approach }}
+        - name: customconfig
+          persistentVolumeClaim:
+            claimName: {{ .Values.customConfigurations.scriptPVCname }}
+{{- else if .Values.customConfigurations.custom }}
+        - name: customconfig
+          emptyDir: {}
+{{- end }}
+        - name: extensionpvc
+          persistentVolumeClaim:
+            claimName: {{ .Values.extension.pvcName }} 
+
+        - name: {{ .Values.cs.custom.volumeMountName }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.cs.custom.scriptPVCname }}
+{{ if eq .Values.certificate.use_certificate true }}
+        - name: {{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.certificate.dbrserviceName }}-pvc
+{{- end }}
+{{- if .Values.bravatls.enable }}
+        - name: {{ .Chart.Name }}-brava-certs
+          secret:
+            secretName: {{ .Chart.Name }}-brava-certs
+{{- end }}
+        - name: {{ .Chart.Name }}-conf-files
+          projected:
+            sources:
+            - configMap:
+                name: {{ .Chart.Name }}-antisamy-xml
+            - configMap:
+                name: {{ .Chart.Name }}-d2fs-properties      
+            - configMap:
+                name: {{ .Chart.Name }}-dfc-properties      
+            - configMap:
+                name: {{ .Chart.Name }}-esapi-properties     
+            - configMap:
+                name: {{ .Chart.Name }}-log4j2-properties    
+            - configMap:
+                name: {{ .Chart.Name }}-logback-xml            
+            - configMap:
+                name: {{ .Chart.Name }}-rest-api-runtime-properties  
+            - configMap:
+                name: {{ .Chart.Name }}-settings-properties          
+            - configMap:
+                name: {{ .Chart.Name }}-validation-properties
+            - configMap:
+                name: {{ .Chart.Name }}-bravaparameters-properties
+            - configMap:
+                name: {{ .Chart.Name }}-sw-config-json
+        - name: {{ .Chart.Name }}-appserver-server-xml
+          projected:
+            sources:
+            - configMap:
+                name: {{ .Chart.Name }}-server-xml
+        - name: {{ .Chart.Name }}-appserver-web-xml
+          projected:
+            sources:
+            - configMap:
+                name: {{ .Chart.Name }}-web-xml  
+  volumeClaimTemplates:
+  - metadata:
+      name: {{ .Chart.Name }}-vct
+    spec:
+      accessModes:
+        - {{ .Values.persistentVolume.vctAccessModes }}
+      resources:
+         requests:
+            storage: {{ .Values.persistentVolume.size }}
+      storageClassName: {{ .Values.persistentVolume.storageClass }}
+{{ if eq .Values.graylog.enable false }}
+  - metadata:
+      name: shared-logs
+    spec:
+      accessModes:
+        - {{ .Values.graylog.volumeClaimTemplate.logVctAccessModes }}
+      resources:
+         requests:
+            storage: {{ .Values.graylog.volumeClaimTemplate.logVctSize }}
+      storageClassName: {{ .Values.graylog.volumeClaimTemplate.logVctStorageClass }}
+{{ end }}

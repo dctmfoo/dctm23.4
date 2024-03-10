@@ -1,0 +1,181 @@
+{{/*
+Make this file only relevant if we want to deploy a 
+OTDS Web Services container for OpenText Directory Services as part of this Helm Chart:
+*/}}
+{{- if eq .Values.enabled true }}
+
+########################################################################
+# OpenText Directory Services (OTDS)
+########################################################################
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: {{ template "otdsws.name" . }}
+{{- if .Values.global.namespace }}
+  namespace: {{ .Values.global.namespace }}
+{{- end }}
+  labels:
+    app.kubernetes.io/component: {{ .Chart.Name }}
+    {{- include (printf "%s%s" .Chart.Name ".labels" ) . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: {{ .Chart.Name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/otds-configmap.yaml") . | sha256sum }}
+      labels:
+        app.kubernetes.io/component: {{ .Chart.Name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      securityContext:
+        # The fsGroup field specifies that group ID {{ .Values.fsGroup }} is associated
+        # with all Containers in the Pod. Group ID {{ .Values.fsGroup }} is also
+        # associated with the mounted volumes and with any files created
+        # in that volume.
+        # This will make volumes be mounted with {{ .Values.fsGroup }} group permissions.
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      serviceAccountName: {{ .Values.global.serviceAccountName }}
+{{- if eq .Values.migration.enabled true }}
+{{- if eq .Values.migration.usingLegacyImage true }}
+      volumes:
+        - name: {{ template "otdsws.name" . }}-data-volume
+          persistentVolumeClaim:
+            claimName: {{ .Values.migration.legacyImagePVC }}
+{{- end }}
+{{- else }}
+{{- if eq .Values.enableBootstrapConfig true }}
+      volumes:
+        - name: {{ template "otdsws.name" . }}-bootstrap-volume
+          secret:
+            secretName: {{ template "otdsws.name" . }}-bootstrap
+{{- end }}
+{{- end }}
+      {{- if .Values.otdsdb.initialize }}
+      initContainers:
+      - name: init-otds-db
+        image: {{ include "otds.init.image.path" . }}
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+        env:
+        - name: SERVICE_ID
+          value: {{ .Chart.Name }}
+        - name: OTDS_ORIGIN
+          value: http://otds # var required by script, but not actually used for otds db initialization
+        - name: PITHOS_PROVIDER
+          value:  {{ .Values.global.database.type }}
+        - name: PITHOS_HOST
+          value:  {{ .Values.global.database.hostname }}
+        - name: PITHOS_PORT
+          value:  '{{ .Values.global.database.port }}'
+        - name: PITHOS_USER
+          value:  {{ .Values.global.database.adminUsername }}
+{{- if eq .Values.global.database.type "postgresql" }}
+        - name: PITHOS_PSQL_DB
+          value:  {{ .Values.global.database.adminDatabase }}
+{{- end }}
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ default .Values.global.dbSecretName .Values.global.existingSecret }}
+              key:  {{ .Values.global.dbSecretKey }}
+        - name: OTDS_DB
+          value: {{ eq .Values.global.database.type "oracle" | ternary .Values.global.database.adminDatabase .Values.otdsdb.name }}
+        - name: OTDS_DB_USER
+          value: {{ .Values.otdsdb.username }}
+        - name: OTDS_DB_PWD
+          valueFrom:
+            secretKeyRef:
+              name: {{ default "otdsws-secrets" .Values.global.existingSecret }}
+              key:  OTDS_JAKARTA_PERSISTENCE_JDBC_PASSWORD
+        command:
+        {{- if .Values.global.usingServiceMesh }}
+          - bash
+          - -c
+          - |
+            sleep 2;
+            {{- if not .Values.global.skipIstioSidecarCalls }}
+            until curl -fsI http://localhost:15021/healthz/ready; do echo Waiting for Sidecar...; sleep 3; done;
+            {{- end }}
+            python otdsDatabase.py;
+            {{- if not .Values.global.skipIstioSidecarCalls }}
+            x=$(echo $?); curl -fsI -X POST http://localhost:15020/quitquitquit && exit $x
+            {{- end }}
+        {{- else }}
+          -  python
+          -  otdsDatabase.py
+        {{- end }}
+      {{- end }}
+      containers:
+      - envFrom:
+        - configMapRef:
+            name: {{ template "otdsws.name" . }}-configmap
+        - secretRef:
+            name: {{ default "otdsws-secrets" .Values.global.existingSecret }}
+{{- if eq .Values.migration.enabled true }}
+{{- if eq .Values.migration.usingLegacyImage true }}
+        volumeMounts:
+          - name: {{ template "otdsws.name" . }}-data-volume
+            mountPath: /opt/otds
+{{- end }}
+{{- else }}
+{{- if eq .Values.enableBootstrapConfig true }}
+        volumeMounts:
+          - name: {{ template "otdsws.name" . }}-bootstrap-volume
+            mountPath: /opt/config/bootstrap
+{{- end }}
+{{- end }}
+        securityContext:
+          allowPrivilegeEscalation: false
+        name: {{ .Chart.Name }}
+        image: {{ include "image.source.path" . }}
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - /opt/scripts/healthcheck.sh
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - /opt/scripts/healthcheck.sh
+          initialDelaySeconds: 240
+          periodSeconds: 10
+          timeoutSeconds: 5
+{{- if eq .Values.resources.enabled true }}
+        resources:
+          limits:
+          {{- if .Values.resources.limits.cpu }}
+            cpu: {{ .Values.resources.limits.cpu }}
+          {{- end }}
+          {{- if .Values.resources.limits.memory }}
+            memory: {{ .Values.resources.limits.memory }}
+          {{- end }}
+          requests:
+          {{- if .Values.resources.requests.cpu }}
+            cpu: {{ .Values.resources.requests.cpu }}
+          {{- end }}
+          {{- if .Values.resources.requests.memory }}
+            memory: {{ .Values.resources.requests.memory }}
+          {{- end }}
+{{- end }}
+        ports:
+        - containerPort: {{ .Values.targetPort }}
+      hostname: {{ .Values.hostname }}
+    {{- if .Values.global.imagePullSecret }}
+      imagePullSecrets:
+      - name: {{ .Values.global.imagePullSecret }}
+    {{- end }}
+{{- end }}

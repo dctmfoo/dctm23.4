@@ -1,0 +1,113 @@
+{{ if .Values.pvc.enablePV }}
+## Consul PVC ##
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.consul.prefix }}-pvc
+  namespace: {{ .Values.namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.pvc.storageClass }}
+  {{ if .Values.pvc.createPV }}
+  volumeName: {{ .Values.prefix }}-{{ .Values.consul.prefix }}-pv
+  {{ end }}
+  resources:
+    requests:
+      storage: {{ .Values.pvc.size }}
+---
+{{ if eq .Values.metadata.enabled true }}
+## Metadata PVC ##
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.metadata.prefix }}-pvc
+  namespace: {{ .Values.namespace }}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: {{ .Values.pvc.storageClass }}
+  {{ if .Values.pvc.createPV }}
+  volumeName: {{ .Values.prefix }}-{{ .Values.metadata.prefix }}-pv
+  {{ end }}
+  resources:
+    requests:
+      storage: {{ .Values.pvc.size }}
+{{ end }}
+---
+{{ if eq .Values.syncagent.enabled true }}
+## Syncagent PVC ##
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.syncagent.prefix }}-pvc
+  namespace: {{ .Values.namespace }}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: {{ .Values.pvc.storageClass }}
+  {{ if .Values.pvc.createPV }}
+  volumeName: {{ .Values.prefix }}-{{ .Values.syncagent.prefix }}-pv
+  {{ end }}
+  resources:
+    requests:
+      storage: {{ .Values.pvc.size }}
+{{ end }}
+---
+{{ if eq .Values.syncnshareManual.enabled true }}
+## Syncagent Manual PVC ##
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.syncnshareManual.prefix }}-pvc
+  namespace: {{ .Values.namespace }}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: {{ .Values.pvc.storageClass }}
+  {{ if .Values.pvc.createPV }}
+  volumeName: {{ .Values.prefix }}-{{ .Values.syncnshareManual.prefix }}-pv
+  {{ end }}
+  resources:
+    requests:
+      storage: {{ .Values.pvc.size }}
+{{ end }}
+---
+{{ if eq .Values.coreNotification.enabled true }}
+## Core Notification PVC ##
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.coreNotification.prefix }}-pvc
+  namespace: {{ .Values.namespace }}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: {{ .Values.pvc.storageClass }}
+  {{ if .Values.pvc.createPV }}
+  volumeName: {{ .Values.prefix }}-{{ .Values.coreNotification.prefix }}-pv
+  {{ end }}
+  resources:
+    requests:
+      storage: {{ .Values.pvc.size }}
+{{ end }}
+---
+{{ if eq .Values.mailService.enabled true }}
+## Mail Service PVC ##
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.mailService.prefix }}-pvc
+  namespace: {{ .Values.namespace }}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: {{ .Values.pvc.storageClass }}
+  {{ if .Values.pvc.createPV }}
+  volumeName: {{ .Values.prefix }}-{{ .Values.mailService.prefix }}-pv
+  {{ end }}
+  resources:
+    requests:
+      storage: {{ .Values.pvc.size }}
+{{ end }}
+{{ end }}

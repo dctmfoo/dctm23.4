@@ -1,0 +1,115 @@
+{{- if hasKey .Values.pvc "createPV" }}
+{{- if and  (eq .Values.pvc.enablePV true) (eq .Values.pvc.createPV true) }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.consul.prefix }}-pv
+  namespace: {{ .Values.namespace }}
+spec:
+  capacity:
+    storage: {{ .Values.pvc.size }}
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: {{ .Values.pvc.storageClass }}
+  csi:
+    driver: {{ .Values.pvc.awsEFSCSIDriver }}
+    volumeHandle: {{ .Values.pvc.awsEFSCSIHandle }}
+---
+{{ if eq .Values.metadata.enabled true }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.metadata.prefix }}-pv
+  namespace: {{ .Values.namespace }}
+spec:
+  capacity:
+    storage: {{ .Values.pvc.size }}
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: {{ .Values.pvc.storageClass }}
+  csi:
+    driver: {{ .Values.pvc.awsEFSCSIDriver }}
+    volumeHandle: {{ .Values.pvc.awsEFSCSIHandle }}
+{{ end }}
+---
+{{ if eq .Values.syncagent.enabled true }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.syncagent.prefix }}-pv
+  namespace: {{ .Values.namespace }}
+spec:
+  capacity:
+    storage: {{ .Values.pvc.size }}
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: {{ .Values.pvc.storageClass }}
+  csi:
+    driver: {{ .Values.pvc.awsEFSCSIDriver }}
+    volumeHandle: {{ .Values.pvc.awsEFSCSIHandle }}
+{{ end }}
+---
+{{ if eq .Values.syncnshareManual.enabled true }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.syncnshareManual.prefix }}-pv
+  namespace: {{ .Values.namespace }}
+spec:
+  capacity:
+    storage: {{ .Values.pvc.size }}
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: {{ .Values.pvc.storageClass }}
+  csi:
+    driver: {{ .Values.pvc.awsEFSCSIDriver }}
+    volumeHandle: {{ .Values.pvc.awsEFSCSIHandle }}
+{{ end }}
+---
+{{ if eq .Values.coreNotification.enabled true }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.coreNotification.prefix }}-pv
+  namespace: {{ .Values.namespace }}
+spec:
+  capacity:
+    storage: {{ .Values.pvc.size }}
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: {{ .Values.pvc.storageClass }}
+  csi:
+    driver: {{ .Values.pvc.awsEFSCSIDriver }}
+    volumeHandle: {{ .Values.pvc.awsEFSCSIHandle }}
+{{ end }}
+---
+{{ if eq .Values.mailService.enabled true }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.mailService.prefix }}-pv
+  namespace: {{ .Values.namespace }}
+spec:
+  capacity:
+    storage: {{ .Values.pvc.size }}
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: {{ .Values.pvc.storageClass }}
+  csi:
+    driver: {{ .Values.pvc.awsEFSCSIDriver }}
+    volumeHandle: {{ .Values.pvc.awsEFSCSIHandle }}
+{{ end }}
+{{- end }}
+{{- end }}

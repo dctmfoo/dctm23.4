@@ -1,0 +1,5 @@
+apiVersion: v2
+appVersion: 22.1.0040.0076
+description: xPlore Helm Chart for Kubernetes
+name: xplore
+version: 22.1.4

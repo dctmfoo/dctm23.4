@@ -1,0 +1,98 @@
+## Consul Service ##
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.consul.prefix }}-service
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: {{ .Values.prefix }}-{{ .Values.consul.prefix }}
+  ports:
+    - port: {{ .Values.consul.service.servicePort }}
+      targetPort: {{ .Values.consul.service.targetPort }}
+  type: ClusterIP
+---
+{{ if eq .Values.syncagent.enabled true }}
+## Syncagent robotic service ##
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.syncagent.prefix }}-service
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: {{ .Values.prefix }}-{{ .Values.syncagent.prefix }}
+  ports:
+    - port: {{ .Values.syncagent.service.servicePort }}
+      targetPort: {{ .Values.syncagent.service.targetPort }}
+  sessionAffinity: ClientIP
+  type: ClusterIP
+{{ end }}
+---
+{{ if eq .Values.syncnshareManual.enabled true }}
+## syncagent manual service ##
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.syncnshareManual.prefix }}-service
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: {{ .Values.prefix }}-{{ .Values.syncnshareManual.prefix }}
+  ports:
+    - port: {{ .Values.syncnshareManual.service.servicePort }}
+      targetPort: {{ .Values.syncnshareManual.service.targetPort }}
+  sessionAffinity: ClientIP
+  type: ClusterIP
+{{ end }}
+---
+{{ if eq .Values.metadata.enabled true }}
+## Metadata service ##
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.metadata.prefix }}-service
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: {{ .Values.prefix }}-{{ .Values.syncagent.prefix }}
+  ports:
+    - port: {{ .Values.syncagent.service.servicePort }}
+      targetPort: {{ .Values.syncagent.service.targetPort }}
+  sessionAffinity: ClientIP
+  type: ClusterIP
+{{ end }}
+---
+{{ if eq .Values.coreNotification.enabled true }}
+## Core Notification service ##
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.coreNotification.prefix }}-service
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: {{ .Values.prefix }}-{{ .Values.coreNotification.prefix }}
+  ports:
+    - port: {{ .Values.coreNotification.service.servicePort }}
+      targetPort: {{ .Values.coreNotification.service.targetPort }}
+  sessionAffinity: ClientIP
+  type: ClusterIP
+{{ end }}
+---
+{{ if eq .Values.mailService.enabled true }}
+## Mail service ##
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.mailService.prefix }}-service
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: {{ .Values.prefix }}-{{ .Values.mailService.prefix }}
+  ports:
+    - port: {{ .Values.mailService.service.servicePort }}
+      targetPort: {{ .Values.mailService.service.targetPort }}
+  sessionAffinity: ClientIP
+  type: ClusterIP
+{{ end }}

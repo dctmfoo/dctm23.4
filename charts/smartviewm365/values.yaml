@@ -1,0 +1,156 @@
+# Default values for ccsmartview.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+### Environment ###
+env:
+  tomcatJVMArgs: ""
+  webappName: &webappName SmartViewM365
+
+## serviceAnnotations define custom annotations that need to be assigned to ccsmartview service.
+## For example:
+##  cloud.google.com/backend-config: '{"ports": {"80": "abcd-ccsmartview-backend"}}'
+##  cloud.google.com/neg: '{"ingress": true}'
+serviceAnnotations:
+  
+### Tomcat ###  
+tomcat:
+  catalinaHome: /opt/tomcat
+  connectionTimeoutInMilliseconds:
+  maxHttpHeaderSize:  
+  secure: false
+  logfilerotation: 
+  logfilesize:
+    
+  
+
+# if k8s version is < 1.19  default initial delay is set to 300 seconds and 60 seconds if k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+readinessProbe:
+  initialDelaySeconds: 
+# if k8s version is < 1.19  default initial delay is set to 300 seconds and 60 seconds if k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+livenessProbe:
+  initialDelaySeconds: 
+
+startupProbe:
+  initialDelaySeconds:  
+
+###No of Pods###
+replicaCount: 2
+
+fsGroup: 1000
+
+images:
+  repository : 
+  name : 
+  tag :
+  pullPolicy: 
+  pullSecrets:
+
+extensionImage:
+  repository: 
+  name : 
+  tag : 
+  pullPolicy:
+
+extraInitContainers: 
+
+
+### Persistent Volume ###
+persistentVolume:
+  vctAccessModes: ReadWriteOnce
+  storageClass: 
+  size: 1Gi
+
+
+
+### Graylog Enabled by default, set to false if logs mount to PVC ###
+graylog:
+  enable:
+  pvcName: 
+  PVCAccessMode: ReadWriteMany
+  PVCStorageClass: 
+  PVCSize: 4Gi
+  
+
+### CCSmartview service type
+serviceType: 
+
+### CCSmartview Extension image ###
+extension:  
+  createPVC:
+  PVCAccessMode: ReadWriteMany
+  PVCStorageClass:
+  PVCSize: 4Gi
+  pvcName:
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #  cpu: 100m
+  #  memory: 128Mi
+  # requests:
+  #  cpu: 100m
+  #  memory: 128Mi
+
+nodeSelector:
+
+
+
+###############################################################
+#  BEGIN parameter value definitions for CC smartview configuration files
+###############################################################
+
+
+
+
+   
+# parameters used to compose ccsmartview-settings-properties config map
+settings:   
+   # "connection.remote.url" setting in "settings.properties"
+   # When using Ingress to expose webapp service inside the cluster to the outside user, 
+   # the ingress is behaving like the reverse proxy. The connectionRemoteUrl should be the 
+   # set to the URL of the Ingress resource that the outside user uses to access the 
+   # webapp inside the cluster.
+   connectionRemoteUrlProtocol: 
+   connectionRemoteUrl: 
+
+#############################################################
+#  END parameter value definitions for CC smartview configuration files
+#############################################################
+
+### New Relic Configuration ###
+
+newrelic:
+  enable: 
+  app_name: 
+  proxy_host: 
+  proxy_port:
+
+
+ccsv: 
+  teamsrootpath:
+  loglevel: 
+  window: 
+  consoleRe: 
+  performancetimestamp: 
+  timing: 
+  d2rest_url: 
+  clientid:
+  appname:
+  
+secret:
+  csConfigName:
+
+serviceAccount:
+  createserviceaccount: 
+  serviceAccountName: 
+
+customConfigurations:
+  custom:
+  locale: 
+  

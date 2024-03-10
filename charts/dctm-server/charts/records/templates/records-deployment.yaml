@@ -1,0 +1,234 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.deployment.name }} 
+  labels:
+    app: {{ .Values.deployment.name }}    
+spec:
+  strategy:
+    type: {{ .Values.deployment.strategyType }} 
+  replicas: {{ .Values.records.replicaCount }}    
+  selector:
+    matchLabels:
+      app: {{ .Values.deployment.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.deployment.name }}
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.serviceAccountName }}
+      {{- if .Values.images.records.pullSecrets }}
+      imagePullSecrets: {{ .Values.images.records.pullSecrets }}
+      {{ end }}
+      containers:
+      {{- if eq .Values.images.graylog.enable true }} 
+      - name: {{ .Values.images.graylog.name }}
+        image: {{.Values.images.graylog.image}}
+        imagePullPolicy: {{ .Values.images.graylog.pullPolicy }}
+        env:
+        - name: GRAYLOG_SERVER
+          value: {{ quote .Values.images.graylog.server }}
+        - name: GRAYLOG_PORT
+          value: {{ quote .Values.images.graylog.port }}
+        - name: TAGS
+          value: "[\"linux\",\"apache\"]"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NAMESPACE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        volumeMounts:
+          - name: shared-data
+            mountPath: /pod-data
+      {{ end }}
+      - name: {{ .Values.containers.records.name }}
+        image: {{ .Values.images.records.repository }}/{{ .Values.images.records.name }}:{{ .Values.images.records.tag }}
+        imagePullPolicy: {{ .Values.images.records.pullPolicy }}
+
+        env:
+        - name: SINGLEHELM
+          value: {{ quote .Values.containers.records.recordsSingleHelm  }}
+        - name: RECORDS_EXT_CONF
+          value: "/opt/tomcat/webapps/records/external-configurations"         
+        {{- if eq .Values.cs.useCSDfcConfigMap true }}
+        - name: DFC_GLOBALREGISTRY_PASSWORD
+          valueFrom:
+            secretKeyRef:              
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: globalRegistryPassword
+        {{ end }}
+        - name: DFC_SSL_TRUSTSTORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: csCertTrustPassword 
+        - name: PREFERPASS
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: preferencePassword
+        - name: PRESETPASS
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: presetPassword
+        - name: DOCBASE_NAME
+          value: {{ quote .Values.containers.records.docbaseName  }}
+        - name: DOCBROKERS_COUNT
+          value: {{ .Values.docbroker.count | quote}}
+        - name: DOCBROKER_SERVICE_NAME
+          value: {{ .Values.userName  }}{{ .Values.docbroker.serviceName  }}
+        - name: DOCBROKER_CLUSTER_SPACE
+          value: {{ .Values.env.domain  }}
+        - name: DOCBROKER_PORT
+          value: {{ .Values.docbroker.port | quote }}   
+        - name: DOCBROKER_HOST
+          value: {{ .Values.docbroker.serviceName  }}
+        - name: DARINSTALL_USE_CS_CUSTOM_SCRIPTS_APPROACH
+          value: "true"
+        - name: INSTALL_OWNER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: installOwner
+        - name: INSTALL_OWNER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: installOwnerPassword    
+        # newrelic env parameters
+        {{- if eq .Values.userProvidedServices.newrelic.enable true }}                
+        - name: NEW_RELIC_AGENT_ENABLED
+          value: {{ quote .Values.userProvidedServices.newrelic.enable }}
+        - name: NEW_RELIC_APP_NAME
+          value: {{ quote .Values.userProvidedServices.newrelic.appName }}
+        - name: NEW_RELIC_LICENSE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName}}
+              key: newrelicLicensekey
+        {{- if .Values.userProvidedServices.newrelic.proxyHost }}
+        - name: NEW_RELIC_PROXY_HOST
+          value: {{ quote .Values.userProvidedServices.newrelic.proxyHost }}
+        {{ end }}
+        {{- if .Values.userProvidedServices.newrelic.proxyPort }}
+        - name: NEW_RELIC_PROXY_PORT
+          value: {{ quote .Values.userProvidedServices.newrelic.proxyPort }}
+        {{ end }}
+        {{ if .Values.userProvidedServices.newrelic.proxyScheme }}
+        - name: NEW_RELIC_PROXY_SCHEME
+          value: {{ quote .Values.userProvidedServices.newrelic.proxyScheme }}
+        {{ end }}
+        {{ end }}
+        - name: DFC_TRACING_ENABLED
+          value: {{ quote .Values.dfcTracing.enable }}
+        - name: ALLOW_TRUSTED_LOGIN
+          value: {{ quote .Values.cs.allowTrustedLogin }}
+        {{- if eq .Values.certificate.useCertificate true }}        
+        - name: USE_CERTIFICATE
+          value: {{ quote .Values.certificate.useCertificate }}
+        - name: TRUST_STORE_PASSWORD        
+          valueFrom: 
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: dbrCertpassword
+        {{ end }}
+        volumeMounts:         
+        - name: nfs-data
+          mountPath: /opt/tomcat/webapps/records/external-configurations
+          subPath: {{ .Values.deployment.name }}
+        - name: dfc-properties-configmap
+          mountPath: /opt/tomcat/webapps/records/external-configurations/dfc.properties
+          subPath: dfc.properties
+        - name: records-logging-configmap
+          mountPath: /opt/tomcat/webapps/records/external-configurations/log4j2.properties
+          subPath: log4j2.properties
+        - name: records-appproperties-configmap
+          mountPath: /opt/tomcat/webapps/records/external-configurations/app.properties
+          subPath: app.properties
+        {{- if eq .Values.otds.enable true }}
+        - name: records-otdsproperties-configmap
+          mountPath: /opt/tomcat/webapps/records/external-configurations/otdsoauth.properties
+          subPath: otdsoauth.properties
+        {{ end }}
+        {{- if eq .Values.images.graylog.enable true }}
+        - name: shared-data
+          mountPath: /opt/tomcat/logs
+          subPath: logs/tomcat
+        - name: shared-data  
+          mountPath: {{ .Values.images.graylog.userhomedir }}/documentum/logs
+          subPath: logs/records
+        {{ end }}
+        - mountPath: /opt/custompvc
+          name: custom-script-pvc
+          subPath: {{ .Values.custom.PVCSubPath }}
+        {{- if eq .Values.certificate.useCertificate true }}
+        - name: {{ .Values.certificate.dbrDataPVCName }}
+          mountPath: /opt/dctm/certificate
+          subPath: certificate/{{ .Values.certificate.dbrDataPVCName }}
+        {{ end }}        
+        ports:
+        - containerPort: {{ .Values.containers.records.containerPort }}
+        resources:
+{{ toYaml .Values.resources | indent 12 }}
+        readinessProbe:
+          httpGet:
+            path: /records/health
+            port: {{ .Values.containers.records.probing.healthPort }}
+          initialDelaySeconds: {{ .Values.containers.records.probing.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.containers.records.probing.readinessProbe.periodSeconds }}
+          failureThreshold: {{ .Values.containers.records.probing.failureThreshold }}
+          successThreshold: {{ .Values.containers.records.probing.successThreshold }}
+          timeoutSeconds: {{ .Values.containers.records.probing.timeoutSeconds }}
+        livenessProbe:
+          httpGet:
+            path: /records/health
+            port: {{ .Values.containers.records.probing.healthPort }}
+          initialDelaySeconds: {{ .Values.containers.records.probing.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.containers.records.probing.livenessProbe.periodSeconds }}
+          failureThreshold: {{ .Values.containers.records.probing.failureThreshold }}
+          successThreshold: {{ .Values.containers.records.probing.successThreshold }}
+          timeoutSeconds: {{ .Values.containers.records.probing.timeoutSeconds }}
+      volumes:
+      {{- if eq .Values.images.graylog.enable true }}
+      - name: shared-data
+        emptyDir: {} 
+      {{ end }}
+      - name: dfc-properties-configmap
+      {{- if eq .Values.cs.useCSDfcConfigMap true }}
+        configMap:
+          name: {{ .Values.cs.configMapName}}
+      {{ else }}
+        configMap:
+          name: {{ .Values.deployment.name}}-dfcproperties-configmap
+      {{ end }}
+      - name: records-logging-configmap
+        configMap:
+          name: {{ .Values.deployment.name }}-logging-configmap
+      - name: records-appproperties-configmap
+        configMap:
+          name: {{ .Values.deployment.name }}-appproperties-configmap
+      {{- if eq .Values.otds.enable true }}
+      - name: records-otdsproperties-configmap
+        configMap:
+          name: {{ .Values.deployment.name }}-otdsproperties-configmap
+      {{ end }}
+      - name: nfs-data
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistentVolumeClaim.pvcName }}
+     {{- if eq .Values.certificate.useCertificate true }}
+      - name: {{ .Values.certificate.dbrDataPVCName }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.certificate.dbrServiceName }}-pvc
+     {{ end }}
+      - name: custom-script-pvc
+        persistentVolumeClaim:
+          claimName: {{ .Values.custom.scriptPVCname }}
+      restartPolicy: Always       

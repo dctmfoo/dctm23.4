@@ -1,0 +1,203 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.service.indexagent.name }}
+spec:
+  serviceName: {{ .Values.service.indexagent.name }}
+  #only support 1 replica here
+  replicas: 1
+  selector:
+    matchLabels:
+      xplore/app: {{ .Values.service.indexagent.name }}
+      xplore/name: {{ .Chart.Name }}
+      xplore/release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        xplore/app: {{ .Values.service.indexagent.name }}
+        xplore/name: {{ .Chart.Name }}
+        xplore/release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.serviceAccountName }}
+      {{- if .Values.image.pullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecrets }}
+      {{ end }}    
+      containers:
+      {{- if and (eq .Values.graylog.enable true) (eq .Values.indexagent.persistLogs false) }}
+        - name: xplore-sidecar
+          image: "{{ .Values.graylog.image }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: GRAYLOG_SERVER
+            value: {{ .Values.graylog.server | quote }}
+          - name: GRAYLOG_PORT
+            value: {{ .Values.graylog.port | quote }}
+          - name: TAGS
+            value: "[\"linux\",\"apache\"]"
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef: 
+                fieldPath: spec.nodeName
+          - name: NAMESPACE_NAME
+            valueFrom:
+              fieldRef: 
+                fieldPath: metadata.namespace
+          - name: POD_NAME
+            valueFrom:
+              fieldRef: 
+                fieldPath: metadata.name
+          volumeMounts:
+          - mountPath: /pod-data
+            name: xplore-logs      
+        {{- end}}            
+        - name: xplore-indexagent
+          image: "{{ .Values.image.repository }}/{{ .Values.image.indexagent.name }}:{{ .Values.image.indexagent.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: DOCBASE_NAME
+              value: {{ .Values.indexagent.docbaseName }}
+            - name: DOCBASE_USER
+              value: {{ .Values.indexagent.docbaseUser }}
+            - name: ESS_HOST
+              {{- if (not (.Values.indexagent.essHost))}}
+              value: {{ .Values.service.indexserver.name }}
+              {{- else }}
+              value: {{ .Values.indexagent.essHost }}
+              {{- end }}
+            {{- if eq .Values.useConfigMap false }}
+            - name: BROKER_HOST
+              value: {{ .Values.indexagent.brokerHost }}
+            - name: BROKER_PORT
+              value: {{ .Values.indexagent.brokerPort | quote}}
+            - name: REGISTRY_NAME
+              value: {{ .Values.indexagent.registryName }}
+            - name: REGISTRY_USER
+              value: {{ .Values.indexagent.registryUser }}
+            {{- end }}
+            - name: DOCBASE_PASSWORD
+              {{- if eq .Values.useSecrets true }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.cs.name }}
+                  key: {{ .Values.secrets.cs.key.docbasePassword | quote}}
+              {{- else }}
+              value: {{ .Values.indexagent.docbasePassword | quote}}
+              {{- end }}
+            - name: REGISTRY_PASSWORD
+              {{- if eq .Values.useSecrets true }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.cs.name }}
+                  key: {{ .Values.secrets.cs.key.registryPassword | quote}}
+              {{- else }}
+              value: {{ .Values.indexagent.registryPassword | quote}}
+              {{- end }}
+            - name: SERVICE_NAME
+              value: {{ .Values.service.indexagent.name }}
+            - name: PERSIST_LOGS
+              value: {{ .Values.indexagent.persistLogs | quote }}
+            {{- if (.Values.indexagent.extConfPath)}}
+            - name: EXT_CONF_PATH
+              value: {{ .Values.indexagent.extConfPath }}
+            {{- end }}
+            - name: CONFIG_NEW_RELIC
+              value: {{ .Values.newRelic.enable | quote }}
+            {{- if (.Values.newRelic.appNameSuffix) }}
+            - name: NEW_RELIC_APP_NAME_SUFFIX
+              value: {{ .Values.newRelic.appNameSuffix | quote }}
+            {{- end }}
+            {{- if (.Values.newRelic.rootPath) }}
+            - name: NEW_RELIC_ROOT
+              value: {{ .Values.newRelic.rootPath | quote }}
+            {{- end }}
+            {{- range $key, $value := .Values.indexagent.extraEnv }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          ports:
+            - name: ia-port
+              containerPort: {{ .Values.service.indexagent.targetPort }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /IndexAgent/health/liveness
+              port: {{ .Values.service.indexagent.targetPort }}
+            initialDelaySeconds: {{ .Values.indexagent.livenessProbe.initialDelay }}
+            timeoutSeconds: {{ .Values.indexagent.livenessProbe.timeout }}
+            periodSeconds: {{ .Values.indexagent.livenessProbe.period }}
+            failureThreshold: {{ .Values.indexagent.livenessProbe.failure }}
+          readinessProbe:
+            httpGet:
+              path: /IndexAgent/health/readiness
+              port: {{ .Values.service.indexagent.targetPort }}
+            initialDelaySeconds: {{ .Values.indexagent.readinessProbe.initialDelay }}
+            timeoutSeconds: {{ .Values.indexagent.readinessProbe.timeout }}
+            periodSeconds: {{ .Values.indexagent.readinessProbe.period }}
+            failureThreshold: {{ .Values.indexagent.readinessProbe.failure }}
+          resources:
+            requests:
+              memory: {{ .Values.resources.indexagent.requests.memory | quote }}
+              cpu: {{ .Values.resources.indexagent.requests.cpu | quote }}
+            limits:
+              memory: {{ .Values.resources.indexagent.limits.memory | quote }}
+              cpu: {{ .Values.resources.indexagent.limits.cpu | quote }}
+          volumeMounts:
+            - name: xplore-data 
+              mountPath: /root/xPlore/rtdata
+              subPath: {{ .Values.volumeMounts.subPath }}
+            {{- if eq .Values.useConfigMap true }}
+            - name: dfc-config-map
+              {{- if (.Values.indexagent.extConfPath)}}
+              mountPath: {{ .Values.indexagent.extConfPath }}/dfc.properties
+              {{- else }}
+              mountPath: /root/xPlore/external-configurations/dfc.properties
+              {{- end }}
+              subPath: dfc.properties
+            {{- end }}
+            {{- if eq .Values.newRelic.enable true }}
+            - name: new-relic-config-map
+              {{- if (.Values.indexagent.extConfPath)}}
+              mountPath: {{ .Values.indexagent.extConfPath }}/newrelic.yml
+              {{- else }}
+              mountPath: /root/xPlore/external-configurations/newrelic.yml
+              {{- end }}
+              subPath: newrelic.yml
+            {{- end }}
+            {{- if and (eq .Values.graylog.enable true) (eq .Values.indexagent.persistLogs false) }}
+            - name: xplore-logs
+              mountPath: /root/xPlore/logs/    
+            {{- end }} 
+            {{- if and (.Values.customVolume.customMountPath) (.Values.customVolume.customClaimName)}}
+            - name: custom-files
+              mountPath: {{ .Values.customVolume.customMountPath }}
+            {{- end }}              
+      volumes:
+        - name: xplore-data
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistentVolume.claimName }}
+        {{- if eq .Values.useConfigMap true }}
+        - name: dfc-config-map
+          configMap:
+            name: {{ .Values.configMap.cs.name }}
+            items:
+              - key: {{ .Values.configMap.cs.key.dfcPropertiesKey }}
+                path: dfc.properties
+        {{- end }}
+        {{- if eq .Values.newRelic.enable true }}
+        - name: new-relic-config-map
+          configMap:
+            name: {{ .Values.newRelic.configMap.name }}
+            items:
+              - key: {{ .Values.newRelic.configMap.key.newRelicConfigKey }}
+                path: newrelic.yml
+        {{- end }}
+        {{- if and (eq .Values.graylog.enable true) (eq .Values.indexagent.persistLogs false) }}
+        - name: xplore-logs
+          emptyDir: {}
+        {{- end }}
+        {{- if and (.Values.customVolume.customMountPath) (.Values.customVolume.customClaimName)}}
+        - name: custom-files
+          persistentVolumeClaim:
+            claimName: {{ .Values.customVolume.customClaimName }}
+        {{- end }}

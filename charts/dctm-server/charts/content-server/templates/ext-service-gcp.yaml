@@ -1,0 +1,30 @@
+{{ if eq .Values.platform "gcp" }}
+{{ if eq .Values.ExtCS.enable true }}
+{{ if eq .Values.ExtCS.createExtService true }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ .Values.serviceName }}        
+  name: csext-{{ .Values.serviceName }}
+{{ if eq .Values.ExtCS.useLBAnnotations true }}
+  annotations:
+    {{ toJson .Values.ExtCS.LBAnnotations }}
+{{ end }}     
+spec:    
+  ports:
+  - name: csnative
+    port: 80
+    protocol: TCP
+    targetPort: {{ .Values.ports.docbaseport }}
+  - name: csssl    
+    port: 81
+    protocol: TCP
+    targetPort: {{ .Values.ports.docbasesslport }}
+  selector:
+    app: {{ .Values.serviceName }}
+  sessionAffinity: ClientIP
+  type: LoadBalancer
+{{ end }}
+{{ end }}
+{{ end }}

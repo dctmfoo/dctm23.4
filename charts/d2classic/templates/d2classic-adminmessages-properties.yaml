@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2classic-adminmessages-properties
+  {{- template "configMap.labels" . }}
+data:
+  adminMessages.properties: |-
+    #################################################################################
+    #  This is for system wide message to be displayed to the user
+    #################################################################################
+    
+    # How often to reload property file (in seconds) to look for new messages
+    banner.refreshtime = 1800
+    # Message to display in banner when the user logs in
+    #banner.message = System maintenance September 1st
+
+{{- $configFileOverridesFile := printf "%s/%s" .Values.configFileOverrideFilesDir "adminMessages.properties" }}
+{{- $configFileMsg0 := printf "\n\n##### Begin lines added from %s\n" $configFileOverridesFile }}
+{{- $configFileMsg1 := printf "##### End lines added from %s" $configFileOverridesFile }}
+{{- $configFileLinesToAppend := .Files.Get $configFileOverridesFile }}
+{{- if $configFileLinesToAppend }}
+{{ $configFileMsg0 | indent 4 }}
+{{ $configFileLinesToAppend | indent 4 }}
+{{ $configFileMsg1 | indent 4 }}
+{{- end }}

@@ -1,0 +1,1 @@
+To connect with RDS over ssl if the Administrator wants to place the certificate manually, then that needs to be placed inside this trustCertificates directory.

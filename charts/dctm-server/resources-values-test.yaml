@@ -1,0 +1,93 @@
+docbroker:
+  docbroker:
+    replicaCount: &docbrokerreplicacount 2
+  resources:
+    limits:
+      cpu: 200m
+      memory: 500Mi
+    requests:
+      cpu: 200m
+      memory: 500Mi
+content-server:
+  contentserver:
+    replicaCount: 2
+    docbrokersCount: *docbrokerreplicacount
+    jmsMemSetting: "-Xms1024m -Xmx2048m -Xss256k -XX:+DisableExplicitGC"
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 2000m
+      memory: 4Gi
+dtrbase:
+  docbroker:
+    replicaCount: *docbrokerreplicacount
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 100m
+      memory: 400Mi
+dctm-rest:
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 4Gi
+    requests:
+      cpu: 800m
+      memory: 2Gi
+dctm-cmis:
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 4Gi
+    requests:
+      cpu: 800m
+      memory: 2Gi
+contentconnect:
+  replicaCount: 1
+  resources:
+     limits:
+        cpu: 500m
+        memory: 500Mi
+     requests:
+        cpu: 200m
+        memory: 200Mi
+dctm-workflow-designer:
+    resources: 
+      limits:
+        cpu: 1000m
+        memory: 4Gi
+      requests:
+        cpu: 500m
+        memory: 3Gi
+pe-silentinstaller:
+    resources: 
+      limits:
+        cpu: 500m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 2Gi
+records:
+  records:
+    replicaCount: 1
+  resources:
+    limits:
+     cpu: 800m
+     memory: 4Gi
+    requests:
+     cpu: 400m
+     memory: 2Gi
+rqm: 
+  rqm:
+    replicaCount: 2
+  resources:
+    limits:
+     cpu: 800m
+     memory: 4Gi
+    requests:
+     cpu: 400m
+     memory: 2Gi

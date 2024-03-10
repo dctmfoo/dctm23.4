@@ -1,0 +1,105 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2smartview-sw-config-json
+  {{- template "configMap.labels" . }}
+data:
+  sw-config.json: |-
+    {
+      "enabled": false,
+      "logging": false,
+      "permanentCacheEndpoints": [
+        "!!sample-comment that starts with double exclamation(!!) followed by any text and is ignored by the system.",
+    
+        "services",
+        "product-info",
+        "about-d2",
+        "d2-display-types",
+        "d2-options",
+        "formats",
+        "d2-types"
+      ],
+      "stepForwardCacheEndpoints": [
+        "favorites",
+        "checked-out-objects",
+        "comments",
+        "versions",
+        "d2-vd-nodes",
+        "d2-my-workflows",
+        "notes/count"
+      ],
+      "cacheCategories": {
+        "short": {
+          "ttlInMS": 60000,
+          "endpoints": [
+            "d2-preferences",
+    
+            "[a-f0-9]{16,}",
+            "objects-specific-permission",
+            "external-share-checker",
+            "recently-accessed",
+            "d2-saved-searches",
+            "status-summary",
+            "d2-inbox",
+    
+            "column-preferences",
+            "d2-cabinets",
+            "favorites-checker",
+            "comments-count",
+            "objects-locations",
+            "folders",
+    
+            "d2-preset-profiles",
+            "linked-document-configurations",
+    
+            "d2-object-relations",
+            "d2-vd-nodes/[\\d]+",
+    
+            "d2-task-categories",
+    
+            "d2-report-tasks",
+            "d2-report-tasks/[a-f0-9]{16,}/audits",
+            "d2-workflows/[a-f0-9]{16,}/audits",
+            "d2-workflows/[a-f0-9]{16,}/notes",
+            "d2-objects-relations-count",
+            "supporting-documents"
+          ]
+        },
+        "medium": {
+          "ttlInMS": 180000,
+          "endpoints": [
+            "default-theme",
+            "d2-themes",
+            "landing-page-configs",
+            "d2-widgets",
+            "search-configuration",
+            "home",
+    
+            "d2-objects-preview-format",
+            "query-forms/[a-f0-9]{16,}/dialog",
+            "dialog-options/dql",
+    
+            "d2-creation-profiles",
+            "value-configs",
+            "value-configs/[^/]+",
+    
+            "d2-renditions",
+    
+            "d2-workflows",
+            "d2-workflow-notes-config",
+            "users/[^/]+"
+          ]
+        },
+        "long": {
+          "ttlInMS": 480000,
+          "endpoints": [
+            "repositories/[^/]+",
+            "d2-user-profile-image",
+    
+            "content-assist-configs",
+    
+            "working-documents"
+          ]
+        }
+      }
+    }

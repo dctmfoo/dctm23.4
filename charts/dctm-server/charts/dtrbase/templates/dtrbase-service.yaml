@@ -1,0 +1,16 @@
+#Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.name }}  
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.dtrBasePort }}
+      name: dtrbaseport
+      targetPort: 8080
+    - port: {{ .Values.service.dtrCoreport }}
+      name: dtrcoreport
+      targetPort: 5001
+  selector:
+    app: {{ .Values.deployment.appName }}

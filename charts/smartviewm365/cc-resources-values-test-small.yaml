@@ -1,0 +1,21 @@
+
+  
+ccsmartview:
+  replicaCount: 1
+  hpa:
+    minReplicas: 1
+    maxReplicas: 1
+  graylog:
+    volumeClaimTemplate:
+      logVctSize: 2Gi
+  persistentVolume:
+    size: 1Gi
+  resources:
+    limits:
+     cpu: 800m
+     memory: 4Gi
+    requests:
+     cpu: 300m
+     memory: 2.5Gi
+
+ 

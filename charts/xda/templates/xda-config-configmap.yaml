@@ -1,0 +1,182 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.prefix }}-xda-config
+  labels:
+    name: {{ .Values.prefix }}-xda-config
+data:
+  xda-config-properties: |-
+    # Property to specify location of logging configuration file. User should not change the value of this property.
+    logging.config = /opt/xDA/config/log4j2.properties
+    AekFilePath=/opt/xDA/bin/aek.key
+    # Property to specify the port on which xDA application should run. Default is 7000.
+    server.port = 7000
+    # Redirection Parameters
+    redirectToHTTPS={{ .Values.redirectionParameters.redirectToHTTPS }}
+    redirectPort={{ .Values.redirectionParameters.redirectPort }}
+    dfc.properties.file=/opt/xDA/bin/dfc.properties
+    spring.main.allow-bean-definition-overriding=true
+    spring.http.log-request-details=true
+    spring.main.allow-circular-references = true
+    spring.mvc.pathmatch.matching-strategy=ant_path_matcher
+    server.servlet.register-default-servlet=true
+    server.servlet.context-path=/xda
+    server.tomcat.remote_ip_header=x-forwarded-for
+    server.tomcat.protocol_header=x-forwarded-proto
+    {{- if .Values.trustStore.enable }}
+    {{-  $trustStoreFile := printf "/opt/xDA/secrets/%s" .Values.trustStore.fileName }}
+    javax.net.ssl.trustStore ={{ $trustStoreFile }}
+    javax.net.ssl.trustStorePassword={{.Values.trustStore.password}}
+    {{- end }}
+  dfc-properties-config: |-
+    dfc.tracing.enable={{ if .Values.dfcTracing }} {{ default "false" .Values.dfcTracing.isEnabled }} {{ end }}
+    dfc.tracing.verbose=true
+    dfc.tracing.dir = /opt/xDA/logs
+    dfc.tracing.include_rpcs=true
+    dfc.tracing.max_stack_depth = 20
+    dfc.tracing.timing_style=date
+    dfc.tracing.date_column_width=12
+    dfc.tracing.date_format=yyyy-MM-dd hh:mm:ss.SSS
+    dfc.tracing.mode=standard
+    dfc.tracing.log.level = INFO
+    {{ if eq .Values.docbaseConnection.use_certificate true }}
+    dfc.security.ssl.truststore=/opt/dctm/certificate/dfc.keystore    
+    dfc.security.ssl.truststore_password={{ .Values.docbaseConnection.truststorePassword }}
+    dfc.security.ssl.use_existing_truststore=false
+    dfc.session.secure_connect_default=try_secure_first 
+    {{ end }}    
+  log4j-properties-config: |-
+    appender.console.type=Console
+    appender.console.name=STDOUT
+    appender.console.layout.type=PatternLayout
+    appender.console.layout.pattern=%d{ABSOLUTE} %5p [%t] %c - %m%n
+    appender.console.filter.threshold.type=ThresholdFilter
+    appender.rolling.type=RollingFile
+    appender.rolling.name=core
+    appender.rolling.fileName=/opt/xDA/logs/xda.log
+    appender.rolling.filePattern=/opt/xDA/logs/xda-%d{MM-dd-yy}-%i.log
+    appender.rolling.layout.type=PatternLayout
+    appender.rolling.layout.pattern=%d{yyyy/MM/dd HH:mm:ss,SSS} %5p [%t][%c] - %m%n
+    appender.rolling.policies.type=Policies
+    appender.rolling.policies.time.type=TimeBasedTriggeringPolicy
+    appender.rolling.policies.time.interval=1
+    appender.rolling.policies.time.modulate=true
+    appender.rolling.policies.size.type=SizeBasedTriggeringPolicy
+    appender.rolling.policies.size.size=10MB
+    appender.rolling.strategy.type=DefaultRolloverStrategy
+    appender.rolling.strategy.max=10
+    appender.rolling.filter.threshold.type=ThresholdFilter
+    appender.rolling.filter.threshold.level=info
+    appender.full.type=RollingFile
+    appender.full.name=full
+    appender.full.fileName=/opt/xDA/logs/xda-full.log
+    appender.full.filePattern=/opt/xDA/logs/xda-full-%d{MM-dd-yy}-%i.log
+    appender.full.layout.type=PatternLayout
+    appender.full.layout.pattern=%d{yyyy/MM/dd HH:mm:ss,SSS} %5p [%t] - %m%n
+    appender.full.policies.type=Policies
+    appender.full.policies.time.type=TimeBasedTriggeringPolicy
+    appender.full.policies.time.interval=1
+    appender.full.policies.time.modulate=true
+    appender.full.policies.size.type=SizeBasedTriggeringPolicy
+    appender.full.policies.size.size=10MB
+    appender.full.strategy.type=DefaultRolloverStrategy
+    appender.full.strategy.max=10
+    appender.full.filter.threshold.type=ThresholdFilter
+    appender.full.filter.threshold.level=info
+    rootLogger.level=WARN
+    appenders=console,rolling,full,command,aspectj
+    rootLogger.appenderRefs=rolling,full,command
+    rootLogger.appenderRef.rolling.ref=core
+    rootLogger.appenderRef.full.ref=full
+    rootLogger.appenderRef.command.ref=command
+    logger.A.name=com.documentum.xms
+    logger.A.level=info
+    logger.B.name=com.documentum.xms.persistence
+    logger.B.level=info
+    logger.C.name=com.emc.xms
+    logger.C.level=info
+    # Configuring loggers for Builder code
+    logger.D.name=com.documentum.deployment
+    logger.D.level=info
+    #log4j.logger.com.emc.xms.commands=INFO
+    logger.E.name=com.emc.xcp
+    logger.E.level=info
+    logger.F.name=com.emc.xcp.builder
+    logger.F.level=info
+    logger.G.name=com.emc.xcp.installer
+    logger.G.level=info
+    logger.H.name=internal.com.emc.xcp
+    logger.H.level=info
+    logger.I.name=com.emc.xms.extension.core.impl.EclipseExtensionLoader
+    logger.I.level=warn
+    logger.J.name=internal.com.emc.xms.commands
+    logger.J.level=warn
+    #logger.C1.name=logger.com.emc.xms.commands
+    #logger.C1.level=info
+    # Configuring loggers for commands
+    appender.command.type=File
+    appender.command.name=command
+    appender.command.fileName=/opt/xDA/logs/commands-log/catalog-commands.log
+    appender.command.layout.type=PatternLayout
+    appender.command.layout.pattern=%d{yyyy/MM/dd HH:mm:ss,SSS} %5p [%t] - %m%n
+    appender.command.filter.threshold.type=ThresholdFilter
+    appender.command.filter.threshold.level=info
+    #!!!!!! SET AspectLogger log level to INFO to disable tracing
+    appender.aspectj.type=RollingFile
+    appender.aspectj.name=aspectj
+    appender.aspectj.fileName=/opt/xDA/logs/xda-aspectj.log
+    appender.aspectj.filePattern=/opt/xDA/logs/xda-aspect-%d{MM-dd-yy}-%i.log
+    appender.aspectj.layout.type=PatternLayout
+    appender.aspectj.layout.pattern=%d{yyyy/MM/dd HH:mm:ss,SSS} %5p [%t] - %m%n
+    appender.aspectj.policies.type=Policies
+    appender.aspectj.policies.time.type=TimeBasedTriggeringPolicy
+    appender.aspectj.policies.time.interval=1
+    appender.aspectj.policies.time.modulate=true
+    appender.aspectj.policies.size.type=SizeBasedTriggeringPolicy
+    appender.aspectj.policies.size.size=10MB
+    appender.aspectj.strategy.type=DefaultRolloverStrategy
+    appender.aspectj.strategy.max=10
+    appender.aspectj.filter.threshold.type=ThresholdFilter
+    appender.aspectj.filter.threshold.level=info
+    logger.K.name=com.documentum.xms.logger.aspects.AspectLogger
+    logger.K.level=info
+    logger.K.appenderRef.aspectj.ref=aspectj
+    logger.K.additivity=false
+    logger.K.name=com.documentum.xms.logger.aspects.AspectLogger
+    logger.K.level=info
+    logger.K.appenderRef.aspectj.ref=aspectj
+    logger.K.additivity=false
+    logger.L.name=com.documentum.xms.core.utils.jaxb.CompositeMarshallerListener
+    logger.L.level=info
+    logger.M.name=com.documentum.xms.core.utils.jaxb.CompositeUnmarshallerListener
+    logger.M.level=info
+    logger.N.name=com.documentum.xms.services.impl.CryptService
+    logger.N.level=info
+    logger.O.name=com.documentum.xms.core.el.UnmarshallerListener
+    logger.O.level=info
+    logger.P.name=com.documentum.xms.api.client.impl.XmsRestTemplate
+    logger.P.level=info
+    logger.Q.name=com.documentum.xms.core.utils.MarshallerUtils
+    logger.Q.level=info
+    logger.R.name=com.emc.xms.server.filter.AjaxSessionTimeoutFilter
+    logger.R.level=info
+    logger.S.name=org.apache.http.client
+    logger.S.level=error
+    logger.T.name=com.emc.xms.spring.http.converter.xml.XmlRootElementClassesRegistry
+    logger.T.level=error
+    logger.U.name=com.emc.xms.extension.core.impl.AnnotationExtensionLoader
+    logger.U.level=error
+    logger.V.name=com.emc.xms.spring.http.converter.xml.XmlRootElementHttpMessageConverter
+    logger.V.level=error
+    logger.W.name=com.emc.xms.server.controller.ExecutionController
+    logger.W.level=error
+    #logger.X.name=com.documentum.xms.core.crypt.jaxb.PasswordsMarshallerListener
+    #logger.X.level=info
+    #logger.Y.name=com.documentum.xms.core.crypt.jaxb.PasswordsUnMarshallerListener
+    #logger.Y.level=info
+    #logger.Z.name=com.documentum.xms.core.crypt.jaxb.PasswordsMarshallingProcessor
+    #logger.Z.level=info
+    #logger.A1.name=com.documentum.xms.core.user.User.getPlainPassword
+    #logger.A1.level=info
+    #logger.B1.name=com.documentum.xms.core.user.User.getPlainPassword
+    #logger.B1.level=info

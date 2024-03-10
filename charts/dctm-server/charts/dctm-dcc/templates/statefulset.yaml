@@ -1,0 +1,701 @@
+## Consul Deployment ##
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+   labels:
+    app: {{ .Values.prefix }}-{{ .Values.consul.prefix }}
+   name: {{ .Values.prefix }}-{{ .Values.consul.prefix }}
+   namespace: {{ .Values.namespace }}
+spec:
+  serviceName: {{ .Values.prefix }}-{{ .Values.consul.prefix }}-service
+  replicas: {{ .Values.consul.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.prefix }}-{{ .Values.consul.prefix }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.prefix }}-{{ .Values.consul.prefix }}
+    spec:
+      containers:
+        - name: {{ .Values.prefix }}-{{ .Values.consul.prefix }}
+          image: {{ .Values.consul.image.path }}:{{ .Values.consul.image.tag }}
+          imagePullPolicy: {{ .Values.consul.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.consul.containerPort }}
+          command: ["/bin/sh","-c"]
+          args: ["consul agent -enable-script-checks -config-file=/usr/src/config -log-file=/usr/src/logs/"]
+          volumeMounts:
+            - mountPath: /usr/src/config
+              name: {{ .Values.consul.prefix }}-volume
+            - name: {{ .Values.consul.prefix }}-pv
+              mountPath: /usr/src/data
+          resources:
+            requests:
+              memory: {{ .Values.consul.resources.requests.memory | quote  }}
+              cpu: {{ .Values.consul.resources.requests.cpu | quote  }}
+            limits:
+              memory: {{ .Values.consul.resources.limits.memory | quote  }}
+              cpu: {{ .Values.consul.resources.limits.cpu | quote  }}
+      volumes:
+        - name: {{ .Values.consul.prefix }}-volume
+          configMap:
+            name: {{ .Values.consul.prefix }}-configmap
+        - name: {{ .Values.consul.prefix }}-pv
+        {{ if .Values.pvc.enablePV }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.prefix }}-{{ .Values.consul.prefix }}-pvc
+        {{ else }}
+          emptyDir : {}
+        {{ end }}
+      restartPolicy: Always
+---
+{{ if eq .Values.metadata.enabled true }}
+## Metadata Service Deployment ##
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: {{ .Values.prefix }}-{{ .Values.metadata.prefix }}
+  name: {{ .Values.prefix }}-{{ .Values.metadata.prefix }}
+  namespace: {{ .Values.namespace }}
+spec:
+  serviceName: {{ .Values.prefix }}-{{ .Values.metadata.prefix }}-service
+  replicas: {{ .Values.metadata.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.prefix }}-{{ .Values.metadata.prefix }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.prefix }}-{{ .Values.metadata.prefix }}
+    spec:
+      containers:
+      {{- if eq .Values.graylog.enable true }}
+        - name: {{ .Values.graylog.name }}
+          image: {{ .Values.graylog.image.path }}:{{ .Values.graylog.image.tag }}
+          imagePullPolicy: {{ .Values.graylog.pullPolicy }}
+          env:
+           - name: GRAYLOG_SERVER
+             value: {{ .Values.graylog.server }}
+           - name: GRAYLOG_PORT
+             value: {{ quote .Values.graylog.port }}
+           - name: TAGS
+             value: {{ quote .Values.graylog.tags }}
+           - name: NODE_NAME
+             valueFrom:
+               fieldRef:
+                 fieldPath: spec.nodeName
+           - name: NAMESPACE_NAME
+             valueFrom:
+               fieldRef:
+                 fieldPath: metadata.namespace
+           - name: POD_NAME
+             valueFrom:
+               fieldRef:
+                 fieldPath: metadata.name
+          volumeMounts:
+            - name: {{ .Values.metadata.prefix }}-pv
+              mountPath: /pod-data
+      {{end}}
+        - name: {{ .Values.prefix }}-{{ .Values.metadata.prefix }}
+          image: {{ .Values.metadata.image.path }}:{{ .Values.metadata.image.tag }}
+          imagePullPolicy: {{ .Values.metadata.image.pullPolicy }}         
+          command: ["/bin/sh","-c"]
+          {{- if eq .Values.metadata.newrelic.enabled true }}
+          args: ["java -javaagent:/usr/src/dcc/newrelic_java_agent/newrelic/newrelic.jar -Dlog4j.configurationFile=file:/usr/src/dcc/MetadataService/config/log4j2.xml -jar /usr/src/dcc/MetadataService/metadata-1.0.0-SNAPSHOT.jar"]
+          {{ else }}
+          args: ["java -Dlog4j.configurationFile=file:/usr/src/dcc/MetadataService/config/log4j2.xml -jar /usr/src/dcc/MetadataService/metadata-1.0.0-SNAPSHOT.jar"]
+          {{ end }}
+          volumeMounts:
+            - mountPath: /usr/src/dcc/MetadataService/config/database.properties
+              subPath: database.properties
+              name: {{ .Values.metadata.prefix }}-config-volume
+            - mountPath: /usr/src/dcc/MetadataService/config/service-registry-location.properties
+              subPath: service-registry-location.properties
+              name: {{ .Values.metadata.prefix }}-config-volume
+            - mountPath: /usr/src/dcc/MetadataService/config/log4j2.xml
+              subPath: log4j2.xml
+              name: {{ .Values.metadata.prefix }}-config-volume
+            - mountPath: /usr/src/DCC/logs
+              name: {{ .Values.metadata.prefix }}-pv
+          {{- if eq .Values.metadata.newrelic.enabled true }}
+            - mountPath: /usr/src/dcc/newrelic_java_agent/newrelic/newrelic.yml
+              subPath: newrelic.yml
+              name: {{ .Values.metadata.prefix }}-secret-volume
+          {{- end}}
+          resources:
+            requests:
+              memory: {{ .Values.metadata.resources.requests.memory | quote  }}
+              cpu: {{ .Values.metadata.resources.requests.cpu | quote  }}
+            limits:
+              memory: {{ .Values.metadata.resources.limits.memory | quote  }}
+              cpu: {{ .Values.metadata.resources.limits.cpu | quote  }}
+      volumes:
+        - name: {{ .Values.metadata.prefix }}-config-volume
+          configMap:
+            name: {{ .Values.metadata.prefix }}-configmap
+            items:
+              - key: database.properties
+                path: database.properties
+              - key: service-registry-location.properties
+                path: service-registry-location.properties
+              - key: log4j2.xml
+                path: log4j2.xml
+        - name: {{ .Values.metadata.prefix }}-pv
+        {{ if .Values.pvc.enablePV }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.prefix }}-{{ .Values.metadata.prefix }}-pvc
+        {{ else }}
+          emptyDir : {}
+        {{ end }}
+        {{- if eq .Values.metadata.newrelic.enabled true }}
+        - name: {{ .Values.metadata.prefix }}-secret-volume
+          secret:
+            secretName: {{ .Values.prefix }}-{{ .Values.metadata.prefix }}-secret
+            optional: false
+        {{- end}}  
+{{ end }}
+---
+{{ if eq .Values.syncagent.enabled true }}
+## Syncagent deployment ##
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: {{ .Values.prefix }}-{{ .Values.syncagent.prefix }}
+  name: {{ .Values.prefix }}-{{ .Values.syncagent.prefix }}
+  namespace: {{ .Values.namespace }}
+spec:
+  serviceName: {{ .Values.prefix }}-{{ .Values.syncagent.prefix }}-service
+  replicas: {{ .Values.syncagent.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.prefix }}-{{ .Values.syncagent.prefix }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.prefix }}-{{ .Values.syncagent.prefix }}
+    spec:
+      containers:
+      {{- if eq .Values.graylog.enable true }}
+        - name: {{ .Values.graylog.name }}
+          image: {{ .Values.graylog.image.path }}:{{ .Values.graylog.image.tag }}
+          imagePullPolicy: {{ .Values.graylog.pullPolicy }}
+          env:
+           - name: GRAYLOG_SERVER
+             value: {{ .Values.graylog.server }}
+           - name: GRAYLOG_PORT
+             value: {{ quote .Values.graylog.port }}
+           - name: TAGS
+             value: {{ quote .Values.graylog.tags }}
+           - name: NODE_NAME
+             valueFrom:
+               fieldRef:
+                 fieldPath: spec.nodeName
+           - name: NAMESPACE_NAME
+             valueFrom:
+               fieldRef:
+                 fieldPath: metadata.namespace
+           - name: POD_NAME
+             valueFrom:
+               fieldRef:
+                 fieldPath: metadata.name
+          volumeMounts:
+            - name: {{ .Values.syncagent.prefix }}-pv
+              mountPath: /pod-data
+      {{end}}
+        - name: {{ .Values.prefix }}-{{ .Values.syncagent.prefix }}
+          image: {{ .Values.syncagent.image.path }}:{{ .Values.syncagent.image.tag }}
+          imagePullPolicy: {{ .Values.syncagent.image.pullPolicy }}
+        {{- if eq .Values.syncagent.configMap.proxy.enabled true  }}                                                                    
+          env:
+            - name: CATALINA_OPTS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.syncagent.prefix }}-configmap
+                  key: catalina_opts
+            - name: HTTPS_PROXY
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.syncagent.prefix }}-configmap
+                  key: httpsProxy
+            - name: https_proxy
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.syncagent.prefix }}-configmap
+                  key: httpsProxy
+            - name: HTTP_PROXY
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.syncagent.prefix }}-configmap
+                  key: httpProxy
+            - name: http_proxy
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.syncagent.prefix }}-configmap
+                  key: httpProxy
+            - name: NO_PROXY
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.syncagent.prefix }}-configmap
+                  key: noProxy
+            - name: no_proxy
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.syncagent.prefix }}-configmap
+                  key: noProxy
+        {{ else }}
+          {{- if eq .Values.syncagent.newrelic.enabled true }}
+          env:
+            - name: CATALINA_OPTS
+              value: "-javaagent:/opt/tomcat/newrelic_java_agent/newrelic/newrelic.jar"
+          {{ end }}
+        {{ end }}                 
+          ports:
+            - containerPort: {{ .Values.syncagent.containerPort }}
+          volumeMounts:
+            - mountPath: /opt/tomcat/webapps/syncagent/WEB-INF/classes/config/database.properties
+              subPath: database.properties
+              name: {{ .Values.syncagent.prefix }}-config-volume
+            - mountPath: /opt/tomcat/webapps/syncagent/WEB-INF/classes/config/mail-details.properties
+              subPath: mail-details.properties
+              name: {{ .Values.syncagent.prefix }}-config-volume
+            - mountPath: /opt/tomcat/webapps/syncagent/WEB-INF/classes/config/service-registry-location.properties
+              subPath: service-registry-location.properties
+              name: {{ .Values.syncagent.prefix }}-config-volume
+            - mountPath: /opt/tomcat/webapps/syncagent/WEB-INF/classes/log4j2.xml
+              subPath: log4j2.xml
+              name: {{ .Values.syncagent.prefix }}-config-volume
+            - mountPath: /usr/src/DCC/logs
+              name: {{ .Values.syncagent.prefix }}-pv
+            {{- if eq .Values.syncagent.newrelic.enabled true }}
+            - mountPath: /opt/tomcat/newrelic_java_agent/newrelic/newrelic.yml
+              subPath: newrelic.yml
+              name: {{ .Values.syncagent.prefix }}-secret-volume
+            {{- end}}
+          resources:
+            requests:
+              memory: {{ .Values.syncagent.resources.requests.memory | quote  }}
+              cpu: {{ .Values.syncagent.resources.requests.cpu | quote  }}
+            limits:
+              memory: {{ .Values.syncagent.resources.limits.memory | quote  }}
+              cpu: {{ .Values.syncagent.resources.limits.cpu | quote  }}
+      volumes:
+        - name: {{ .Values.syncagent.prefix }}-config-volume
+          configMap:
+            name: {{ .Values.syncagent.prefix }}-configmap
+            items:
+              - key: database.properties
+                path: database.properties
+              - key: mail-details.properties
+                path: mail-details.properties
+              - key: service-registry-location.properties
+                path: service-registry-location.properties
+              - key: log4j2.xml
+                path: log4j2.xml
+        - name: {{ .Values.syncagent.prefix }}-pv
+        {{ if .Values.pvc.enablePV }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.prefix }}-{{ .Values.syncagent.prefix }}-pvc
+        {{ else }}
+          emptyDir : {}
+        {{ end }}
+        {{- if eq .Values.syncagent.newrelic.enabled true }}
+        - name: {{ .Values.syncagent.prefix }}-secret-volume
+          secret:
+            secretName: {{ .Values.prefix }}-{{ .Values.syncagent.prefix }}-secret
+            optional: false
+        {{- end}}
+{{ end }}
+---
+{{ if eq .Values.syncnshareManual.enabled true }}
+## syncagent manual deployment ##
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: {{ .Values.prefix }}-{{ .Values.syncnshareManual.prefix }}
+  name: {{ .Values.prefix }}-{{ .Values.syncnshareManual.prefix }}
+  namespace: {{ .Values.namespace }}
+spec:
+  serviceName: {{ .Values.prefix }}-{{ .Values.syncnshareManual.prefix }}-service
+  replicas: {{ .Values.syncnshareManual.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.prefix }}-{{ .Values.syncnshareManual.prefix }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.prefix }}-{{ .Values.syncnshareManual.prefix }}
+    spec:
+      containers:
+      {{- if eq .Values.graylog.enable true }}
+        - name: {{ .Values.graylog.name }}
+          image: {{ .Values.graylog.image.path }}:{{ .Values.graylog.image.tag }}
+          imagePullPolicy: {{ .Values.graylog.pullPolicy }}
+          env:
+           - name: GRAYLOG_SERVER
+             value: {{ .Values.graylog.server }}
+           - name: GRAYLOG_PORT
+             value: {{ quote .Values.graylog.port }}
+           - name: TAGS
+             value: {{ quote .Values.graylog.tags }}
+           - name: NODE_NAME
+             valueFrom:
+               fieldRef:
+                 fieldPath: spec.nodeName
+           - name: NAMESPACE_NAME
+             valueFrom:
+               fieldRef:
+                 fieldPath: metadata.namespace
+           - name: POD_NAME
+             valueFrom:
+               fieldRef:
+                 fieldPath: metadata.name
+          volumeMounts:
+            - name: {{ .Values.syncnshareManual.prefix }}-pv
+              mountPath: /pod-data
+      {{end}}
+        - name: {{ .Values.prefix }}-{{ .Values.syncnshareManual.prefix }}
+          image: {{ .Values.syncnshareManual.image.path }}:{{ .Values.syncnshareManual.image.tag }}
+          imagePullPolicy: {{ .Values.syncnshareManual.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.syncnshareManual.containerPort }}
+        {{- if eq .Values.syncnshareManual.configMap.proxy.enabled true  }}                                                                           
+          env:
+            - name: CATALINA_OPTS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.syncnshareManual.prefix }}-configmap
+                  key: catalina_opts
+            - name: HTTPS_PROXY
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.syncnshareManual.prefix }}-configmap
+                  key: httpsProxy
+            - name: https_proxy
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.syncnshareManual.prefix }}-configmap
+                  key: httpsProxy
+            - name: HTTP_PROXY
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.syncnshareManual.prefix }}-configmap
+                  key: httpProxy
+            - name: http_proxy
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.syncnshareManual.prefix }}-configmap
+                  key: httpProxy
+            - name: NO_PROXY
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.syncnshareManual.prefix }}-configmap
+                  key: noProxy
+            - name: no_proxy
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.syncnshareManual.prefix }}-configmap
+                  key: noProxy
+        {{ else }}
+          {{- if eq .Values.syncnshareManual.newrelic.enabled true }}
+          env:
+            - name: CATALINA_OPTS
+              value: "-javaagent:/opt/tomcat/newrelic_java_agent/newrelic/newrelic.jar"
+          {{ end }}
+        {{ end }}                 
+          volumeMounts:
+            - mountPath: /opt/tomcat/webapps/syncnshare-manual/WEB-INF/classes/config/database.properties
+              subPath: database.properties
+              name: {{ .Values.syncnshareManual.prefix }}-config-volume
+            - mountPath: /opt/tomcat/webapps/syncnshare-manual/WEB-INF/classes/config/notification-service.properties
+              subPath: notification-service.properties
+              name: {{ .Values.syncnshareManual.prefix }}-config-volume
+            - mountPath: /opt/tomcat/webapps/syncnshare-manual/WEB-INF/classes/config/service-registry-location.properties
+              subPath: service-registry-location.properties
+              name: {{ .Values.syncnshareManual.prefix }}-config-volume
+            - mountPath: /opt/tomcat/webapps/syncnshare-manual/WEB-INF/classes/config/setup.properties
+              subPath: setup.properties
+              name: {{ .Values.syncnshareManual.prefix }}-config-volume
+            - mountPath: /opt/tomcat/webapps/syncnshare-manual/WEB-INF/classes/log4j2.xml
+              subPath: log4j2.xml
+              name: {{ .Values.syncnshareManual.prefix }}-config-volume
+            {{ if eq .Values.syncnshareManual.javaConfigModify true }}
+            - mountPath: /etc/crypto-policies/back-ends/java.config
+              subPath: java.config
+              name: {{ .Values.syncnshareManual.prefix }}-config-volume
+            {{ end }}
+            - name: {{ .Values.syncnshareManual.prefix }}-pv
+              mountPath: /usr/src/DCC/logs
+            {{- if eq .Values.syncnshareManual.newrelic.enabled true }}
+            - mountPath: /opt/tomcat/newrelic_java_agent/newrelic/newrelic.yml
+              subPath: newrelic.yml
+              name: {{ .Values.syncnshareManual.prefix }}-secret-volume
+            {{- end}}
+          resources:
+            requests:
+              memory: {{ .Values.syncnshareManual.resources.requests.memory | quote  }}
+              cpu: {{ .Values.syncnshareManual.resources.requests.cpu | quote  }}
+            limits:
+              memory: {{ .Values.syncnshareManual.resources.limits.memory | quote  }}
+              cpu: {{ .Values.syncnshareManual.resources.limits.cpu | quote  }}
+      volumes:
+        - name: {{ .Values.syncnshareManual.prefix }}-config-volume
+          configMap:
+            name: {{ .Values.syncnshareManual.prefix }}-configmap
+            items:
+              - key: database.properties
+                path: database.properties
+              - key: notification-service.properties
+                path: notification-service.properties
+              - key: service-registry-location.properties
+                path: service-registry-location.properties
+              - key: setup.properties
+                path: setup.properties
+              - key: log4j2.xml
+                path: log4j2.xml
+              - key: java.config
+                path: java.config
+        - name: {{ .Values.syncnshareManual.prefix }}-pv
+        {{ if .Values.pvc.enablePV }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.prefix }}-{{ .Values.syncnshareManual.prefix }}-pvc
+        {{ else }}
+          emptyDir : {}
+        {{ end }}
+        {{- if eq .Values.syncnshareManual.newrelic.enabled true }}
+        - name: {{ .Values.syncnshareManual.prefix }}-secret-volume
+          secret:
+            secretName: {{ .Values.prefix }}-{{ .Values.syncnshareManual.prefix }}-secret
+            optional: false
+        {{- end}}
+{{ end }}
+---
+{{ if eq .Values.coreNotification.enabled true }}
+## Core Notification Deployment ##
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: {{ .Values.prefix }}-{{ .Values.coreNotification.prefix }}
+  name: {{ .Values.prefix }}-{{ .Values.coreNotification.prefix }}
+  namespace: {{ .Values.namespace }}
+spec:
+  serviceName: {{ .Values.prefix }}-{{ .Values.coreNotification.prefix }}-service
+  replicas: {{ .Values.coreNotification.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.prefix }}-{{ .Values.coreNotification.prefix }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.prefix }}-{{ .Values.coreNotification.prefix }}
+    spec:
+      containers:
+      {{- if eq .Values.graylog.enable true }}
+        - name: {{ .Values.graylog.name }}
+          image: {{ .Values.graylog.image.path }}:{{ .Values.graylog.image.tag }}
+          imagePullPolicy: {{ .Values.graylog.pullPolicy }}
+          env:
+           - name: GRAYLOG_SERVER
+             value: {{ .Values.graylog.server }}
+           - name: GRAYLOG_PORT
+             value: {{ quote .Values.graylog.port }}
+           - name: TAGS
+             value: {{ quote .Values.graylog.tags }}
+           - name: NODE_NAME
+             valueFrom:
+               fieldRef:
+                 fieldPath: spec.nodeName
+           - name: NAMESPACE_NAME
+             valueFrom:
+               fieldRef:
+                 fieldPath: metadata.namespace
+           - name: POD_NAME
+             valueFrom:
+               fieldRef:
+                 fieldPath: metadata.name
+          volumeMounts:
+            - name: {{ .Values.coreNotification.prefix }}-pv
+              mountPath: /pod-data
+      {{end}}
+        - name: {{ .Values.prefix }}-{{ .Values.coreNotification.prefix }}
+          image: {{ .Values.coreNotification.image.path }}:{{ .Values.coreNotification.image.tag }}
+          imagePullPolicy: {{ .Values.coreNotification.image.pullPolicy }}
+          command: ["/bin/sh","-c"]
+        {{- if eq .Values.coreNotification.proxy.enabled true  }}
+          {{- if eq .Values.coreNotification.newrelic.enabled true }}        
+          args: ["java -javaagent:/usr/src/dcc/newrelic_java_agent/newrelic/newrelic.jar -Djava.net.useSystemProxies=true -Dhttps.proxyHost={{ .Values.coreNotification.proxy.proxyHost }} -Dhttps.proxyPort={{ .Values.coreNotification.proxy.proxyPort }} -Dlog4j.configurationFile=file:/usr/src/dcc/CoreNotificationService/config/log4j2.xml -jar /usr/src/dcc/CoreNotificationService/CoreNotificationService.jar"]
+          {{ else }}
+          args: ["java -Djava.net.useSystemProxies=true -Dhttps.proxyHost={{ .Values.coreNotification.proxy.proxyHost }} -Dhttps.proxyPort={{ .Values.coreNotification.proxy.proxyPort }} -Dlog4j.configurationFile=file:/usr/src/dcc/CoreNotificationService/config/log4j2.xml -jar /usr/src/dcc/CoreNotificationService/CoreNotificationService.jar"]
+          {{ end }}
+        {{ else }}
+          {{- if eq .Values.coreNotification.newrelic.enabled true }}
+          args: ["java -javaagent:/usr/src/dcc/newrelic_java_agent/newrelic/newrelic.jar -Dlog4j.configurationFile=file:/usr/src/dcc/CoreNotificationService/config/log4j2.xml -jar /usr/src/dcc/CoreNotificationService/CoreNotificationService.jar"]
+          {{ else }}
+          args: ["java -Dlog4j.configurationFile=file:/usr/src/dcc/CoreNotificationService/config/log4j2.xml -jar /usr/src/dcc/CoreNotificationService/CoreNotificationService.jar"]
+          {{ end }}
+        {{ end }}
+          volumeMounts:
+            - mountPath: /usr/src/dcc/CoreNotificationService/config/database.properties
+              subPath: database.properties
+              name: {{ .Values.coreNotification.prefix }}-config-volume
+            - mountPath: /usr/src/dcc/CoreNotificationService/config/service-registry-location.properties
+              subPath: service-registry-location.properties
+              name: {{ .Values.coreNotification.prefix }}-config-volume
+            - mountPath: /usr/src/dcc/CoreNotificationService/config/ExtApi.config
+              subPath: ExtApi.config
+              name: {{ .Values.coreNotification.prefix }}-config-volume
+            - mountPath: /usr/src/dcc/CoreNotificationService/config/log4j2.xml
+              subPath: log4j2.xml
+              name: {{ .Values.coreNotification.prefix }}-config-volume
+            - name: {{ .Values.coreNotification.prefix }}-pv
+              mountPath: /usr/src/DCC/logs
+            {{- if eq .Values.coreNotification.newrelic.enabled true }}
+            - mountPath: /usr/src/dcc/newrelic_java_agent/newrelic/newrelic.yml
+              subPath: newrelic.yml
+              name: {{ .Values.coreNotification.prefix }}-secret-volume
+            {{- end}}
+          resources:
+            requests:
+              memory: {{ .Values.coreNotification.resources.requests.memory | quote  }}
+              cpu: {{ .Values.coreNotification.resources.requests.cpu | quote  }}
+            limits:
+              memory: {{ .Values.coreNotification.resources.limits.memory | quote  }}
+              cpu: {{ .Values.coreNotification.resources.limits.cpu | quote  }}
+      volumes:
+        - name: {{ .Values.coreNotification.prefix }}-config-volume
+          configMap:
+            name: {{ .Values.coreNotification.prefix }}-configmap
+            items:
+              - key: database.properties
+                path: database.properties
+              - key: ExtApi.config
+                path: ExtApi.config
+              - key: log4j2.xml
+                path: log4j2.xml
+              - key: service-registry-location.properties
+                path: service-registry-location.properties
+        - name: {{ .Values.coreNotification.prefix }}-pv
+        {{ if .Values.pvc.enablePV }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.prefix }}-{{ .Values.coreNotification.prefix }}-pvc
+        {{ else }}
+          emptyDir : {}
+        {{ end }}
+        {{- if eq .Values.coreNotification.newrelic.enabled true }}
+        - name: {{ .Values.coreNotification.prefix }}-secret-volume
+          secret:
+            secretName: {{ .Values.prefix }}-{{ .Values.coreNotification.prefix }}-secret
+            optional: false
+        {{- end}}
+{{ end }}
+---
+{{ if eq .Values.mailService.enabled true }}
+## Mail Service Deployment ##
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: {{ .Values.prefix }}-{{ .Values.mailService.prefix }}
+  name: {{ .Values.prefix }}-{{ .Values.mailService.prefix }}
+  namespace: {{ .Values.namespace }}
+spec:
+  serviceName: {{ .Values.prefix }}-{{ .Values.mailService.prefix }}-service
+  replicas: {{ .Values.mailService.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.prefix }}-{{ .Values.mailService.prefix }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.prefix }}-{{ .Values.mailService.prefix }}
+    spec:
+      containers:
+      {{- if eq .Values.graylog.enable true }}
+        - name: {{ .Values.graylog.name }}
+          image: {{ .Values.graylog.image.path }}:{{ .Values.graylog.image.tag }}
+          imagePullPolicy: {{ .Values.graylog.pullPolicy }}
+          env:
+           - name: GRAYLOG_SERVER
+             value: {{ .Values.graylog.server }}
+           - name: GRAYLOG_PORT
+             value: {{ quote .Values.graylog.port }}
+           - name: TAGS
+             value: {{ quote .Values.graylog.tags }}
+           - name: NODE_NAME
+             valueFrom:
+               fieldRef:
+                 fieldPath: spec.nodeName
+           - name: NAMESPACE_NAME
+             valueFrom:
+               fieldRef:
+                 fieldPath: metadata.namespace
+           - name: POD_NAME
+             valueFrom:
+               fieldRef:
+                 fieldPath: metadata.name
+          volumeMounts:
+            - name: {{ .Values.mailService.prefix }}-pv
+              mountPath: /pod-data
+      {{end}}
+        - name: {{ .Values.prefix }}-{{ .Values.mailService.prefix }}
+          image: {{ .Values.mailService.image.path }}:{{ .Values.mailService.image.tag }}
+          imagePullPolicy: {{ .Values.mailService.image.pullPolicy }}
+          command: ["/bin/sh","-c"]
+          {{- if eq .Values.mailService.newrelic.enabled true }}
+          args: ["java -javaagent:/usr/src/dcc/newrelic_java_agent/newrelic/newrelic.jar -Dlog4j.configurationFile=file:/usr/src/dcc/MailService/config/log4j2.xml -jar /usr/src/dcc/MailService/mailservice-1.0.0-SNAPSHOT.jar"]
+          {{ else }}
+          args: ["java -Dlog4j.configurationFile=file:/usr/src/dcc/MailService/config/log4j2.xml -jar /usr/src/dcc/MailService/mailservice-1.0.0-SNAPSHOT.jar"]
+          {{ end }}
+          volumeMounts:
+            - mountPath: /usr/src/dcc/MailService/config/mailservice.properties
+              subPath: mailservice.properties
+              name: {{ .Values.mailService.prefix }}-config-volume
+            - mountPath: /usr/src/dcc/MailService/config/service-registry-location.properties
+              subPath: service-registry-location.properties
+              name: {{ .Values.mailService.prefix }}-config-volume
+            - mountPath: /usr/src/dcc/MailService/config/log4j2.xml
+              subPath: log4j2.xml
+              name: {{ .Values.mailService.prefix }}-config-volume
+            - name: {{ .Values.mailService.prefix }}-pv
+              mountPath: /usr/src/DCC/logs
+            {{- if eq .Values.mailService.newrelic.enabled true }}
+            - mountPath: /usr/src/dcc/newrelic_java_agent/newrelic/newrelic.yml
+              subPath: newrelic.yml
+              name: {{ .Values.mailService.prefix }}-secret-volume
+            {{- end}}
+          resources:
+            requests:
+              memory: {{ .Values.mailService.resources.requests.memory | quote  }}
+              cpu: {{ .Values.mailService.resources.requests.cpu | quote  }}
+            limits:
+              memory: {{ .Values.mailService.resources.limits.memory | quote  }}
+              cpu: {{ .Values.mailService.resources.limits.cpu | quote  }}
+      volumes:
+        - name: {{ .Values.mailService.prefix }}-config-volume
+          configMap:
+            name: {{ .Values.mailService.prefix }}-configmap
+            items:
+              - key: mailservice.properties
+                path: mailservice.properties
+              - key: service-registry-location.properties
+                path: service-registry-location.properties
+              - key: log4j2.xml
+                path: log4j2.xml
+        - name: {{ .Values.mailService.prefix }}-pv
+        {{ if .Values.pvc.enablePV }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.prefix }}-{{ .Values.mailService.prefix }}-pvc
+        {{ else }}
+          emptyDir : {}
+        {{ end }}
+        {{- if eq .Values.mailService.newrelic.enabled true }}
+        - name: {{ .Values.mailService.prefix }}-secret-volume
+          secret:
+            secretName: {{ .Values.prefix }}-{{ .Values.mailService.prefix }}-secret
+            optional: false
+        {{- end}}
+{{ end }}

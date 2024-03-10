@@ -1,0 +1,365 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2classic-settings-properties
+  {{- template "configMap.labels" . }}
+data:
+  settings.properties: |-
+    #################################################################################
+    #  IF YOU ADD A SETTING HERE, ADD THE KEY IN THE SETTINGS ENUM TOO (Settings.java)
+    #  THIS SETTINGS FILE WILL NOT BE USED FOR BUILDING.
+    #  DO NOT FORGET TO UPDATE settings-base.properties as well.
+    #################################################################################
+    
+    # The maximum number of document download URLs returned in the initial folder export request.
+    # This limit is to prevent the client from timing out the request when processing a very large
+    # number of documents.  The default is 50 documents.
+    download.folderexport.batchsize = 50
+    
+    #The delay for locate with refresh allow user to set the time to delay refresh on 
+    #when auto link configured and the source folder contains more number of items compare to the target folder
+    #User can set a delay time on source folder with locate refresh
+    #autoLinkAndRefreshLocateDelay=0
+    
+    # rlockmachine validation when checking in files. Introduced for Mapped Network Drives.
+    # If true, rlockmachine will be validated when checking in files.  If false, no rlockmachine
+    # check will be performed when checking in files using the WSCTF plugin.  If the following
+    # following line is commented out, the effective value is true.
+    checkin.rlockmachine.check = true
+    
+    # Setting for displaying the network location selector on the login dialog [default=true].
+    # If login.networklocation.hide = true, D2 will try to determine a user's network location
+    # from their IP address for each content transfer operation.
+    # If login.networklocation.hide = false, D2 will try to determine a user's network location
+    # from their IP address at login time, and if the network location cannot be uniquely determined,
+    # the user will be able to select a suitable network location on the login dialog before logging in.
+    login.networklocation.hide = true
+    
+    
+    #  This can have comma separated life-cycle target states for which there will not be any locate/refresh triggered
+    # If the following line is empty then for all life cycle events locate/refresh will be triggered
+    #lifecycle.locaterefresh.disabled.targetstates = (release QC lock),(grab for QC )
+    
+    
+    # Default repository, this the default repository in the login dialog
+    # Note: this setting is now deprecated:  use the login.repository.default in D2FS.properties instead.
+    # The setting in D2FS.properties takes precedence, and if login.repository.default is also set here,
+    # it will be ignored.
+    #login.repository.default = repo1
+    
+    # List of filtered out repositories, these repositories are not shown in the repository picker.
+    # Note: This setting is now deprecated:  use the login.repository.filter in D2FS.properties instead.
+    # The setting in D2FS.properties takes precedence, and if login.repository.filter is also set here,
+    # it will be applied to a set of repositories already filtered by the setting in D2FS.properties.
+    #login.repository.filter = repo2, repo3
+    
+    # Enable the browser to display client-side JS error
+    error.uncaught.display = true
+    
+    # The number of seconds that the ctx_uid session cookie remains valid after it is created
+    # as soon as the user closes a browser tab or refreshes or navigates away from a D2 page.
+    # While valid, this cookie allows the user to refresh the browser page or navigate away and
+    # then back again without a login challenge.  The absence of this setting or giving it a value
+    # of zero will force all users to log in again in each of these cases and thus ensure compliance
+    # with the FDA industry's "21 CFR Part 11" certification.
+    uid.session.cookie.timeout = 60
+    
+    # Force to use a specific language across the application, will not take the user preferred language
+    #language.user.forced = en
+    
+    # If the D2 server is behind a reverse proxy, the following line must be uncommented and its
+    # value set accordingly in order for features like content transfer or OTDS to work correctly. For example, if the
+    # reverse proxy has DNS name or alias "reverseproxy" and uses the default https port 443 and
+    # the name of the D2 web application is "D2", then the value of connection.remote.url would
+    # be https://reverseproxy/D2
+    # Note: D2_Ctx refers to the D2 web application name context
+    connection.remote.url={{ .Values.settings.connectionRemoteUrlProtocol }}://{{ .Values.settings.connectionRemoteUrl | toString | replace "[" "" | replace "]" "" | replace "/ " "/" }}
+    
+    # Browser limit for displaying folders at same level
+    browser.folder.limit = 25
+    
+    ######################################
+    #	    Search option settings       #
+    ######################################
+    # Configure the below property to extend search highlighting to these set of comma seperated attributes.
+    # If not configured default search highlighting is only applicable on : object_name,title,a_status,r_modifier
+    searchHighlightAttributes=object_name,title,a_status,r_modifier
+    
+    # Configure the below property to dis-allow empty query form searches (all fields left empty)
+    # If not configured default value is false
+    disallowOpenTypeQueries=false
+    
+    # If the D2FS server is on a separate instance from the D2 (non merged architecture used only
+    # in development), the following line must be uncommented and its value set accordingly in order
+    # for plugin resource lookup to work correctly. It must point to the GetResource servlet and this
+    # servlet should be accessible from any client machine.  If D2FS is behind a proxy the URL should
+    # reflect that, still pointing to [D2FS_URL]/servlet/GetResource.
+    # For any production D2 app server running D2 4.1 or later, this parameter is not needed.
+    #resources.url = http[s]://[proxy|server][:[port]]/[D2FS_Ctx]/servlet/GetResource
+    
+    # Browser plugin mode - specify browser plugin modes that clients of this server can use
+    #
+    # There are three possible modes:
+    #
+    #     thin  - no plugins:    use HTML5 for file upload and download
+    #     wsctf - wsctf plugin:  use java-free Content Transfer Framework plugin (CTF) without browser extensions
+    #                                (Documentum Client Manager v2) for file upload and download.  This utilizes a
+    #                                web socket connection between the web page and CTF instead of a browser extension.
+    #
+    # NOTE - CTF mode is DEPRECATED starting with the D2 16.7 release. It can still be used but is intended to
+    #        be replaced by WSCTF mode. The details related to the CTF MODE can be read from the DEPRECATED_CTF_MODE
+    #        section below.
+    #
+    # The browser.plugin.mode setting below can be given one of the following values:
+    #
+    #     thin
+    #     wsctf,thin
+    #
+    #     The behavior for each of these setting values is given in the table that follows below.
+    #
+    #     Note that there are two fields in the D2 user settings UI pertaining to browser.plugin.mode:
+    #
+    #        - Update Browser Plugin combo box
+    #             Choice list is given by mode(s) specified in the browser.plugin.mode setting value.
+    #             Note that this choice is persisted with the browser and not in the repository.
+    #             It is cleared when cookies are cleared in the browser.
+    #
+    #        - Current Browser Plugin label
+    #             Shows which mode is currently being used by the D2 web page.
+    #
+    #     +---------------------+-----------------------------------------------------------------------------+
+    #     | browser.plugin.mode | Behavior                                                                    |
+    #     +---------------------+-----------------------------------------------------------------------------+
+    #     | thin                | Always use thin client mode for all users.                                  |
+    #     +---------------------+-----------------------------------------------------------------------------+
+    #     | wsctf,thin          | Default to wsctf mode for all users.  Fallback to thin client mode          |
+    #     |                     | if the browser supports wsctf mode but cannot load respective plugin.       |
+    #     |                     | Users can choose to use wsctf or thin client mode from the user settings    |
+    #     |                     | dialog when configured modes are supported by browser.                      |
+    #     +---------------------+-----------------------------------------------------------------------------+
+    #
+    #	  browser.plugin.mode property can be configured in D2-Config user setting in user interface tab,
+    #	  user settings needs to be mapped to context accordingly to make use of this settings
+    #	  Below are the combinations and their usage:
+    #	  +-----------------------+-----------------------------------------------------------+
+    #	  |user client experience |Behavior													  |
+    #	  +-----------------------+-----------------------------------------------------------+
+    #	  |thin					  |thin only in user settings for particular group of users	  |
+    #	  +-----------------------+-----------------------------------------------------------+
+    #	  |wsctf				  |wsctf only in user settings for particular group of users  |
+    #	  |						  |for wsctf connecting issues silently fallback to thin mode |
+    #	  +-----------------------+-----------------------------------------------------------+
+    #	  |thin,wsctf			  |thin mode default,user can switch wsctf mode manually from |
+    #	  |						  |user settings for particular group of users				  |
+    #	  +-----------------------+-----------------------------------------------------------+
+    #	  |wsctf,thin 		      |wsctf mode default,user can switch thin mode manually  	  |
+    #	  |						  |from user settings for particular group of users			  |
+    #	  +-----------------------+-----------------------------------------------------------+
+    #	  if nothing is configured in D2-config by default settings.properties are taken.
+    #
+    # If the browser.plugin.mode setting below is commented out, the effective value is thin.
+    browser.plugin.mode = {{ .Values.settings.browserPluginMode | default "wsctf,thin" }}
+    
+    # When the app server is behind a proxy that requires an httpOnly cookie to be present on a request
+    # in order for it to be forwarded to the app server (e.g. Kubernetes ingress proxy), WSCTF will not
+    # work unless the same cookie is also present on HTTP requests that WSCTF itself makes.
+    # The following setting allows one to specify the names of such cookies so that the corresponding
+    # values can be passed back to the client in the response to various service requests and thence
+    # provided to WSCTF before it makes an HTTP request.  This setting is not relevant for clients that
+    # are running in thin client mode or deprecated CTF mode.  If there are several such cookies, the
+    # value of this setting should consist of the relevant cookie names separated by commas, e.g. a,b,c.
+    # In any case, if there are no cookies on a request with the given names specified by this setting,
+    # no response header (whose name is specified by the wsctf.proxy.header settinge below) will be emitted.
+    wsctf.proxy.cookies=INGRESSCOOKIE
+    
+    # The name of the response header that will be used to transmit wsctf.proxy.cookie names and values
+    # to the web page so that they can then be forwarded to WSCTF.  If not set, the header name used will
+    # be X-D2-WSCTF-Proxy-Cookies.
+    wsctf.proxy.header=X-D2-WSCTF-Proxy-Cookies
+    
+    # D2 supports dragging files out to the desktop in IE 11 using an enhanced version of the WdkPlugin.
+    # Set this to true to enable this for all IE 11 users.
+    browser.plugin.activex = false
+    
+    # This should remain set to false unless OpenText support directs that it be set to true.
+    allow.callstacks = false
+    
+    #DTWO-53760 taxonomy validation delay
+    #In-case of multiple taxonomy combo boxes use the below configuration to add a delay to the validation on value change trigger
+    taxonomyConditionalValidationDelay=0
+    
+    # Support for HTTP Strict Transport Security
+    # Opt-in security enhancement that is specified by D2 through the use of a special response header.
+    # "max-age" directive specifies the number of seconds, after the reception of the STS header field,
+    # during which the user agent regards the host (from whom the message was received) as a Known HSTS host.
+    #hsts.maxage = 31536000
+    # HTTPS URL used to redirect user agent when it attempts to make HTTP request to server.
+    #hsts.redirectUrl = https://hostname[:port]
+    
+    
+    # Support for clickjacking defense via Content-Security-Policy or X-Frame-Options response headers.
+    # Content-Security-Policy is emitted for all browsers except IE, which does not understand this header.
+    # X-Frame-Options is emitted only if the browser is IE.  The allowed.frame.origins setting is used
+    # to control these response headers which in turn control whether another web page can load D2 into
+    # a frame or iframe.
+    #
+    # If allowed.frame.origins is not set, then the emitted response header is:
+    #
+    #   Content-Security-Policy: frame-ancestors 'none'
+    #
+    # for all browsers except IE and
+    #
+    #   X-Frame-Options: DENY
+    #
+    # if the browser is IE.  In either case, this means that D2 cannot be loaded into any frame or iframe
+    # on any web page.
+    #
+    # If allowed.frame.origins is set, then the possible values are 'none', 'self', or a space-separated
+    # list of origins.  Note that the single-quote characters in 'none' and 'self' are required and that
+    # any origin value in the list of origins can contain one or more '*' wildcard characters.
+    #
+    # If allowed.frame.origins has value 'none' or 'self', then the emitted response header is
+    #
+    #   Content-Security-Policy: frame-ancestors 'none'
+    #   Content-Security-Policy: frame-ancestors 'self'
+    #
+    # respectively for all browsers except IE and
+    #
+    #   X-Frame-Options: DENY
+    #   X-Frame-Options: SAMEORIGIN
+    #
+    # respectively if the browser is IE.  Otherwise, the emitted response header is
+    #
+    #   Content-Security-Policy: frame-ancestors <value of allowed.frame.origins>
+    #
+    # respectively for all browsers except IE.
+    #
+    # If the browser is IE, the X-Frame-Options response header is determined as follows:
+    #
+    # D2 first collects the origin values specified by the forOrigin query string parameter, the Referer
+    # request header, and the Origin request header.  D2 then checks in this order whether any of these
+    # origin values matches an allowed origin valued listed in allowed.frame.origins.  If a match is found,
+    # then D2 emits the response header
+    #
+    #   X-Frame-Options: ALLOW-FROM origin
+    #
+    # where origin is the matching origin value coming from the request.  Otherwise, D2 emits the response header
+    #
+    #   X-Frame-Options: DENY
+    #
+    {{- if .Values.settings.allowedFrameOrigins }} 
+    allowed.frame.origins={{ .Values.settings.allowedFrameOrigins }} 
+    {{- end }}
+    
+    
+    # During multiple file import, if the user selects "same profile and properties page" checkbox but still
+    # wants individual files to retain their properties, then uncomment and set the value of this property
+    # to true below.  For example, if mails are imported using the O2 plugin and all files should retain their
+    # properties.  Note that this will override other operations such as inheritance/default value template.
+    #import.prefer.sameproperties=false
+    
+    
+    # On a property page with a grid of combo boxes, it can happen that another input field on the page depends
+    # on the current value of a combo box in some row of the grid.  If such a row in the grid is deleted, by
+    # default D2 does not re-evaluate conditions on the controls comprising the deleted row, which in turn can
+    # result in the dialog being submitted with invalid data.  To avoid this problem, set the following
+    # setting to true.  If commented out, the default value is false.
+    #evaluate.grid.delete = false
+    
+    #This setting is used while creating a document in create/import dialog
+    createCallService.delay=2000
+    
+    # As part of DTWO-42834 there was configurable delay introduced between the parameters evaluation and
+    # server validation request in the property page. When the user has a depedency combo boxes which gets
+    # autofilled based on the first selection and clicks directly on the Ok button this delay would help in
+    # sending the updated parameters to the server.
+    #propertyValidationDelay=1000
+    
+    ##########################################################################################################
+    ##############							DEPRECATED_CTF_MODE                                 ##############
+    ##########################################################################################################
+    #
+    #  ctf - ctf plugin:  use java-free Content Transfer Framework plugin (CTF) with browser
+    #                     extensions (Documentum Client Manager v1) for file upload and download
+    #
+    # The browser.plugin.mode setting below can be given one of the following values:
+    #     ctf
+    #     ctf,thin
+    #
+    #     +---------------------+----------------------------------------------------------------------------+
+    #     | ctf                 | Always use ctf mode for all users.  Fallback to thin client mode if the    |
+    #     |                     | browser supports ctf mode but cannot load ctf plugin.                      |
+    #     +---------------------+----------------------------------------------------------------------------+
+    #     | ctf,thin            | Default to ctf mode for all users.  Fallback to thin client mode           |
+    #     |                     | if the browser supports ctf mode but cannot load respective plugin.        |
+    #     |                     | Users can choose to use ctf or thin client mode from the user settings     |
+    #     |                     | dialog when configured modes are supported by browser.                     |
+    #     +---------------------+----------------------------------------------------------------------------+
+    #
+    ##########################################################################################################
+    
+    #This setting is used to display the relation name in the relation assistance dialog while launching a workflow
+    # Admin should delete the preferences (d2c_preferences objects) of the users and default preferences to opt-in for the feature
+    # Default value is false
+    #showRelationColumnInRelationAssistance=false
+    
+    #This property is used for enduser tracking and auditing purposes.
+    #To enable the geolocation feature please set the below property to true.
+    #if set to true - user will get a geolocation popup
+    #if set to false - user will not get a geolocation popup
+    #Default value is false
+    #geolocation.enabled=false
+    
+    #This property is used for enduser tracking and auditing purposes and depends on the geolocation.enabled property
+    #With this property set to true, user cannot login unless geolocation is provided 
+    #If set to false - providing geolocation is not mandatory and user can login
+    #Default value is false
+    #geolocation.required=false
+    
+    #This setting is used to make a decision of displaying the hover/bubble menu's in D2 Classic Task list widget
+    #Default value is true
+    #EnableBubbleMenuForTasks=true
+    
+    #When enabled request structure along with parameters of every soap end point invocation will get printed to log. 
+    #This is for debugging purposes only and should not be enabled in customer environment unless asked to do so
+    printSoapEndPointAndArgsInLog=false;
+    
+    #When lifecycle transition is triggered by multi-selecting the documents and an error occured an random document
+    #If the belew flag Set to true - subsequent document will be processed only when th end user clicks on the ok button of the error dialog 
+    #else the processing will continue to happen irrespective of the user click on the dialogs and continue to display the subsequent dialog boxes. 
+    #valid inputs: true, false 
+    #default value is false
+    lifecycle.multiselect.confirmation.display=false
+    
+    #This property is used for menu evaluation on double click operation performed on Doclist /DocGallery widget. 
+    #If the below flag Set to true - Evaluate the a selected document to ensure that the view menu item is available in the MenuDocument or MenuContext types and handles download.
+    #else the selected file will download on double click operation. 
+    #valid inputs: true, false 
+    #default value is false
+    ondbclickEvaluateDocumentMenuView=false
+    
+    #This has to be enabled only when we have a custom developed plugins 
+    #which are exepected to handle multiple task ids passed to task accept and reject related service calls.
+    # i.e D2WorkflowService, D2DialogService, D2AnnotationService, D2MenuService related api calls
+    #workflow.mutlitask.developer.accept.reject.enable=true
+    
+    ##########################################################
+    #	    Parameter Encryption Enable/Disable option       #
+    ##########################################################
+    #Make this option to BOOLEAN true, to enable request parameter Encryption
+    #requestParameterEncryptEnabled=true
+    
+    #This property is added to display spinning wheel in D2 UI for Doclist and Repository browser whenever contextual menus takes time to load.
+    #If the property value is set to false, no spinning wheel will be displayed in the UI for Doclist and Repository browser during menu loading time.
+    #By default the property value is set to true.
+    displaySpinningWheel=true
+
+{{- $configFileOverridesFile := printf "%s/%s" .Values.configFileOverrideFilesDir "settings.properties" }}
+{{- $configFileMsg0 := printf "\n\n##### Begin lines added from %s\n" $configFileOverridesFile }}
+{{- $configFileMsg1 := printf "##### End lines added from %s" $configFileOverridesFile }}
+{{- $configFileLinesToAppend := .Files.Get $configFileOverridesFile }}
+{{- if $configFileLinesToAppend }}
+{{ $configFileMsg0 | indent 4 }}
+{{ $configFileLinesToAppend | indent 4 }}
+{{ $configFileMsg1 | indent 4 }}
+{{- end }}

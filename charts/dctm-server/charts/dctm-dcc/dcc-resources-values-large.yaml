@@ -1,0 +1,53 @@
+consul:
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+      
+metadata:
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+
+syncagent:
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 2000m
+      memory: 4Gi
+      
+syncnshareManual:
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 2000m
+      memory: 4Gi
+      
+coreNotification:
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+
+mailService:
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 1000m
+      memory: 1Gi

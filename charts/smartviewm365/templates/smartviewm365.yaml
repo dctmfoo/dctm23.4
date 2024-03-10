@@ -1,0 +1,198 @@
+
+
+    
+#Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+   name: {{ .Chart.Name }}
+   labels: 
+    app: {{ .Chart.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}  
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}
+    spec: 
+      securityContext:
+        fsGroup: {{ .Values.fsGroup }}    
+{{- if .Values.images.pullSecrets }}
+      imagePullSecrets:
+      - name: {{ .Values.images.pullSecrets }}
+{{ end }}
+      initContainers:
+      - name: ccsmartviewextension
+        image: {{ .Values.extensionImage.repository }}/{{ .Values.extensionImage.name }}:{{ .Values.extensionImage.tag }}
+        imagePullPolicy: {{ .Values.extensionImage.pullPolicy }}
+        command: ['/bin/sh', '-c', '. /opt/ccsmartview/initstartup.sh']
+        env:
+        - name: CONTEXT
+          value: "CCSmartview"
+        - name: CLIENTID
+          value: {{ .Values.ccsv.clientid }}
+        - name: HOST
+          value: {{ index .Values.settings.connectionRemoteUrl 0 }}
+        - name: WEBAPP_NAME
+          value: {{ .Values.env.webappName }}
+        - name: APP_NAME
+          value: {{ .Values.ccsv.appname }}
+        volumeMounts:
+          - name: extensionpvc
+            mountPath: /opt/ccextension
+            subPath: ccsmartview
+{{- if .Values.extraInitContainers }}
+{{ toYaml .Values.extraInitContainers | indent 6 }}
+{{- end }}
+{{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+{{- end }}
+      serviceAccountName: {{ .Values.serviceAccount.serviceAccountName }}
+      containers:
+      - name: {{ .Chart.Name }}
+        image: {{ .Values.images.repository }}/{{ .Values.images.name }}:{{ .Values.images.tag }}
+        imagePullPolicy: {{ .Values.images.pullPolicy }}
+        {{- if .Values.customConfigurations.custom }}
+        command: ['bin/sh', '-c', 'mkdir -p /opt/CC-install;sudo cp -Rf /opt/ccextension/ccsmartview/* /opt/CC-install/;sudo chown -Rf 1000:1000 /opt/CC-install/;. /opt/CC-install/extensionstartup.sh']
+        {{- else }}
+        command: ['bin/sh', '-c', 'mkdir -p /opt/CC-install;cp -Rf /opt/ccextension/ccsmartview/* /opt/CC-install/;sudo chown -Rf 1000:1000 /opt/CC-install/;. /opt/CC-install/extensionstartup.sh']
+        {{- end }}
+        env:
+        - name: KUBERNETES
+          value: "true"
+        - name: CONTAINER_NAME
+          value: {{ .Chart.Name | quote }}            
+        - name: TOMCAT_SECURE
+          value: {{ .Values.tomcat.secure | quote }} 
+        - name: TOMCAT_JVM_ARGS
+          value: {{ .Values.env.tomcatJVMArgs }} 
+        - name: WEBAPP_NAME
+          value: {{ .Values.env.webappName }}
+        - name: TOMCAT_LOG_FILE_ROTATION
+          value: {{ .Values.tomcat.logfilerotation | quote }}
+        - name: TOMCAT_LOG_FILE_SIZE
+          value: {{ .Values.tomcat.logfilesize | quote }}        
+      {{- if .Values.newrelic.enable }}
+        - name: NEWRELIC_ENABLE
+          value: {{ .Values.newrelic.enable | quote  }}
+        - name: NEWRELIC_APP_NAME
+          value: {{ .Values.newrelic.app_name }}
+        - name: NEWRELIC_PROXY_HOST
+          value: {{ .Values.newrelic.proxy_host }}
+        - name: NEWRELIC_PROXY_PORT
+          value: {{ .Values.newrelic.proxy_port | quote  }}
+        - name: NEWRELIC_LICENSE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.csConfigName }}
+              key: newrelicLicensekey
+      {{- end }}
+      {{- if .Values.customConfigurations.custom }}
+        - name: CUSTOM_IMPORT
+          value: {{ .Values.customConfigurations.custom | quote }}
+        - name: LOCALE_NAME
+          value: {{ .Values.customConfigurations.locale | quote }}
+      {{- end }}      
+        ports:
+        - containerPort: 8080
+          name: clientport 
+        volumeMounts:
+        - mountPath: {{ .Values.tomcat.catalinaHome }}/conf/server.xml
+          name: {{ .Chart.Name }}-appserver-server-xml
+          subPath: server.xml
+        - mountPath: {{ .Values.tomcat.catalinaHome }}/conf/web.xml
+          name: {{ .Chart.Name }}-appserver-web-xml
+          subPath: web.xml
+        - mountPath: {{ .Values.tomcat.catalinaHome }}/webapps/{{ .Values.env.webappName }}/ui/launcher.json
+          name: {{ .Chart.Name }}-launcher-json
+          subPath: launcher.json
+        - mountPath: /opt/ccextension/
+          name: extensionpvc
+          subPath: ccsmartview
+{{- if .Values.customConfigurations.custom }}
+        - mountPath: /opt/CC-install/custom
+          name: customconfig
+{{- end }}
+{{ if eq .Values.graylog.enable false }}
+        - mountPath: {{ .Values.tomcat.catalinaHome }}/webapps/{{ .Values.env.webappName }}/logs/
+          name: shared-logs
+          subPath: {{ .Values.env.webappName }}/logs
+        - mountPath: {{ .Values.tomcat.catalinaHome }}/logs/
+          name: shared-logs
+          subPath: logs
+{{- end }}
+{{ $kubeversion := printf "%s.%s" .Capabilities.KubeVersion.Major .Capabilities.KubeVersion.Minor | replace "+" "" | float64 }}        
+        resources:
+{{ toYaml .Values.resources | indent 12 }}
+        readinessProbe:
+          httpGet:
+            path: /{{ .Values.env.webappName }}
+            port: 8080
+{{- if ge $kubeversion 1.19 }}
+          initialDelaySeconds: {{ default 60 .Values.readinessProbe.initialDelaySeconds }}
+{{- else }}
+          initialDelaySeconds: {{ default 300 .Values.readinessProbe.initialDelaySeconds }}
+{{- end }}
+          periodSeconds: 60
+          failureThreshold: 5
+          successThreshold: 1
+          timeoutSeconds: 6
+        livenessProbe:
+          httpGet:
+            path: /{{ .Values.env.webappName }}
+            port: 8080
+{{- if ge $kubeversion 1.19 }}
+          initialDelaySeconds: {{ default 60 .Values.livenessProbe.initialDelaySeconds }}
+{{- else }}
+          initialDelaySeconds: {{ default 300 .Values.livenessProbe.initialDelaySeconds }}
+{{- end }}
+          periodSeconds: 60
+          failureThreshold: 5
+{{ if ge $kubeversion 1.19 }}  
+        startupProbe:
+          httpGet:
+            path: /{{ .Values.env.webappName }}
+            port: 8080
+          initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
+          failureThreshold: 5
+          successThreshold: 1
+          timeoutSeconds: 60
+          periodSeconds: 60
+{{- end }}
+      volumes:
+{{ if eq .Values.graylog.enable false }}
+        - name: shared-logs
+          persistentVolumeClaim:
+            claimName: {{ .Values.graylog.pvcName }} 
+{{ end }}
+{{- if .Values.customConfigurations.custom }}
+        - name: customconfig
+          emptyDir: {}
+{{ end }}
+        - name: extensionpvc
+          persistentVolumeClaim:
+            claimName: {{ .Values.extension.pvcName }} 
+        - name: {{ .Chart.Name }}-launcher-json
+          projected:
+            sources:
+            - configMap:
+                name: {{ .Chart.Name }}-launcher-json         
+        - name: {{ .Chart.Name }}-appserver-server-xml
+          projected:
+            sources:
+            - configMap:
+                name: {{ .Chart.Name }}-server-xml
+        - name: {{ .Chart.Name }}-appserver-web-xml
+          projected:
+            sources:
+            - configMap:
+                name: {{ .Chart.Name }}-web-xml  
+       
+
+                
+
+

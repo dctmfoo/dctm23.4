@@ -1,0 +1,211 @@
+# Default values for appworks-gateway.
+global:
+  imageSource: repository.opentext.net
+  imagePullPolicy: IfNotPresent
+  imageTag: 23.4.0
+# imagePullSecrets: [ "name" : "" ]
+  ingressAnnotations:
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: 10m
+    nginx.ingress.kubernetes.io/client-max-body-size: 10m
+    nginx.org/client-max-body-size: "50m"
+  ingressEnabled: true
+  serviceType: ClusterIP
+  timezone: UTC
+  otdsPublicUrl: "http://global-otds-service:8080"
+image:
+  registry:
+  repository: otawg
+  tag: 23.4.0
+  pgInitContainer: # Comment pgInitContainer section if the database is MsSqlServer/Oracle
+    registry:
+    repository: otawg-pg-init
+    tag: 23.4.0
+  awgInitContainer:
+    registry:
+    repository: otawg-init
+    tag: 23.4.0
+#  appsInitContainer:
+#    registry: repository.opentext.net
+#    repository: apps-init
+#    tag: 23.4.0
+  pullPolicy:
+#  Optional-specify the name of secret created to pull private images
+#  imagePullSecrets: [ "name" : "" ]
+
+database:
+  vendor: PostgreSql # Valid values PostgreSql/Oracle/MsSqlServer
+  server:
+    host: postgres-service
+    port: 5432
+  admin: # Required only for PostgreSql
+    user: postgresadminuser # Required only for PostgreSql
+    password:        	 # Required only for PostgreSql (Postgres Admin password)
+    database: postgresadmindatabase # Required only for PostgreSql
+  appworksdb:
+    user: postgresuser # user will be created by pg init container only for PostgreSql if it does not exist
+    password: 	
+    # database will be created by pg init container only for PostgreSql if it does not exist
+    # database is not required for Oracle instead will use service
+    database: postgresdatabase    
+    service: oracleSIDname # provide service/SID for oracle database instead of database name    
+    # useSSL and trustDbCerts will be used incase if you are trying to connect with Amazon RDS.
+    # If both the values are true, then Appworks Gateway will take care of downloading the certificates from the AWS.
+    # If useSSL is true and trustDbCerts is false , then Administrator needs to placed that certificate inside the helm i.e. appworks-gateway\trustCertificates folder.
+  useSSL: false  
+  trustDbCerts : false
+
+otds:
+  server:
+    url:
+  admin:
+    user: otdsadminusername
+    password: 		
+  partition:
+    new: gatewaypartition
+    customPartition:
+  resource:
+    new: gatewayresource
+
+awg:
+  admin:
+    newadminuser: gatewayadminusername
+    newadminpassword: 		
+  externalurl: "http://ingress" # must not be localhost or 127.0.0.1
+  logging:
+    level: info # one of ["trace", "debug", "info", "warn", or "error"]
+
+  # The settings in this file enable you to deploy AppWorks Gateway in a containerized environment.
+  # Refer to the AppWorks Gateway Installation and Administration Guide for details on updating the settings for your requirements.
+  # All settings here are optional - default values are provided below
+  # If not specified here, you can use the Appworks Gateway Admin UI to update them
+  # If specified here, you cannot use the Appworks Gateway Admin UI to update them
+  settings:
+    wantSecureCookies: true
+    doNotProxyOTDS: false
+#   cookieDomainForGeneratedOTDSCookies: ""
+    anonymousAccessEnabled: false
+    forcePasswordBasedNonOauthAuthentication: false
+    disableOTDSAuth: false
+#   otdsSSODisableByIP: ""
+#   listOfTenants: ""
+    awgDeveloperMode: false
+    mdm:
+      clientTrackingEnabled: true
+      remoteWipeTimeoutSeconds: "300"
+#     remoteWipeFailureEmailRecipients: ""
+      permitStorageOfPasswordsOnDevice: false
+      passwordOnDeviceExpirySeconds: 604800
+      permitOfflineAccessOnDevice: false
+      notifyDevicesOfOfflinePolicyChange: false
+    mail:
+      mailAuthenticationType: "Password" # default is 'Password' flow, can be either 'Password' or 'OAuth'
+      smtpReturnAddress: noreply@example.com
+      smtpHost: some-host
+      smtpPort: 25
+#     smtpUsername: ""
+#     smtpPassword: ""
+      smtpUseSSL: false # not required to be true in most SSL settings
+#     oauthScope: "" # Value 'Google' or 'Microsoft' - for specific mail server
+#     oauthClientId: ""
+#     oauthClientSecret: ""
+    enableAutoLogout: false # if enabled then only autoLogoutTimeInterval will be respected
+    autoLogoutTimeIntervalSeconds: 900 # Minimum value acceptable is 120 Seconds
+    enableConcurrentSessionLimit: false # if enabled then only concurrentSessionLimitAdmin and concurrentSessionLimitUser will be respected
+    concurrentSessionLimitAdmin: 3 # Value cannot be 0
+    concurrentSessionLimitUser: 2 # Value cannot be 0
+    pushToConsole: false # if enabled then only audit information will be pushed to console
+
+replicaCount: 1
+
+# Proxy Configuration
+proxy:
+  automate: false
+  fileName: Rulestemplate.json
+
+# Flag to decide whether the secrets need to be deployed from helm chart or not.
+# In case of using an external secret manager we should not deploy our secret.
+deploySecretsFromHelm: true
+
+# Flag to change FIPS mode
+fipsModeEnabled: false
+
+# provide valid timezone e.g Asia/Kolkata
+timezone:
+
+# readiness probe
+readinessProbe:
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  timeoutSeconds: 60
+
+# liveness probe
+livenessProbe:
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 60
+
+service:
+  type:
+  port: 80
+
+ingress:
+  enabled:
+  annotations:
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: 
+    enabled: false
+    info:
+      - secretName:
+          name: otawg-tls-secret
+          create: false
+          key: #provide the .crt file value
+          cert: #provide the .key file value
+        hosts:
+          - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+#In case of any custom PodLabels add the pod labels under here in key value pairs
+customPodLabels:
+  #LabelName : LabelValue
+
+#Provide the Custom Secret Name here
+secretName: otag-awg
+
+#Settings related to NewRelic APM integration
+newrelic:
+  enabled: false # to enable NewRelic APM set flag to true
+  appName: APPWORKS GATEWAY
+  licenseKey: 
+  logFileName: STDOUT #If any log file name is mentioned, the logs will be placed in tomcat logs folder
+  logLevel: info
+  proxyHost: 
+  proxyPort: 
+  proxyScheme:
+
+# ServiceAccount required for onedctm
+serviceAccount:
+  createserviceaccount: false
+  serviceAccountName: onedctm-sa

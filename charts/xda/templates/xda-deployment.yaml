@@ -1,0 +1,121 @@
+#xDA Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.prefix }}
+  labels:
+    app: {{ .Values.prefix }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.prefix }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.prefix }}          
+    spec:
+{{- if .Values.serviceAccount.serviceAccountName }}
+      serviceAccountName: {{ .Values.serviceAccount.serviceAccountName }}
+{{- end }}
+{{- if .Values.cis.ip }}
+      hostAliases:
+      - ip: {{ .Values.cis.ip | quote }}
+        hostnames:
+        - {{ .Values.cis.hostname | quote }}
+{{- end }}
+{{- if .Values.image.pullSecrets }}
+      imagePullSecrets:
+      - name: {{ .Values.image.pullSecrets }}
+{{ end }} 
+      containers:            
+       - name: {{ .Values.prefix }}
+         image: {{ .Values.image.repository }}/{{ .Values.image.name }}:{{ .Values.image.tag }}
+         imagePullPolicy: {{ .Values.image.pullPolicy }}
+         resources:
+{{ toYaml .Values.resources | indent 12 }}       
+         env:
+         - name: KUBERNETES
+           value: "true"
+      {{- if .Values.newrelic.enable }}
+         - name: NEWRELIC_ENABLE
+           value: {{ .Values.newrelic.enable | quote  }}
+         - name: NEWRELIC_APP_NAME
+           value: {{ .Values.newrelic.app_name }}.{{ .Release.Namespace }}
+         - name: NEWRELIC_PROXY_HOST
+           value: {{ .Values.newrelic.proxy_host }}
+         - name: NEWRELIC_PROXY_PORT
+           value: {{ .Values.newrelic.proxy_port | quote  }}
+         - name: NEWRELIC_LICENSE_KEY
+           valueFrom:
+             secretKeyRef:
+               name: {{ .Values.secret.name }}
+               key: {{ .Values.newrelic.licenseKeyName }}
+      {{- end }}            
+         ports:
+         - containerPort: 7000
+           name: xdaport
+         livenessProbe:
+           httpGet:
+             path: /xda
+             port: xdaport
+           initialDelaySeconds: 180
+           periodSeconds: 300
+           failureThreshold: 2
+           successThreshold: 1
+           timeoutSeconds: 60
+         readinessProbe:
+           httpGet:
+             path: /xda
+             port: xdaport
+           initialDelaySeconds: 180
+           periodSeconds: 300
+           failureThreshold: 2
+           successThreshold: 1
+           timeoutSeconds: 60           
+         volumeMounts:         
+         - mountPath: /opt/xDA/catalog
+           name: {{ .Values.prefix }}
+           subPath: xDA/{{ .Values.prefix }}/catalog
+         - mountPath: /opt/xDA/config
+           name: {{ .Values.prefix }}-config-volume
+         - mountPath: /opt/xDA/logs
+           name: {{ .Values.prefix }}
+           subPath: xDA/{{ .Values.prefix }}/logs
+         {{- if .Values.trustStore.enable }}
+         - mountPath: /opt/xDA/secrets
+           name: {{ .Values.prefix }}-secret-volume
+         {{- end }}
+{{ if eq .Values.docbaseConnection.use_certificate true }}
+         - mountPath: /opt/dctm/certificate
+           name: {{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+           subPath: certificate/{{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+{{ end }}          
+      volumes:
+        - name: {{ .Values.prefix }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.prefix}}-pvc
+        - name: {{ .Values.prefix }}-config-volume
+          configMap:
+            name: {{ .Values.prefix }}-xda-config
+            items:
+              - key: dfc-properties-config
+                path: dfc.properties
+              - key: xda-config-properties
+                path: xda-config.properties
+              - key: log4j-properties-config
+                path: log4j2.properties
+        {{- if .Values.trustStore.enable }}
+        - name: {{ .Values.prefix }}-secret-volume
+          secret:
+            secretName: {{ .Values.prefix }}-secret
+            items:
+            - key: trustStoreFile
+              path: {{ .Values.trustStore.fileName }}
+        {{- end }}
+{{ if eq .Values.docbaseConnection.use_certificate true }}
+        - name: {{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.docbaseConnection.docbroker }}-pvc
+{{- end }}         

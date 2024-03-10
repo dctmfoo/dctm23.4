@@ -1,0 +1,58 @@
+apiVersion: v2
+appVersion: 23.4.0000.0157
+dependencies:
+- condition: dctm-server.enabled
+  name: dctm-server
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: "23.4"
+- condition: otds.enabled
+  name: otds
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 23.3.0
+- condition: d2config.enabled
+  name: d2config
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 23.4.0-157
+- condition: d2classic.enabled
+  name: d2classic
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 23.4.0-157
+- condition: d2smartview.enabled
+  name: d2smartview
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 23.4.0-157
+- condition: d2rest.enabled
+  name: d2rest
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 23.4.0-157
+- condition: d2ingress.enabled
+  name: d2ingress
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 23.4.0-157
+- condition: appworks-gateway.enabled
+  name: appworks-gateway
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 23.4.0
+- condition: xplore.enabled
+  name: xplore
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 22.1.4
+- condition: otiv.enabled
+  name: otiv
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 23.4.0
+- condition: smartviewm365.enabled
+  name: smartviewm365
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: "23.4"
+- condition: bps.enabled
+  name: bps
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: "23.4"
+- condition: xda.enabled
+  name: xda
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: "23.4"
+description: Documentum Helm chart for Kubernetes
+name: documentum
+version: 23.4.0-157

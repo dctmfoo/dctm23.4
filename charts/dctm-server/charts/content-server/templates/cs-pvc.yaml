@@ -1,0 +1,31 @@
+#CS PVC
+{{- if .Values.persistentVolume.createPVC }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.serviceName}}-pvc
+spec:
+  accessModes:
+    - {{ .Values.persistentVolume.pvcAccessModes }}
+  storageClassName: {{ .Values.persistentVolume.storageClass }}
+{{ if .Values.persistentVolume.existVolumePv }}
+  volumeName: {{ .Values.persistentVolume.existVolumePv }}
+{{ end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistentVolume.size }}
+{{- end }}
+---
+{{- if .Values.contentserver.aek.shareKey }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.serviceName }}-sharedkey-pvc
+spec:
+  accessModes:
+    - {{ .Values.persistentVolume.pvcAccessModes }}
+  storageClassName: {{ .Values.persistentVolume.storageClass }}
+  resources:
+    requests:
+      storage: 1Gi
+{{- end }}

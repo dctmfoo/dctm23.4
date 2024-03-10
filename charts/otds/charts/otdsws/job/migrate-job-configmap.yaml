@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: migrate-job-configmap
+{{- if .Values.global.namespace }}
+  namespace: {{ .Values.global.namespace }}
+{{- end }}
+  labels:
+    {{- include (printf "%s%s" .Chart.Name ".labels" ) . | nindent 4 }}
+data:
+{{- if not .Values.vault.enabled }}
+  OTDS_JAKARTA_PERSISTENCE_JDBC_USER: {{ required "A valid otdsws.otdsdb.username is required!" .Values.otdsdb.username }}
+{{- end }}
+  OTDS_JAKARTA_PERSISTENCE_JDBC_URL: {{ template "otdsws.dburl" . }}
+{{- if eq .Values.migration.enabled true }}
+{{- if .Values.migration.preUpgradeJob.enabled }}
+  OTDS_MIGRATE: "false"
+{{- else }}
+  OTDS_MIGRATE: "true"
+{{- end }}
+{{- if eq .Values.migration.usingLegacyImage true }}
+  LEGACY_OPENDJ: "true"
+{{- else }}
+{{- if .Values.migration.opendjUri }}
+  OTDS_DIRECTORY_BOOTSTRAP_SERVERLIST: {{ .Values.migration.opendjUri }}
+{{- else }}
+  OTDS_DIRECTORY_BOOTSTRAP_SERVERLIST: {{ printf "ldap://%s" .Values.migration.serviceName }}:{{ .Values.migration.servicePort }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Values.additionalJavaOpts }}
+  CATALINA_OPTS: {{ .Values.additionalJavaOpts }}
+{{- end }}
+{{- if eq .Values.otdsdb.useDefaultSchema true }}
+  OTDS_USEDEFAULTDBSCHEMA: "true"
+{{- end }}
+{{- if eq .Values.enableCustomizedTruststore true }}
+  OTDS_CUSTOMTRUSTSTORE: "true"
+{{- end }}
+{{- if .Values.vault.enabled }}
+{{- if .Values.vault.namespace }}
+  VAULT_NAMESPACE: {{ .Values.vault.namespace }}
+{{- end }}
+{{- if .Values.vault.agentInjector }}
+  VAULT_AGENT_ENABLED: "true"
+{{- end }}
+  VAULT_URL: {{ required "Vault URL must be specified" .Values.vault.url }}
+  VAULT_ROLE: {{ required "Vault role must be specified" .Values.vault.role }}
+  VAULT_SECRETS_PATH: {{ required "Vault secretsPath must be specified" .Values.vault.secretsPath }}
+{{- end }}
+{{- if .Values.migration.preUpgradeJob.enabled }}
+{{- if .Values.migration.preUpgradeJob.resources.jvmMemory }}
+  JVM_MEMORY: {{ .Values.migration.preUpgradeJob.resources.jvmMemory }}
+{{- else }}
+{{- if .Values.migration.preUpgradeJob.resources.limits.memory }}
+  JVM_MEMORY: {{ .Values.migration.preUpgradeJob.resources.limits.memory }}
+  JVM_MEMORY_DETECTED: "true"
+{{- end }}
+{{- end }}
+{{- end }}
+---

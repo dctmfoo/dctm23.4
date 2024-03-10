@@ -1,0 +1,19 @@
+{{- if not .Values.global.otdsMigration }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: cvt-hazel
+  labels:
+    app.kubernetes.io/name: {{ include "brava.name" . }}
+    app.kubernetes.io/instance: hazel-otiv-svc
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  clusterIP: None
+  ports:
+    - port: {{ .Values.global.hazelport }}
+      protocol: TCP
+      name: hazelcast
+  clusterIP: None
+  selector:
+      hazelcast: cvt
+{{- end }}

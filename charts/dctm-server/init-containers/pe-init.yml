@@ -1,0 +1,11 @@
+content-server:
+     extraInitContainers:
+     - name: "peinstaller-init"
+       image: "artifactory.otxlab.net/bpdockerhub/xcp/dctm-xcp-installer:23.4"
+       imagePullPolicy: Always
+       pullSecrets:
+       command: ['/bin/sh', '-c', 'yes |sudo cp -Rf /pescripts/* /opt/dctm_docker/customscriptpvc/ && sudo rm -f /opt/dctm_docker/customscriptpvc/10peijmsdeploy.sh']
+       volumeMounts:
+       - name: dcs-data-pvc
+         mountPath: /opt/dctm_docker/customscriptpvc 
+         subPath: initcontainercustomscripts/<sname>dcs-pg

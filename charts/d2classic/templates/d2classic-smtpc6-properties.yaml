@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2classic-smtpc6-properties
+  {{- template "configMap.labels" . }}
+data:
+  smtp_c6.properties: |-
+    ###Hostname of the SMTP mail server. This takes the precedence over Server specified in D2-Config->Email Configuration
+    {{- if .Values.smtp.hostname }} 
+    mail.smtp.host={{ .Values.smtp.hostname }} 
+    {{- else }} 
+    #mail.smtp.host={{ .Values.smtp.hostname }} 
+    {{- end }}
+    
+    ###Port number of the SMTP mail server. This takes the precedence over Port specified in D2-Config->Email Configuration
+    {{- if .Values.smtp.port }} 
+    mail.smtp.port={{ .Values.smtp.port | int }} 
+    {{- else }} 
+    #mail.smtp.port={{ .Values.smtp.port | int }} 
+    {{- end }}
+    
+    ####
+    #        TO ENABLE END-USER E-MAIL MASKING:
+    #       ------------------------------------------------------
+    #        (1)	Specify an email address for mail.smtp.from property in smtp_c6.properties; This will take precedence in place 
+    #				of D2 end-user email address part of dm_user table.
+    #        (2)	Office 365 enforces both the SMTP session login and from address of the mail sender to be same.  
+    #				This means, D2-Config should have login and from address same. 
+    #				Also, mail.smtp.from address is mandatory and should match with D2-Config from address 
+    ####
+    {{- if .Values.smtp.from }} 
+    mail.smtp.from={{ .Values.smtp.from }} 
+    {{- else }} 
+    #mail.smtp.from={{ .Values.smtp.from }} 
+    {{- end }}
+    
+    ###If true, enables the use of the STARTTLS command (if supported by the server) to switch the connection to a TLS-protected connection 
+    ###before issuing any login commands. Defaults to false.
+    {{- if .Values.smtp.starttls.enable }}
+    mail.smtp.starttls.enable={{ .Values.smtp.starttls.enable }} 
+    {{- else }} 
+    #mail.smtp.starttls.enable={{ .Values.smtp.starttls.enable }}
+    {{- end }}
+    
+    ###If true, attempt to authenticate the user using the AUTH command. Defaults to false.
+    {{- if .Values.smtp.auth }} 
+    mail.smtp.auth={{ .Values.smtp.auth }} 
+    {{- else }} 
+    #mail.smtp.auth={{ .Values.smtp.auth }} 
+    {{- end }}
+    
+    ###Specifies the port to connect to when using the specified socket factory. If not set, the default port will be used.
+    {{- if .Values.smtp.socketFactory.port }} 
+    mail.smtp.socketFactory.port={{ .Values.smtp.socketFactory.port | int }} 
+    {{- else }} 
+    #mail.smtp.socketFactory.port={{ .Values.smtp.socketFactory.port | int }} 
+    {{- end }}
+    
+    ###If set, specifies the name of a class that implements the javax.net.SocketFactory interface. 
+    ###This class will be used to create SMTP sockets
+    {{- if .Values.smtp.socketFactory.class }} 
+    mail.smtp.socketFactory.class={{ .Values.smtp.socketFactory.class }} 
+    {{- else }} 
+    #mail.smtp.socketFactory.class={{ .Values.smtp.socketFactory.class }} 
+    {{- end }}
+    
+    ###If set to true, failure to create a socket using the specified socket factory class will cause the socket to be created using the 
+    ###java.net.Socket class. Defaults to true.
+    {{- if .Values.smtp.socketFactory.fallback }} 
+    mail.smtp.socketFactory.fallback={{ .Values.smtp.socketFactory.fallback }}
+    {{- else }} 
+    #mail.smtp.socketFactory.fallback={{ .Values.smtp.socketFactory.fallback }} 
+    {{- end }}
+
+{{- $configFileOverridesFile := printf "%s/%s" .Values.configFileOverrideFilesDir "smtp_c6.properties" }}
+{{- $configFileMsg0 := printf "\n\n##### Begin lines added from %s\n" $configFileOverridesFile }}
+{{- $configFileMsg1 := printf "##### End lines added from %s" $configFileOverridesFile }}
+{{- $configFileLinesToAppend := .Files.Get $configFileOverridesFile }}
+{{- if $configFileLinesToAppend }}
+{{ $configFileMsg0 | indent 4 }}
+{{ $configFileLinesToAppend | indent 4 }}
+{{ $configFileMsg1 | indent 4 }}
+{{- end }}

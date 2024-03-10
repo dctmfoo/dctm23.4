@@ -1,0 +1,31 @@
+{
+  "rules": [
+    {
+      "id": "1667",
+      "name": "Sample OpenText Content Server Forms",
+      "whitelist": [
+        "(?i)^(otcsapi/v1/nodes)(/.*|$)",
+        "(?i)^(otcsapi/v1/forms)(/.*|$)"
+      ],
+      "blacklist": [
+        {
+          "match": "(\\.\\./)|(//)",
+          "responseCode": 400,
+          "location": null
+        }
+      ],
+      "urlRules": [
+        {
+          "match": "(?i)^(otcsapi/v1)/?(.*|$)",
+          "replace": "http://host:port/otcs/cs.exe/api/v1/$2",
+          "sort": 0,
+          "continue": false
+        }
+      ],
+      "outgoingRules": [],
+      "enabled": false,
+      "sort": 9,
+      "enableOAuth": true
+    }
+  ]
+}

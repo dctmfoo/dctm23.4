@@ -1,0 +1,76 @@
+{{ if .Values.adminURLS.enable }}
+{{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+apiVersion: networking.k8s.io/v1
+{{ else }}
+apiVersion: extensions/v1beta1
+{{ end }}
+kind: Ingress
+metadata:
+  name: {{ .Values.adminURLS.ingressPrefix }}-ingress
+  annotations:
+{{- if not (.Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress") }}
+{{- if .Values.adminURLS.ingress.class }}
+    kubernetes.io/ingress.class: {{ .Values.adminURLS.ingress.class }}
+{{- end }}
+{{- end }}
+{{- range $key, $value := .Values.adminURLS.ingress.annotations }}
+    {{ $key }}: {{ $value | squote }}
+{{- end }}
+spec:
+{{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+  ingressClassName: {{ $.Values.adminURLS.ingress.class }}
+{{- end }}
+  {{- if .Values.adminURLS.tls.enable }}
+  tls:
+  - hosts:
+    - {{ .Values.adminURLS.ingress.host }}.{{ .Values.adminURLS.ingress.clusterDomainName }}    
+    secretName: {{ .Values.adminURLS.tls.secretName }}    
+  {{- end}}
+  rules:
+  - host: {{ .Values.ingress.host }}.{{ .Values.ingress.clusterDomainName }}
+    http:
+      paths:    
+    {{- if .Values.adminURLS.daService.enable }}
+    {{ if eq .Values.platform "aws" }}
+      - path: /da*
+    {{ else }}
+      - path: /da
+    {{ end }}
+    {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: {{ .Values.adminURLS.daService.serviceName }}
+            port:
+              number: {{ .Values.adminURLS.daService.servicePort }}
+    {{- else }}
+        backend:
+          serviceName: {{ .Values.adminURLS.daService.serviceName }}
+          servicePort: {{ .Values.adminURLS.daService.servicePort }}
+    {{- end }}    
+    {{- end }}            
+    {{- if .Values.adminURLS.indexagentService.enable }}
+    {{ if eq .Values.platform "aws" }}
+      - path: /IndexAgent*
+    {{ else }}
+      - path: /IndexAgent
+    {{ end }}
+    {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: {{ .Values.adminURLS.indexagentService.serviceName }}
+            port:
+              number: {{ .Values.adminURLS.indexagentService.servicePort }}
+    {{- else }}
+        backend:
+          serviceName: {{ .Values.adminURLS.indexagentService.serviceName }}
+          servicePort: {{ .Values.adminURLS.indexagentService.servicePort }}
+    {{- end }}   
+    {{- end }}
+    {{- if .Values.adminURLs.configureHost }}    
+    {{- if eq ( .Values.adminURLS.ingress.host | toString | regexFind "\\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}\\b") ("" | toString) }}
+    host: {{ .Values.adminURLS.ingress.host }}.{{ .Values.adminURLS.ingress.clusterDomainName }}
+    {{- end }}
+    {{- end }}
+{{ end }}

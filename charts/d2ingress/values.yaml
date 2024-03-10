@@ -1,0 +1,44 @@
+# Default values for d2config.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+ingress:
+  class: nginx
+  annotations:
+    # nginx.ingress.kubernetes.io/affinity: "cookie"
+    # nginx.ingress.kubernetes.io/session-cookie-hash: "sha1"
+    # nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    # nginx.ingress.kubernetes.io/proxy-connect-timeout: "6000"
+    # nginx.ingress.kubernetes.io/proxy-send-timeout: "6000"
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "6000"
+  hostShortName: d2-ingress
+  hostDomainName: d2.cfcr-lab.bp-paas.otxlab.net
+
+# List of valid values are CFCR, Azure, AWS, GCP
+cloudPlatform: CFCR
+
+tls:
+  enable: false
+  secretName: tls-secret-name
+
+d2configservice:
+    enable: true
+    path: D2-Config
+d2classicservice:
+    enable: true
+    path: D2
+d2smartviewservice:
+    enable: true
+    path: D2-Smartview
+d2restservice:
+    enable: true
+    path: d2-rest
+
+dctmreportsd2service:
+    enable: false
+#extraPaths is used to define additional ingress resources in d2webappscustominstaller section in d2/values.yaml
+#extraPaths:
+#      - backend:
+#          serviceName: {{ .Values.d2webappName }}
+#          servicePort: 8080        
+#        path: /CustomApp1

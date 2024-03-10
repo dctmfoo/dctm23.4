@@ -1,0 +1,11 @@
+global:
+## serviceName defines the name of the Kubernetes service for OTDS:
+  otdsUseReleaseName: false
+  otdsServiceName: otds
+
+  ingressClass: nginx
+
+# parent chart looks at the vablue to determine whether to add otds rule for ingress
+ingress:
+  enabled: true
+

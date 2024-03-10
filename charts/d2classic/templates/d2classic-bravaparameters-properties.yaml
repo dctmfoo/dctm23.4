@@ -1,0 +1,566 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2classic-bravaparameters-properties
+  {{- template "configMap.labels" . }}
+data:
+  brava_parameters.properties: |-
+    # Brava! For D2 Configuration Parameters
+    
+    # Brava Server host Name.
+    # Usage of this parameter is being deprecated from D2 20.2 version onwards and will be removed in the later version
+    # BravaServerName should be configured while creating Brava! Viewer Widget in D2-Config.
+    # If Brava! Server Url is added here it will be preferred over the D2-Config one
+    ServerHostName=$PROTOCOL$://$APP_SERVER$:$APP_PORT$
+    
+    #D2 URL
+    # This is an optional parameter from 20.2.0 onwards, By default Brava! for D2 integration works with the application relative url.
+    # This should be only used when we want to overwrite the default relative URL in case of reverse proxy or as needed.
+    D2URL=$D2_PROTOCOL$://$D2_APP_SERVER$:$D2_APP_PORT$/D2
+    
+    #Documentum Server Group(s) to permit Brava! Configuration
+    BravaConfigurationGroups=dm_sysadmin,admingroup
+    
+    integrationVersion=INTEGRATION_VERSION
+    revision=29
+    #Note: brava_cab_version numbers are separated by commas ,
+    brava_cab_version=8,16,0,29
+    BravaClientXResourceVersion=8.16.0.29
+    
+    
+    #DefaultViewer options (html|activex) - controls client viewer type
+    DefaultViewer=html
+    
+    #3D Attribute Name.  If this parameter populated, the 3d_attribute_value must have values
+    3d_attribute_name=
+    #3D Attribute Value.  If this parameter populated, the 3d_attribute_name must have values
+    3d_attribute_value=
+    #3D format name. If multiple formats enter delimited by comma (ie. acad,dwg)
+    3d_format_name=
+    #3D type name. If multiple types enter delimited by comma (ie. your3Dtype0,your3Dtype1)
+    3d_type_name=
+    
+    #Active Control Width.  Must be in Percent
+    ActiveXControlWidth=100%
+    #Active Control Height.  Must be in Percent
+    ActiveXControlHeight=100%
+    #HTML Viewer Width.  Must be in Percent
+    HtmlViewerWidth=100%
+    #HTML Viewer Height.  Must be in Percent
+    HtmlViewerHeight=100%
+    
+    # Client Logging
+    #Valid string values are as follows:
+    #"0" - ALL
+    #"1" - DEBUG
+    #"2" - INFO
+    #"3" - WARN
+    #"4" -ERROR
+    #"5" -FATAL
+    ClientLogging=4
+    
+    ClientLogFile=%USERPROFILE%//Application Data//BravaD2//Logs//ClientLog.txt
+    ClientLogFileLength=10000000
+    
+    AuditBravaView=TRUE
+    AutoNameMarkup=FALSE
+    BannerFontSize=
+    WatermarkBannerFontName=
+    WatermarkBannerFontStyle=
+    UseACSIfAvailable=FALSE
+    #BOCS
+    UseBOCSIfAvailable=FALSE
+    #BOCS Network location Id
+    bocs.network.location.id=
+    
+    
+    WatermarkFolders=FALSE
+    WatermarkFolderName=
+    
+    
+    DefaultBackgroundColor=
+    DefaultTextMarkupFont=
+    EnableBackground=TRUE
+    EnableCopyText=TRUE
+    EnableLayers=TRUE
+    EnableMagnifier=TRUE
+    EnableMarkupColorPalette=TRUE
+    EnableMeasurement=TRUE
+    MeasurementSettings=
+    PrintMeasurementSystem=
+    EnableMirror=TRUE
+    EnableMono=TRUE
+    
+    # EnablePrinting  can be overridden with the below printing controls
+    EnablePrinting=TRUE
+    disable_printing_for_these_formats=
+    EnableRotate=TRUE
+    EnableSaveView=TRUE
+    EnableSaveViewAsJPG=TRUE
+    
+    
+    EnableZoomWindow=TRUE
+    EnableThreadedXdlLoad=TRUE
+    HyperlinkLaunch=
+    MarkupColor=
+    SaveViewQuality=
+    SearchTextAtStartup=
+    TimeZone=
+    securityoptionsfromserver=FALSE
+    PreLoadMarkupName=
+    PreloadReadOnlyMarkupNames=
+    EnableCopyMarkupToAllPages=FALSE
+    EnableMarkup=TRUE
+    EnableSingleEditableMarkup=FALSE
+    
+    
+    #EnableConvertOnClientOfficeFormats requires additional purchase
+    
+    EnableConvertOnClientOfficeFormats=FALSE
+    EnableConvertOnClientCADFormats=FALSE
+    EnableConvertOnClientImageFormats=TRUE
+    ClientLoadedMaxFileSize=2048
+    ConvertOnClientOFFICEFormats=pptx,docx,xlsx,cdr,dbf,doc,drw,fax,flw,fmt,fwk,htm,html,img,mpp,msg,pcd,pct,pic,pict,pps,ppt,prs,prz,rnd,rtf,sam,shw,vsd,vw,wb1,wb2,wdb,wk1,wk3,wp,wp5,wp6,wpd,wpf,wpg,wq1,wri,ws,xbm,xls
+    ConvertOnClientCADFormats=906,slddrw,cgm,prt,cit,dwf,dgn,igs,dwg,dxf
+    ConvertOnClientImageFormats=txt,tif,pdf,bmp,png,gif,jpg,csf
+    #Checkview
+    AutoloadCheckview=
+    EnableCheckviewPanel=TRUE
+    #panels display available in task pane on startup. Valid values  are:
+    #0= Last Pane
+    #1= No Panel
+    #2= Thumbnail  Panel
+    #3= Bookmark Panel
+    #4= Changemarks Panel
+    #5= Verify  Panel
+    #6= Takeoff Panel
+    #"Last" displays the panel that was open when the last  Brava
+    #session ended, and "None" starts a Brava session with  the
+    #Task Pane closed.
+    PanelToDisplay=1
+    
+    
+    
+    EnableThumbnailPanel=TRUE
+    EnableChangeMarkPanel=TRUE
+    EnableBookmarkPanel=TRUE
+    EnableRedactVerifyPanel=TRUE
+    EnableTakeoffPanel=FALSE
+    EnableDisplayPanelBar=
+    AutoloadChangemarkPanel=
+    
+    #rendition viewing related 
+    UsePdfRendition=FALSE
+    PDF_Rendition_Control_For_Groups=
+    PDF_Rendition_Control_For_Users=
+    disable_These_Groups_For_Viewing_PDF_Rendition=
+    disable_These_Users_For_Viewing_PDF_Rendition=
+    
+    EnableThumbnailsResize=TRUE
+    #Brava Compare Modes
+     #Determines the display mode in Brava Viewer for files being compared. Possible values for this parameter are:
+     #OVERLAY DIFFERENCES
+     #OVERLAY
+     #SIDE-BY-SIDE
+     #DELETIONS
+     #ADDITIONS
+     #UNCHANGED
+     #OPEN FILE
+     #COMPARE FILE
+     #TEXT COMPARE
+    CompareViewmode=Side-By-Side
+    
+    PDFExportOutputChangemarkInfo=FALSE
+    
+    #Dynamic Stamp control
+    HideStampDialogOnPlacement=FALSE
+    RefreshStampOnCancel=TRUE
+    
+    ShowExitButton=FALSE
+    EnableEmailDocumentLink=FALSE
+    EnableMarkupSelectTool=TRUE
+    EnableMarkupArrowTool=TRUE
+    EnableMarkupTextTool=TRUE
+    EnableMarkupChangemarkTool=TRUE
+    EnableMarkupCloudGroupTool=TRUE
+    EnableMarkupSketchGroupTool=TRUE
+    EnableMarkupLinearGroupTool=TRUE
+    EnableMarkupShapeGroupTool=TRUE
+    EnableMarkupBlockoutTool=TRUE
+    EnableMarkupabcGroupTool=TRUE
+    EnableMarkupHyperLinkTool=TRUE
+    EnableMarkupRasterTool=TRUE
+    EnableMarkupClose=TRUE
+    EnableMarkupCloseForReview=TRUE
+    
+    EnableMarkupConsolidate=FALSE
+    EnableMarkupChangeOwner=FALSE
+    EnableConsolidateIfMarkupOpenedForEdit=FALSE
+    TakeOwnershipOnMarkupConsolidation=FALSE
+    EnableMarkupStampTool=TRUE
+    CapitalizeDbupdateLabel=FALSE
+    
+    UIEditRedlineText=FALSE
+    AutoLoadChangemark=
+    CustomTextHeights=
+    MarkupBlockoutColor=
+    MarkupTextBackgroundColor=
+    
+    #bookmarking control
+    
+    EnableExternalBookmarks=FALSE
+    DbupdatestringNotRetrieved=Hide
+    
+    bookmarktitles1=Authority|Temporary Authority
+    bookmarktitles2=Authority|Power of Attorney
+    bookmarktitles3=Home Loan Control Documents|Title Search
+    
+    # Annotation options for Documentum
+    
+    # Enable markup save 'private' checkbox
+    EnablePrivate=TRUE
+    # Enable markup save 'keep with version' checkbox
+    EnableVersion=TRUE
+    # Enable private to be  set
+    EnableDefaultPrivate=FALSE
+    # Enable version to be  set
+    EnableDefaultVersion=FALSE
+    #Custom parameter to change UI of markup save dialog
+    #Changes the markup name label to "Enter a description"
+    #Also removes the private and version checkboxes
+    MarkupSaveDescription=FALSE
+    
+    
+    # IGC CSF Document Options
+    EnableCSFPublish=TRUE
+    # Turn on Save CSF to LocalFilesystem
+    EnableSaveCSFFile=TRUE
+    # Turn on Save CSF to Email
+    EnableSaveCSFEmail=TRUE
+    # Turn on Save CSF to Documentum as Rendition to Current
+    EnableSaveCSFRendition=TRUE
+    # Turn on Save CSF to Documentum as new Doc
+    EnableSaveCSFNewDocFile=TRUE
+    # Turn on Save CSF to Documentum as Current Doc New Version
+    EnableSaveAsMajVersionCSF=TRUE
+    # Turn on Save CSF as Same Version
+    EnableSaveAsSameVersionCSF=FALSE
+    # Turn on Save CSF as Minor Version
+    EnableSaveAsMinorVersionCSF=TRUE
+    # Doesn't allow the user to enter a name if above is turned on
+    AutoNameCSFImport=FALSE
+    # Possible values File,Email,Rendition,NewDocFile,MajorVersion,MinorVersion,SameVersion
+    DefaultCSFPublishOption=
+    
+    # IGC PDF out Document Options
+    EnablePDFPublish=TRUE
+    # Turn on Save PDF to LocalFilesystem
+    EnableSavePDFFile=TRUE
+    # Turn on Save PDF to Email
+    EnableSavePDFEmail=TRUE
+    # Turn on Save PDF to Documentum as Rendition to Current
+    EnableSavePDFRendition=TRUE
+    # Turn on Save PDF to Documentum as new Doc
+    EnableSavePDFNewDocFile=TRUE
+    # Turn on Save PDF to Documentum as Current Doc New Version
+    EnableSaveAsMajVersionPDF=TRUE
+    # Turn on Save PDF as Same Version
+    EnableSaveAsSameVersionPDF=FALSE
+    # Turn on Save PDF as Minor Version
+    EnableSaveAsMinorVersionPDF=TRUE
+    # Doesn't allow the user to enter a name if above is turned on
+    AutoNamePDFImport=FALSE
+    # Possible values File,Email,Rendition,NewDocFile,MajorVersion,MinorVersion,SameVersion
+    DefaultPDFPublishOption=
+    # comment,Burnin,Choice. Default comment
+    PDFMarkupType=
+    
+    # IGC TIF out Document Options
+    EnableTIFFPublish=TRUE
+    # Turn on Save TIFF to LocalFilesystem
+    EnableSaveTIFFile=TRUE
+    # Turn on Save TIF to Email
+    EnableSaveTIFEmail=TRUE
+    # Turn on Save TIF to Documentum as Rendition to Current
+    EnableSaveTIFRendition=TRUE
+    # Turn on Save TIF to Documentum as new Doc
+    EnableSaveTIFNewDocFile=TRUE
+    # Turn on Save TIF to Documentum as Current Doc New Version
+    EnableSaveAsMajVersionTIF=TRUE
+    # Turn on Save TIF as Same Version
+    EnableSaveAsSameVersionTIF=FALSE
+    # Turn on Save TIF as Minor Version
+    EnableSaveAsMinorVersionTIF=TRUE
+    # Doesn't allow the user to enter a name if above is turned on
+    AutoNameTIFImport=FALSE
+    # Possible values File,Email,Rendition,NewDocFile,MajorVersion,MinorVersion,SameVersion
+    DefaultTIFPublishOption=
+    
+    # Enable the use of adding the file extension to csf,tif,pdf output from Brava
+    enableFileExtensions=FALSE
+    #
+    #Markup Permissions
+    #
+    #Default Markup Permissions for users with READ access
+    #
+    
+    EnableMarkupReview=TRUE
+    
+    
+    #The Above Permissions are overwritten depending on the users permissions below
+    #These can be modified to whatever fits your needs
+    #
+    # RELATE permission grants you:
+    RELATE_EnableMarkupSaveAs=TRUE
+    RELATE_EnableMarkupNew=TRUE
+    RELATE_EnableMarkupReview=TRUE
+    RELATE_EnableMarkupSave=TRUE
+    RELATE_EnableMarkupOpen=FALSE
+    
+    # Higher then RELATE grants you:
+    HRELATE_EnableMarkupSaveAs=TRUE
+    HRELATE_EnableMarkupNew=TRUE
+    HRELATE_EnableMarkupReview=TRUE
+    HRELATE_EnableMarkupSave=TRUE
+    HRELATE_EnableMarkupOpen=FALSE
+    #
+    #PRINTING CONTROLS - ALLOWS THE DISABLING OF PRINTING FOR SPECIFIC USERS/GROUPS
+    #
+    Printing_Control_For_Groups=FALSE
+    Printing_Control_For_Users=FALSE
+    
+    # List of disabled printing groups separated by a ,
+    disable_These_Groups_For_Printing=
+    # List of disabled printing users separated by a ,
+    disable_These_Users_For_Printing=
+    #Allow these groups to control Stamp templates
+    Allow_These_Groups_To_Control_Stamp_Templates=
+    #Allow these users to control Stamp templates
+    Allow_These_Users_To_Control_Stamp_Templates=
+    
+    #These groups will have redacted view of document based on script configured
+    Add_These_Groups_To_Redacted_Rendition_View=
+    #These users will have redacted view of document based on script configured
+    Add_These_Users_To_Redacted_Rendition_View=
+    #Redaction script files path in D2 deployment directory on application server
+    Html_Redaction_Scripts_Path=/igc/config
+    #
+    #LICENSING CONTROLS
+    # users/group lists by comma-separated values (i.e. group1,group2,group3)
+    Licensing_Control_For_CAD_Groups=FALSE
+    license_These_Groups_For_CAD=
+    
+    Licensing_Control_For_CAD_Users=FALSE
+    license_These_Users_For_CAD=
+    
+    
+    Licensing_Control_For_Documents_Groups=FALSE
+    license_These_Groups_For_Documents=
+    
+    Licensing_Control_For_Documents_Users=FALSE
+    license_These_Users_For_Documents=
+    
+    RedactionScriptsDirectory=%USERPROFILE%\\OpenText\\x8_11\A69654D5-7CCD-4757-872F-523AECCD144D\\RedactionScripts
+    MarkupRasterDirectory=%USERPROFILE%\\OpenText\\x8_11\A69654D5-7CCD-4757-872F-523AECCD144D\\StampImages
+    UserSettingsPath=%USERPROFILE%\\OpenText\\x8_11\A69654D5-7CCD-4757-872F-523AECCD144D\\
+    
+    
+    #if you change the theme you need to update the version!
+    #see admin guide for possible values. Theme should be entered without
+    # the .xml extension, see example below.
+    theme=D2
+    theme_version=1.0
+    
+    
+    #Client bin versions
+    #changing these versions may result in bin
+    #files being re-downloaded to the clients machine
+    download.version.LT2DL=1.5.18.51
+    download.version.CADLoaders=1.0.0.5
+    download.version.OfficeLoaders=1.5.1.3
+    download.version.myrdrv=5.0.0.1
+    download.version.DLConverter=5.17.0.24
+    download.version.Pdf2DL=2.5.52.47
+    download.version.StampImages=2.0.0.5
+    download.version.JPG2DL=1.5.12.4
+    download.version.Redactionscripts=2.0.0.5
+    download.version.changemarkupconfig=2.0.0.2
+    download.version.ReasonCode=2.0.0.2
+    
+    #Additional Parameters
+    MarkupTextBackgroundType=
+    DateFormat=
+    DefaultMono=
+    AnimationSetting=
+    EnableAnimationSetting=
+    EnableBannerEdit=
+    EnableCopyRegion=
+    EnhancedDisplaySetting=
+    EnablePageChangeOnScroll=
+    EnableRightMouseButtonMenu=
+    EnableUserPlaceKeepers=
+    NotificationListener=
+    NotificationListenerCustomParams=
+    PersistUserSettings=
+    WatermarkTileSize=
+    EnableMarkupFontAutosize=
+    EnableMarkupBlockoutCarverTool=
+    MarkupToolbarType=
+    
+    # Supported Brava Video Format
+    SupportedVideoFormats=F4V,MOV,MP4,264,m4v,mpeg-4v
+    #Used to specify a proxy server for all integration calls
+    #Example Value: name:localhost:8888
+    IntegrationHttpProxyServer=
+    
+    ActiveX.Target.New.Window=false
+    
+    
+    #************************************HTML Viewer Parameters BEGIN*******************************************************
+    #HTML Viewer in SimpleMode
+    html.showInSimpleMode=FALSE
+    #HTML Viewer in DesktopMode
+    html.showInDesktopMode=FALSE
+    #HTML Viewer Show Theme in Light Color
+    html.showThemeInLightColor=FALSE
+    
+    html.viewer.setSinglePageLayout=FALSE
+    
+    html.target.new.window=FALSE
+    
+    html.viewer.backgroundcolor=
+    html.viewer.BOOKMARK_CONTROLS=TRUE
+    html.viewer.THUMBNAIL_CONTROLS=TRUE
+    
+    #HTML Viewer Comparison Features
+    html.textCompare.formats=pdf,doc,docx,rtf,txt
+    
+    #HTML Markup feature
+    html.markupsFeature.EnableEdit=TRUE
+    html.markupsFeature.EnableReview=TRUE
+    html.markupsFeature.EnableCloseReview=TRUE
+    html.markupsFeature.EnableChangemarkReplies=TRUE
+    html.markupsFeature.EnableMarkupOverwrite=TRUE
+    html.markupsFeature.EnableVersion=TRUE
+    html.markupsFeature.EnableDefaultVersion=FALSE
+    html.markupsFeature.EnablePrivate=TRUE
+    html.markupsFeature.EnableDefaultPrivate=FALSE
+    html.markupsFeature.EnableCommonOwnership=
+    html.markupsFeature.SYMBOL_CONFIG_URI=
+    html.markupsFeature.EnableMarkupStampTool=TRUE
+    html.markupsFeature.MarkupSaveDescription=FALSE
+    #Consolidate all existing markups before enabling this flag. After enabling this flag, only the
+    #latest markup file will have all the changes (if exists otherwise a new file will be created)
+    html.markupsFeature.EnableSingleEditableMarkup=FALSE
+    
+    #HTML Markup Ownership feature
+    html.enable.Markup.changeOwner=
+    html.enable.Markup.TakeOwnershipOnConsolidate=
+    
+    #HTML Markup Menu feature
+    html.markupMenu.EnableNew=TRUE
+    html.markupMenu.EnableOpen=TRUE
+    html.markupMenu.EnableSave=TRUE
+    html.markupMenu.EnableSaveAs=TRUE
+    html.markupMenu.EnableClose=TRUE
+    html.markupMenu.EnableConsolidate=TRUE
+    
+    #HTML Printing Feature
+    html.printFeature.Enabled=TRUE
+    html.printFeature.default.Grayscale=
+    
+    #HTML Publish/Export Feature
+    html.publishFeature.Enabled=TRUE
+    html.publishFeature.EnablePDF=TRUE
+    html.publishFeature.EnableTIF=TRUE
+    html.publishFeature.EnableUserControls=FALSE
+    html.publishFeature.ColorMode=
+    html.publishFeature.OverrideColorModeUserSetting=FALSE
+    
+    #Decides colorMode to be used which publishing on docmerge viewer.
+    #Possible values are: {fullcolor, grayscale, monochrome}
+    docmerge.publishFeature.colorMode=
+    
+    #List of Users/Groups allowed to publish locally and to the Documentum Server in the HTML Viewer
+    html.publish.local.users=
+    html.publish.local.groups=
+    html.publish.vault.users=
+    html.publish.vault.groups=
+    
+    #HTML Redaction Feature
+    html.max.cache.size.file.cached=50
+    html.max.cache.size.file.not.cached=8
+    html.number.preloaded.pages.file.not.cached=3
+    
+    #HTML view Features
+    html.viewmodeFeature.InitialZoom=
+    html.viewmodeFeature.default.Grayscale=
+    html.viewmodeFeature.default.BlackAndWhite=
+    html.rendition.thumbnail.size=100
+    html.rendition.thumbnail.dimension=width
+    html.rendition.view.size=1440
+    html.rendition.view.dimension=width
+    html.rendition.max.raster.dimension=3500
+    
+    #HTML view search default options
+    html.searchFeature.DefaultTermHits=
+    html.searchFeature.IgnoreTermHitScale=
+    html.searchFeature.MatchCase=
+    html.searchFeature.ShowDialog=
+    html.searchFeature.WholeWord=
+    
+    #Below parameter has been added to enable Markup Consolidate and ChangeOwnership for user's only having higher permissions than provided value
+    #Accepts values 3 or 4 or 5 or 6 for permissions DF_PERMIT_READ,DF_PERMIT_RELATE,DF_PERMIT_VERSION,DF_PERMIT_WRITE respectively
+    # e.g. html.markup.enable.consolidate.changeownership.with.higher.permission.than=4
+    html.markup.enable.consolidate.changeownership.with.permission.higher.than=
+    
+    #When enabled we use document objectId as cacheFileName in displayListCache else document name is used as cacheFilename
+    #By default, it is false and use document name as cacheFilename
+    useDocumentIdAsCacheFilename=
+    
+    #Enable/Disable copy text on HTML VIewer
+    html.enable.copy.text=true
+    
+    #Enable Zoom shortcut key using keyboard CTRL with +/-
+    #If true, native selection on viewer will get disabled
+    html.enable.zoom.shortcut=false
+    
+    #Enable/Disable previous version publishing as a new version using Brava! HTML/Activex Viewer
+    enable.previous.version.publishing.as.new.version=false
+    
+    #**********Timeout Params*******************************************
+    #time-out value, in minutes, to use for Internet connection requests 
+    integrationhttptimeoutconnect=1
+    #Indicates the time-out value, in minutes, to receive a response to a request.  
+    integrationhttptimeoutreceive=5
+    #Indicates the time-out value, in minutes, to send a request.
+    integrationhttptimeoutsend=5
+    
+    
+    #*******************************************Excluded format from ActiveX and Html Viewer 
+    activex.html.excluded.formats=avi,mpg,quicktime,java,win32shrlib,unknown,wmv,jar,wav,jsp,js,class,bin,exe,bat,tar,iso,mp3,
+    
+    #*******************************************Excluded format for brava! compare
+    brava.compare.unsupported.formats=F4V,MOV,MP4,264,m4v,mpeg-4v
+    
+    #**************Validation for various input attributes
+    Validator.Extended.Common=^[a-zA-Z0-9\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF \\-&*()_+|~=`{}\\[\\]:;'<>?,.]{0,900}$
+    Validator.Basic.AlphaNum=^[a-zA-Z0-9\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF \\-_|~:,.]{0,900}$
+    Validator.User.AlphaNum=^[a-zA-Z0-9\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF @\\-&*()_+|~=`{}\\[\\]:;'<>?,.]{0,900}$
+    Validator.URL.AlphaNum=^[a-zA-Z0-9\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF @\\-&/_+|=:;?.]{0,900}$
+    
+    #*********** Default Markup Tool ******************#
+    #Use default markup from the following list to set default in the dropdown. Default it will be set to Annotations
+    #List [Annotations,Changemarks,Drawings,Lines,Redactions,Stamps,Text Editing]
+    #default_markup_tool=Annotations
+    
+    html.markup.default.font.size=0.3
+{{- $configFileOverridesFile := printf "%s/%s" .Values.configFileOverrideFilesDir "brava_parameters.properties" }}
+{{- $configFileMsg0 := printf "\n\n##### Begin lines added from %s\n" $configFileOverridesFile }}
+{{- $configFileMsg1 := printf "##### End lines added from %s" $configFileOverridesFile }}
+{{- $configFileLinesToAppend := .Files.Get $configFileOverridesFile }}
+{{- if $configFileLinesToAppend }}
+{{ $configFileMsg0 | indent 4 }}
+{{ $configFileLinesToAppend | indent 4 }}
+{{ $configFileMsg1 | indent 4 }}
+{{- end }}

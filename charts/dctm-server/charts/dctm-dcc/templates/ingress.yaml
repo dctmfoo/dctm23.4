@@ -1,0 +1,70 @@
+{{- if eq .Values.ingress.enableDCCIngress true }}
+## Consul ingress ##
+#Ingress Object
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.prefix }}-ingress
+  namespace: {{ .Values.namespace }}
+  {{- with .Values.ingress.annotations }}
+annotations:
+  {{ toYaml . | indent 4 }}
+  {{- end }}
+spec:
+  {{- if hasKey .Values.ingress "tls" }}
+  {{- if eq .Values.ingress.tls.enabled true }}
+tls:
+  - hosts:
+      - {{ .Values.ingress.domain }}
+    secretName: {{ .Values.ingress.tls.secretName }}
+  {{- end}}
+  {{- end}}
+rules:
+  - http:
+      paths:
+        - backend:
+            service:
+              name: {{ .Values.prefix }}-{{ .Values.consul.prefix }}-service
+              port:
+                number: {{ .Values.consul.service.servicePort }}
+          path: /{{ .Values.consul.ingress.uipath }}
+          pathType: ImplementationSpecific
+        - backend:
+            service:
+              name: {{ .Values.prefix }}-{{ .Values.consul.prefix }}-service
+              port:
+                number: {{ .Values.consul.service.servicePort }}
+          path: /{{ .Values.consul.ingress.backendpath }}
+          pathType: ImplementationSpecific
+  {{- if .Values.consul.ingress.host }}
+host: {{ .Values.consul.ingress.host }}
+  {{ end }}
+  {{- if eq .Values.syncagent.enabled true }}
+- http:
+    paths:
+      - backend:
+          service:
+            name: {{ .Values.prefix }}-{{ .Values.syncagent.prefix }}-service
+            port:
+              number: {{ .Values.syncagent.service.servicePort }}
+        path: /{{ .Values.syncagent.ingress.path }}
+        pathType: ImplementationSpecific
+  {{- if .Values.syncagent.ingress.host }}
+host: {{ .Values.syncagent.ingress.host }}
+  {{ end }}
+  {{ end }}
+  {{- if eq .Values.syncnshareManual.enabled true }}
+- http:
+    paths:
+      - backend:
+          service:
+            name: {{ .Values.prefix }}-{{ .Values.syncnshareManual.prefix }}-service
+            port:
+              number: {{ .Values.syncnshareManual.service.servicePort }}
+        path: /{{ .Values.syncnshareManual.ingress.path }}
+        pathType: ImplementationSpecific
+  {{- if .Values.syncnshareManual.ingress.host }}
+host: {{ .Values.syncnshareManual.ingress.host }}
+  {{ end }}
+  {{ end }}
+  {{ end }}

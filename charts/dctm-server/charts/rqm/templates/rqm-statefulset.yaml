@@ -1,0 +1,232 @@
+#RQM StatefulSet
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+   name: {{ .Values.serviceName }}
+spec:
+  {{- if eq .Values.containers.rqm.recordsaws true}}
+    runAsUser: 1001
+    runAsGroup: 2001
+    fsGroup: 2001  
+  {{ end }}        
+  serviceName: {{ .Values.serviceName }}
+  replicas: {{ .Values.containers.rqm.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.serviceName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.serviceName }}
+    spec:
+      securityContext:
+      serviceAccountName: {{ .Values.serviceAccount.serviceAccountName }}
+      {{- if .Values.images.pullSecrets }}
+      imagePullSecrets: {{ .Values.images.pullSecrets }}
+      {{ end }}
+      containers:
+      {{- if eq .Values.images.graylog.enable true }} 
+      - name: {{ .Values.images.graylog.name }}
+        image: {{.Values.images.graylog.image}}
+        imagePullPolicy: {{ .Values.images.graylog.pullPolicy }}
+        env:
+        - name: GRAYLOG_SERVER
+          value: {{ quote .Values.images.graylog.server }}
+        - name: GRAYLOG_PORT
+          value: {{ quote .Values.images.graylog.port }}
+        - name: TAGS
+          value: "[\"linux\",\"apache\"]"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NAMESPACE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        volumeMounts:
+          - name: shared-data
+            mountPath: /pod-data
+      {{ end }}
+      - name: {{ .Values.serviceName }}
+        image: {{ .Values.images.repository }}/{{ .Values.images.rqm.name }}:{{ .Values.images.rqm.tag }}
+        imagePullPolicy: {{ .Values.images.pullPolicy }}
+        readinessProbe:
+          exec: {
+            command: [
+              sh,
+                -c,
+               ./check_cs_availability.sh
+            ]
+          }
+          initialDelaySeconds: {{ .Values.containers.rqm.probing.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.containers.rqm.probing.readinessProbe.periodSeconds }}
+        livenessProbe:
+          exec: {
+            command: [
+              sh,
+                -c,
+               ./livenessProbe_check.sh
+            ]
+          } 
+          initialDelaySeconds: {{ .Values.containers.rqm.probing.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.containers.rqm.probing.livenessProbe.periodSeconds }}
+        lifecycle:
+            preStop:
+                exec: {
+                  command: [
+                    sh,
+                      -c,
+                    ./RQMUnInstaller.sh
+                  ]
+                 }
+        env:
+        - name: SINGLEHELM
+          value: {{ quote .Values.containers.rqm.rqmSingleHelm  }}
+        - name: KUBERNETES
+          value: "true"
+        - name: DFC_GLOBALREGISTRY_PASSWORD
+          valueFrom:
+            secretKeyRef:              
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: globalRegistryPassword               
+        - name: RQM_INSTALLATION_DIR
+          value: {{ quote .Values.containers.rqm.rqmInstallationDir }}        
+        - name: INSTALL_FILES
+          value: {{ quote .Values.containers.rqm.installFiles  }}
+        - name: DOCBASE_NAME
+          value: {{ quote .Values.containers.rqm.docbaseName  }}
+        - name: INSTALL_OWNER_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: installOwner
+        - name: INSTALL_OWNER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: installOwnerPassword        
+        - name: RQM_DOCBASE_USER
+          value: {{ quote .Values.containers.rqm.rqmDocbaseUser  }}        
+        - name: RQM_SYS_ADMIN_NAME
+          value: {{ quote .Values.containers.rqm.rqmSysAdminName  }}
+        - name: RQM_SYS_ADMIN_PASS
+          value: {{ quote .Values.containers.rqm.rqmSysAdminPass  }}
+        - name: GLOBAL_REGISTRY_REPOSITORY
+          value: {{ quote .Values.containers.rqm.globalRegistryRepository  }}
+        - name: BOF_REGISTRY_USER
+          value: {{ quote .Values.containers.rqm.bofRegistryUser  }}
+        - name: DOCBROKERS_COUNT
+          value: {{ .Values.docbroker.replicaCount | quote}}
+        - name: DOCBROKER_SERVICE_NAME
+          value: {{ .Values.userName  }}{{ .Values.docbroker.serviceName  }}
+        - name: DOCBROKER_CLUSTER_SPACE
+          value: {{ .Values.env.domain  }}
+        - name: DOCBROKER_PORT
+          value: {{ .Values.docbroker.port | quote }}   
+        - name: DOCBROKER_HOST
+          value: {{ .Values.docbroker.serviceName  }}   
+        - name: BOF_REGISTRY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: globalRegistryPassword         
+        - name: DFC_SSL_TRUSTSTORE
+          value: {{ quote .Values.containers.rqm.dfcSslTruststore  }}
+        - name: DFC_SSL_TRUSTSTORE_PASSWORD
+          value: {{ quote .Values.containers.rqm.dfcSslTruststorePassword  }}
+        - name: DFC_SSL_USE_EXISTING_TRUSTSTORE
+          value: {{ quote .Values.containers.rqm.dfcSslUseExistingTruststore  }}        
+        - name: RQM_ADMIN_PORT
+          value: {{ quote .Values.containers.rqm.rqmadminport  }}
+        - name: RQM_JETTY_PORT
+          value: {{ quote .Values.containers.rqm.rqmjettyport  }}
+        - name: ALLOW_TRUSTED_LOGIN
+          value: {{ quote .Values.cs.allowTrustedLogin }}
+        {{- if eq .Values.certificate.useCertificate true }}        
+        - name: USE_CERTIFICATE
+          value: {{ quote .Values.certificate.useCertificate }}
+        - name: TRUST_STORE_PASSWORD        
+          valueFrom: 
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: dbrCertpassword
+        {{ end }}  
+        # newrelic env parameters
+        {{- if eq .Values.userProvidedServices.newrelic.enable true }}                
+        - name: NEW_RELIC_AGENT_ENABLED
+          value: {{ quote .Values.userProvidedServices.newrelic.enable }}
+        - name: NEW_RELIC_APP_NAME
+          value: {{ quote .Values.userProvidedServices.newrelic.appName }}
+        - name: NEW_RELIC_LICENSE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{.Values.cs.csSecretConfigName}}
+              key: newrelicLicensekey
+        {{- if .Values.userProvidedServices.newrelic.proxyHost }}
+        - name: NEW_RELIC_PROXY_HOST
+          value: {{ quote .Values.userProvidedServices.newrelic.proxyHost }}
+        {{ end }}
+        {{- if .Values.userProvidedServices.newrelic.proxyPort }}
+        - name: NEW_RELIC_PROXY_PORT
+          value: {{ quote .Values.userProvidedServices.newrelic.proxyPort }}
+        {{ end }}
+        {{ if .Values.userProvidedServices.newrelic.proxyScheme }}
+        - name: NEW_RELIC_PROXY_SCHEME
+          value: {{ quote .Values.userProvidedServices.newrelic.proxyScheme }}
+        {{ end }}
+        {{ end }}        
+        volumeMounts: 
+        {{- if eq .Values.images.graylog.enable true }}       
+        - name: shared-data 
+          mountPath: {{ .Values.containers.rqm.rqmHomeDir }}/dctm/CTS/logs    
+          subPath: logs/rqm  
+        - name: shared-data
+          mountPath: {{ .Values.images.graylog.userhomedir }}/documentum/logs
+          subPath: logs/rqm
+        {{ end }}  
+        - mountPath: /opt/external-configurations
+          name: nfs-data
+          subPath: {{ .Values.statefulset }}
+        - mountPath: /opt/external-configurations/dfc.properties
+          name: dfc-config-map
+          subPath: dfc.properties
+        - name: custom-script-pvc
+          mountPath: /opt/custompvc          
+          subPath: {{ .Values.custom.PVCSubPath }}
+          {{- if eq .Values.certificate.useCertificate true }}
+        - name: {{ .Values.certificate.dbrDataPVCName }}
+          mountPath: /opt/dctm/certificate
+          subPath: certificate/{{ .Values.certificate.dbrDataPVCName }}
+        {{ end }}     
+        
+      volumes:
+      {{- if eq .Values.images.graylog.enable true }}
+      - name: shared-data
+        emptyDir: {} 
+      {{ end }}        
+      - name: dfc-config-map
+      {{- if eq .Values.cs.useCSDfcConfigMap true }}      
+        configMap:
+          name: {{ .Values.cs.configMapName }}
+      {{ else }}    
+        configMap:
+          name: rqm-dfcproperties-configmap
+      {{ end }}
+      - name: nfs-data
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistentVolumeClaim.pvcName }}  
+      {{- if eq .Values.certificate.useCertificate true }}
+      - name: {{ .Values.certificate.dbrDataPVCName }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.certificate.dbrServiceName }}-pvc
+      {{ end }}
+      - name: custom-script-pvc
+        persistentVolumeClaim:
+          claimName: {{ .Values.custom.scriptPVCname }}     
+      restartPolicy: Always

@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2classic-applicationcontext-xml
+  {{- template "configMap.labels" . }}
+data:
+  applicationContext.xml: |-
+    <?xml version="1.0" encoding="UTF-8"?>
+    
+    <beans xmlns="http://www.springframework.org/schema/beans" 
+    	xmlns:context="http://www.springframework.org/schema/context"
+    	xmlns:oxm="http://www.springframework.org/schema/oxm"
+    	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd 
+    		http://www.springframework.org/schema/oxm http://www.springframework.org/schema/oxm/spring-oxm-3.1.xsd
+    		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+    
+    
+        <bean id="messageFactory" class="org.springframework.ws.soap.axiom.AxiomSoapMessageFactory"/> 
+    					
+       	<bean id="webServiceTemplate" class="org.springframework.ws.client.core.WebServiceTemplate">
+       		<constructor-arg ref="messageFactory" />
+       		
+       		<property name="faultMessageResolver">
+       			<bean id="faultMessageResolver" class="com.emc.x3.server.resolver.D2fsExceptionResolver">
+       				<property name="unmarshaller" ref="jaxb2Marshaller" />
+       			</bean>
+       		</property>
+       		
+        	<!-- <property name="destinationProvider"> 
+    	    <bean id="destinationProvider" class="org.springframework.ws.client.support.destination.Wsdl11DestinationProvider"> 
+       		    	<property name="wsdl" value="http://localhost:8090/D2FS/ws/d2fs.wsdl"/>  
+    	    </bean>
+      		</property> -->
+        	
+       		<property name="defaultUri" value="http://localhost:8090/D2FS/ws" />
+        	<!-- <property name="defaultUri" value="http://c6b/d2fs/ws" />-->
+        	<property name="marshaller" ref="jaxb2Marshaller" />
+        	<property name="unmarshaller" ref="jaxb2Marshaller" />
+        	
+        	<!-- <property name="interceptors">
+    		   <list>-->
+    		    <!--<ref local="wss4jSecurityInterceptor"/>-->
+    		 	<!--<ref local="exceptionInterceptor"/>
+    		   </list>
+    		</property> -->
+    		
+        	<property name="messageSender">
+            	<bean id="commonsHttpMessageSender" class="org.springframework.ws.transport.http.HttpComponentsMessageSender">
+    				<!-- <constructor-arg ref="httpClient" /> -->
+    				<property name="connectionTimeout" value="15000"/>
+    
+            		<property name="readTimeout" value="60000"/>
+    				
+    				<!-- TO-DO: We need to add the max connections with new HttpComponentsMessageSender -->
+            		<!-- <property name="maxTotalConnections" value="20"/>
+    
+            		<property name="maxConnectionsPerHost">
+                		<props>
+                    		<prop key="*">20</prop>
+                		</props>
+            		</property> -->
+            	</bean>
+            </property>
+    	</bean>
+    
+    	<!-- <bean id="wss4jSecurityInterceptor" class="org.springframework.ws.soap.security.wss4j.Wss4jSecurityInterceptor">
+      		<property name="validationActions" value="Encrypt"/>
+      		<property name="securementActions" value="Encrypt"/>
+    	</bean> -->
+    	
+    	
+    	<oxm:jaxb2-marshaller id="jaxb2Marshaller" context-path="com.emc.d2fs.exceptions:com.emc.d2fs.services.acrobat_annotate_service:com.emc.d2fs.services.action_service:com.emc.d2fs.services.annotation_service:com.emc.d2fs.services.bravacsr_annotation_service:com.emc.d2fs.services.bravacsr_config_service:com.emc.d2fs.services.browser_service:com.emc.d2fs.services.centerstage_service:com.emc.d2fs.services.checkin_service:com.emc.d2fs.services.checkout_service:com.emc.d2fs.services.command_service:com.emc.d2fs.services.conditionaction_service:com.emc.d2fs.services.content_service:com.emc.d2fs.services.creation_service:com.emc.d2fs.services.d2_apply_config_service:com.emc.d2fs.services.d2_archive_service:com.emc.d2fs.services.d2_audit_service:com.emc.d2fs.services.d2_cache_service:com.emc.d2fs.services.d2_dictionary_service:com.emc.d2fs.services.d2_link_service:com.emc.d2fs.services.d2_linked_document_service:com.emc.d2fs.services.d2_massupdate_service:com.emc.d2fs.services.d2_method_service:com.emc.d2fs.services.d2_pdfrender_service:com.emc.d2fs.services.d2_relation_service:com.emc.d2fs.services.d2_taxonomy_service:com.emc.d2fs.services.d2_template_service:com.emc.d2fs.services.d2_validation_service:com.emc.d2fs.services.d2_vd_template_service:com.emc.d2fs.services.d2lifecycle_service:com.emc.d2fs.services.dctmlifecycle_service:com.emc.d2fs.services.delegation_service:com.emc.d2fs.services.destroy_service:com.emc.d2fs.services.details_service:com.emc.d2fs.services.dialog_service:com.emc.d2fs.services.distribution_service:com.emc.d2fs.services.download_service:com.emc.d2fs.services.export_service:com.emc.d2fs.services.favorites_service:com.emc.d2fs.services.hyperlink_service:com.emc.d2fs.services.locate_service:com.emc.d2fs.services.menu_service:com.emc.d2fs.services.move_service:com.emc.d2fs.services.preference_service:com.emc.d2fs.services.property_service:com.emc.d2fs.services.reference_service:com.emc.d2fs.services.rendition_service:com.emc.d2fs.services.repository_service:com.emc.d2fs.services.search_service:com.emc.d2fs.services.sendmail_service:com.emc.d2fs.services.subscriptions_service:com.emc.d2fs.services.thumbnails_service:com.emc.d2fs.services.vdcontent_service:com.emc.d2fs.services.vdconvert_service:com.emc.d2fs.services.vdsnapshot_service:com.emc.d2fs.services.workflow_service:com.emc.d2fs.services.workflowcontent_service:com.emc.d2fs.services.workflowpreview_service:com.emc.d2fs.services.x3config_service" />
+    </beans>

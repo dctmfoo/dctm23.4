@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: awg-trust-certs
+  labels:
+{{ include "appworks-gateway.labels" . | indent 4 }}
+    type: Opaque
+data:
+{{ (.Files.Glob "trustCertificates/*").AsSecrets | indent 2 }}

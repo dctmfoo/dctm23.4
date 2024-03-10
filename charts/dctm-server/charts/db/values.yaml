@@ -1,0 +1,66 @@
+# Default values for databse.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+###User Name/ID
+serviceName: <sname>db-pg
+
+### Docker Images ###  
+images:
+  repository : artifactory.otxlab.net/bpdockerhub
+  db :
+    name : cs/pg
+    tag : 15.2
+  pullPolicy : IfNotPresent
+  pullSecrets:
+
+### Database ###
+database:
+  replicaCount: 1
+  port: 5432
+  dbServicePort: 5432
+  
+### CS Secret ###
+secret:
+  name: cs-secret-config
+
+### Persistent Volume ###
+persistentVolume:
+  accessModes: ReadWriteOnce
+  size: 2Gi
+  storageClass: trident-nfs
+
+### ConfigMap metadata ###
+configMap:
+  configName: <sname>-alter
+  volumeName: <sname>-alter-volume
+  
+alterParam:
+  max_connections:
+  default_statistics_target:
+  maintenance_work_mem:
+  effective_cache_size:
+  wal_buffers:
+  work_mem:
+  
+rootsquash:
+  enable: false
+  ispg12orgreater: false
+  
+openshift:
+  enable: false
+  
+### resources ###
+resources:
+  limits:
+    cpu: 4000m
+    memory: 8Gi
+  requests:
+    cpu: 100m
+    memory: 400Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

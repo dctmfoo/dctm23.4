@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.serviceName }}-configmap
+data:
+  dfc.properties: |
+    dfc.data.dir={{ .Values.dfc.dataDir }}
+    dfc.security.keystore.file=${dfc.data.dir}/dfc.keystore
+    dfc.docbroker.host[0]={{ .Values.dfc.docbroker }}
+    dfc.docbroker.port[0]={{ .Values.dfc.port }}
+    dfc.session.secure_connect_default={{ .Values.dfc.connectionMode }}
+    dfc.crypto.repository={{ .Values.dfc.cryptoRepository }}
+    dfc.globalregistry.repository={{ .Values.dfc.globalRegistryRepository }}
+    dfc.globalregistry.username={{ .Values.dfc.globalRegistryUsername }}
+    dfc.globalregistry.password={{ .Values.dfc.globalRegistryPassword }}
+    {{- range .Values.dfc.additionalProperties }}
+    {{ . }}
+    {{- end }}

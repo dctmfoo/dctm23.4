@@ -1,0 +1,24 @@
+{{- if eq .Values.ingress.enable true }}
+#Ingress Object
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ .Values.ingress.name }}
+  namespace: {{ .Values.namespace }}
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "route"
+    nginx.ingress.kubernetes.io/session-cookie-hash: "sha1"
+    {{- if .Values.ingress.annotations }}
+    {{ toYaml .Values.ingress.annotations | indent 4 | trim }}
+    {{- end }}
+spec:
+  rules:  
+  - host: {{ .Values.ingress.ingressHostName }}.{{ .Values.ingress.clusterDomainName }}
+    http:
+      paths:
+      - backend:
+          serviceName: {{ .Values.service.name }}
+          servicePort: 8080
+        path: /
+{{- end }}

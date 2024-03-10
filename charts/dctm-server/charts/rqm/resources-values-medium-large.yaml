@@ -1,0 +1,9 @@
+rqm:
+  replicaCount: 1
+  resources:
+    limits:
+     cpu: 1200m
+     memory: 8Gi
+    requests:
+     cpu: 600m
+     memory: 4Gi

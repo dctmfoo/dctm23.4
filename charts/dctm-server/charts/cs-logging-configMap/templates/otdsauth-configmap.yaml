@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configMap.otdsauth_configMap_name }}  
+data:
+  log4j: |
+    rootLogger.level={{ .Values.otdsauth.log4j.rootLogLevel }}
+    property.logfolderpath=/opt/dctm/{{ .Values.jmsVersion }}/logs
+    monitorInterval=30
+    rootLogger.appenderRefs=F1
+    rootLogger.appenderRef.F1.ref=File
+    
+    #----------------------------OTDS_AUTH_TRACE -------------------------- 
+    appender.OTDS_AUTH_TRACE.type=RollingFile
+    appender.OTDS_AUTH_TRACE.name=File
+    appender.OTDS_AUTH_TRACE.filePattern=${logfolderpath}/otdsauth.log.%i.%d{yyyy-MM-dd}
+    appender.OTDS_AUTH_TRACE.layout.type=PatternLayout
+    appender.OTDS_AUTH_TRACE.filter.threshold.type=ThresholdFilter
+    appender.OTDS_AUTH_TRACE.filter.threshold.level=DEBUG
+    appender.OTDS_AUTH_TRACE.fileName=${logfolderpath}/otdsauth.log
+    appender.OTDS_AUTH_TRACE.layout.pattern=%d{ABSOLUTE} %5p [%t] %c - %m%n
+    appender.OTDS_AUTH_TRACE.policies.type=Policies
+    appender.OTDS_AUTH_TRACE.policies.time.type=TimeBasedTriggeringPolicy
+    appender.OTDS_AUTH_TRACE.policies.time.interval=1
+    appender.OTDS_AUTH_TRACE.policies.time.modulate=true
+    appender.OTDS_AUTH_TRACE.policies.size.type=SizeBasedTriggeringPolicy
+    appender.OTDS_AUTH_TRACE.policies.size.size=10MB
+    appender.OTDS_AUTH_TRACE.strategy.type=DefaultRolloverStrategy
+    appender.OTDS_AUTH_TRACE.strategy.max=5

@@ -1,0 +1,161 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2config-d2-config-properties
+  {{- template "configMap.labels" . }}
+data:
+  D2-Config.properties: |-
+    {{- if and (eq .Values.customConfigurations.custom true ) (.Values.customConfigurations.settings) }}
+    {{- range .Files.Lines .Values.customConfigurations.settings }}
+        {{ . }}
+    {{- end }}
+    {{- else }}
+    #################################
+    #         Plugins       		#
+    #################################
+    # Below dollar plugin expression will be replaced with the actual plugin configuration 
+    # during the maven resource filtering build process.  It is used so we can
+    # have different variation of the D2-Config.properties based on the maven
+    # profile used for the build.  Please check out the profiles section of the 
+    # pom.xml file.
+    # The plugin configuration syntax is below
+    # plugin_1=plugins/D2-Widget-Plugin.jar
+    # plugin_2=../C2/C2-Plugin.jar
+    # plugin_3=../O2/O2-Plugin.jar
+    # plugin_4=../P2/P2-Plugin.jar
+    # plugin_5=../D2-RPS/D2-RPS-Plugin.jar
+    # plugin_6=../D2-InfoArchive/D2-InfoArchive-Plugin.jar
+    # plugin_7=../D2-xECM/D2-xECM-Plugin.jar
+    # plugin_8=../D2-Core-Signature/D2-Core-Signature-Plugin.jar
+    {{- $webappname := .Values.env.webappName }}
+    plugin_1={{ .Values.tomcat.catalinaHome }}/webapps/{{ $webappname }}/WEB-INF/classes/plugins/D2-Widget-Plugin-{{ .Values.d2version }}.jar
+    plugin_2={{ .Values.tomcat.catalinaHome }}/webapps/{{ $webappname }}/WEB-INF/classes/plugins/D2-RPS-Plugin-{{ .Values.d2version }}.jar
+    plugin_3={{ .Values.tomcat.catalinaHome }}/webapps/{{ $webappname }}/WEB-INF/classes/plugins/D2-InfoArchive-Plugin-{{ .Values.d2version }}.jar
+    plugin_4={{ .Values.tomcat.catalinaHome }}/webapps/{{ $webappname }}/WEB-INF/classes/plugins/D2-xECM-Plugin-{{ .Values.d2version }}.jar
+    plugin_5={{ .Values.tomcat.catalinaHome }}/webapps/{{ $webappname }}/WEB-INF/classes/plugins/D2-Specifications-Plugin-{{ .Values.d2version }}.jar
+    plugin_6={{ .Values.tomcat.catalinaHome }}/webapps/{{ $webappname }}/WEB-INF/classes/plugins/D2-Core-Signature-Plugin-{{ .Values.d2version }}.jar
+    {{- if .Values.pluspack }}
+    plugin_7={{ .Values.tomcat.catalinaHome }}/webapps/{{ $webappname }}/WEB-INF/classes/plugins/C2-Plugin-{{ .Values.d2version }}.jar
+    plugin_8={{ .Values.tomcat.catalinaHome }}/webapps/{{ $webappname }}/WEB-INF/classes/plugins/O2-Plugin-{{ .Values.d2version }}.jar
+    plugin_9={{ .Values.tomcat.catalinaHome }}/webapps/{{ $webappname }}/WEB-INF/classes/plugins/D2-Bin-Plugin-{{ .Values.d2version }}.jar
+    {{- end }}
+    {{- if .Values.customConfigurations.custom }}
+    {{- $k := ternary 10 7 .Values.pluspack }}
+    {{- range $v := .Values.customConfigurations.plugins }}
+    {{ printf "plugin_%d=/opt/tomcat/webapps/%s/WEB-INF/classes/plugins/%s" $k $webappname $v }}
+    {{- $k = $k|add1|int }}
+    {{- end }}
+    {{- end }}
+    
+    
+    #################################
+    #         Plugins Clients 	#
+    #################################
+    #plugin_4=../Client/Client-Plugin.jar
+    
+    #################################
+    #		  	Security			#
+    #################################
+    #Set true for secure cookie, only with https mode
+    #secureCookie=false
+    
+    #################################
+    #         Options    		#
+    #################################
+    #default_language=en
+    #forceServerInDocbaseName=true
+    #hideDomain=true (or false)
+    #docbaseFilter=<docbases list separated by comma>
+    #temporaryMaxFiles=10240
+    #allowLegacyUI=false
+    
+    #################################
+    #         Debug Mode      	  #
+    #################################
+    #logLevel=off | error | warn | info | debug | trace | all
+    #logFilter=GetLabels,GetVD
+    #logSaveMethod=true
+    
+    #################################
+    #        Load on startup        #
+    #################################
+    ## Deprecated 
+    #LoadOnStartup.docbase.1=
+    #LoadOnStartup.username.1=
+    #LoadOnStartup.password.1=
+    #LoadOnStartup.domain.1=
+    
+    # Add the name of the repos (comma separated) to initialize those repositories on Startup. All variable for 
+    # each repo needs to be defined in the D2 global registry keystore.
+    # Example: LoadOnStartup=repository1, repository2
+    # The following variables needs to be defined in the D2 global registry keystore 
+    # LoadOnStartup.<repository>.username, LoadOnStartup.<repository>.password and LoadOnStartup.<repository>.domain
+    LoadOnStartup=
+    
+    #################################
+    #               ACS/BOCS        #
+    #################################
+    #D2-BOCS=false
+    #includeAcsServer=true
+    #proxyClientIpHeader=
+    
+    #Parameter is used to define a custom client name for the audit which can be used in the audit entry
+    # default value is D2-Config
+    #AuditAppName=
+    
+    #Below parameter is used to set the temporary directory where D2-Config application places its temp files 
+    #If not configured, defaults to java.io.tmpdir  
+    #The parameter value should be absolute path and JVM should have read/write permission
+    #Any changes to this property need application server restart.
+    #application.tmp.dir=
+    
+    #Parameter is used to mention the supported file types for the entry conditions for the worflowdigital signatures
+    # Please use the dos extensions for specifying the file types
+    #supportedFileTypes=
+    
+    
+    #####################################
+    #       Temp files management       #
+    #####################################
+    # Maximum number of temporary files D2 can store in temporary location of application server
+    # If unset, default value = 2000
+    #maxTempFiles=2000
+    
+    # Uncomment the following to set the cleanUp fraction which is used to cleanup the temporary files in
+    # temporary location once it reaches its maximum limit.
+    # e.g. setting this value as 0.1 will set the cleanup size as maxTempFiles*0.1
+    # Range of this value should be 0.0 to 1.0  excluding 0 and 1. If unset, default value = 0.1
+    # It is advisable to set this value carefully after considering the maxTempFiles value set above.
+    # setting this value too high may cause the delay in response sometimes when system is performing cleanup.
+    #cleanUpFraction=0.1
+    
+    #This property value is used for background File cleaner thread. By default, this is set to 15 minutes. 
+    #(Recommendation is to set to 15 minutes only so that background thread run in 15 minutes interval). 
+    #fileCleanSchedulerInterval=15
+    
+    #This property value is used enable/disable to print all pending temporary files on every run
+    #Note: prints only on LOG4j.properties INFO mode.
+    #printPendingRecords=false
+    
+    ##############################################
+    #               Max FileSize in KB        #
+    ##############################################
+    importC2FileMaxSize=50000
+    importDictionaryFileMaxSize=50000
+    importFileD2WebFileMaxSize=50000
+    importFileX3ConfigFileMaxSize=50000
+    importRegisterFileMaxSize=50000
+    importTaxonomyFileMaxSize=60000
+    
+    
+
+{{- $configFileOverridesFile := printf "%s/%s" .Values.configFileOverrideFilesDir "D2-Config.properties" }}
+{{- $configFileMsg0 := printf "\n\n##### Begin lines added from %s\n" $configFileOverridesFile }}
+{{- $configFileMsg1 := printf "##### End lines added from %s" $configFileOverridesFile }}
+{{- $configFileLinesToAppend := .Files.Get $configFileOverridesFile }}
+{{- if $configFileLinesToAppend }}
+{{ $configFileMsg0 | indent 4 }}
+{{ $configFileLinesToAppend | indent 4 }}
+{{ $configFileMsg1 | indent 4 }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,450 @@
+# Default values for Content Server.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+#Leave below value as empty. Use yaml files under platforms folder.
+platform:
+
+###User Name/ID
+serviceName: <sname>dcs-pg
+
+serviceAccount:
+      createserviceaccount: false
+      serviceAccountName:
+
+### Docker Images ###  
+images:
+  repository : artifactory.otxlab.net/bpdockerhub
+  contentserver :
+    name : dctm-server
+    tag : 23.4
+  pullPolicy : IfNotPresent
+  pullSecrets:
+
+### CS Secret ###
+secret:
+  name: cs-secret-config
+  
+### Docbroker ###
+docbroker:
+  serviceName: <sname>dbr
+  port: 1489
+  clusterSpace: docu.svc.cluster.local
+
+### Docbase ###
+docbase:
+  name: docbase1
+  id: 123456
+  owner: docbase1
+  existing: false
+  index: DM_DOCBASE1_DOCBASE
+  
+### Content Server ###  
+contentserver:
+  replicaCount: 2
+  docbrokersCount: 2
+  #connectMode can be native, secure or dual
+  connectMode: dual
+  externalUserEnable: false
+  useDefaultSpace : true
+  aek:
+    name: aek_name
+    location: Local
+    #If ShareKey is set to true, new PVC will be created with name <sname>-sharedkey-pvc and AEK will be copied post CS deployment
+    shareKey: false
+  kms:
+    url: <https://kmsurl:port>
+    masterkey_id: <KMS_MASTERKEY_ID>
+  max_replica: 10
+  validateFQDN: true
+  jmsProtocol: http
+  jmsVersion: tomcat10.1.13
+  #Below parameter can be used to set up the memory setting of JMS. Default value is -Xms1024m -Xmx1024m -Xss256k -XX:+DisableExplicitGC. Give the setting inside double quote
+  jmsMemSetting: ""
+  csVersion: 23.4
+  #Below parameter is to specify content server's locale, default 'en' locale is populated, to enable other locales use below parameter. Please check Readme.txt for all supported locales#
+  localeName: en
+  readinessScript: /opt/dctm_docker/scripts/cs_readiness.sh
+  #It will switch from Dsearch query plugin to Solr query plugin in Documentum Server setup if we set it true
+  fulltextEngineSSVCEnable: false
+  readiness:
+    considerBPMForReadiness: false
+    periodSeconds: 60
+  livenessScript: /opt/dctm_docker/scripts/cs_liveness.sh
+  liveness:
+    enable: true
+    #For the first time CS may take more time to complete the initialization, give enough time(10 mins)
+    initialDelaySeconds: 600
+    #Time interval between liveness probes
+    periodSeconds: 180
+    #The number of consecutive liveness probe failures alowed before the container restarts
+    failureThreshold: 3
+    #To consider JMS state for liveness probe or not. If it is set to false then liveness probe will not consider JMS
+    #state for liveness probe and CS container will not be restarted even if JMS/ACS server is down 
+    considerJMSForLiveness: true
+    considerBPMForLiveness: false 
+    
+   # Below parameter is used to set up the flag DM_LEFT_OUTER_JOIN_FOR_ACL. The value must be T or F
+  enableLeftOuterJoinForAcl: T
+  configureDarInstall: true
+  #Change value of this parameter to a different numeric value than previous value, if there are changes only in cs-secrets so that pod gets recreated during upgrade
+  secretsChange: 1
+  
+### Migration of CS
+migration:
+  migratecs: false
+  oldhostname: CentOS75x64
+  oldDocumentumHome: /home/testqa/dctm
+  migfromwindows: false
+
+### Global repository details  ###
+#   set globalRepositoryName value to global repository name which has to be used as the global repository for the current docbase
+#       If it is set with some value then that will be used as the global repository for this repository, otherwise the current repository 
+#       will be configured as the global repository
+#   set globalRepositoryDocbrokerHost value to appropriate value, if not set it will use the current docbroker's host value
+#   set globalRepositoryDocbrokerPort value to appropriate value, if not set it will use the current docbroker's port value
+###
+globalRepository:
+  globalRepositoryName: ""
+  globalRepositoryDocbrokerHost: ""
+  globalRepositoryDocbrokerPort: ""
+    
+  
+###External CS###
+#Use the command "kubectl exec -ti tcp-port-availability-donotdelete-0 /bin/bash /execute.sh" to find available port to be configured for port below
+#tcp_route must be configured to one of the nodes ip. The node ip can be obtained by the command "kubectl get node -o wide"
+ExtCS:
+ enable: false  
+ tcp_route: 10.0.0.0
+ nativeExtPort: 
+ sslExtPort:
+ extDbrPort: 1491
+ isExtIPAddress: true
+ createExtService: true
+ useELB: false
+ useLBAnnotations: false
+ LBAnnotations:
+
+### Database ###
+database:
+  host: <FQDN of database host>
+  databaseServiceName: MyPostgres
+  port: 5432
+  sslEnabled: false
+  sslCertPath: .postgresql/root.crt
+  sslMode: verify-ca
+  paasEnv: false
+  docbaseOwnerPasswordChange: false
+### Thumbnail Server ###
+thumbnailServer:
+  configure: true
+  userMemArgs:
+  tnsProtocol: http
+### OTDS  ###
+otds:
+  configNameOption: HA
+  configureOTDS: true
+  otdsAPIsvc: otdsapi-highland.dev.bp-paas.otxlab.net
+  ssl: false
+  clientCapability: 0
+  userPrivileges: 0
+  userXPrivileges: 0
+  userRenameEnabled: F
+  userRenameUnlockLockedObject: T
+  groupRenameEnabled: F
+  updateOTDScertonrestart: false
+### Use oAuth token for password authentication
+  passauth_use_oauth2_token: false
+  client_id: 
+  client_secret: 
+  otds_rest_oauth2_url:
+  synced_user_login_name: 
+  auto_cert_refresh: false
+  cert_jwks_url: http://otdsauth-highland.dev.bp-paas.otxlab.net/oauth2/jwks
+  is_hybrid: false
+  
+### Ports ###
+ports:
+  docbaseport: 50000
+  docbasesslport: 50001
+  jmsport: 9080
+  tnsport: 8081
+  tnssslport: 8443  
+qaTest:
+  launchCSregr: false
+  
+### CS, DFC, JMS logging configuration configmap Details. Before setting the below values ensure below config maps deployed. ###
+### The configMap_name should be same as the value you have given in cs-logging-configMap/values.yaml for configMap-> cs_configMap_name
+### The acs_configMap_name should be same as the value you have specified in cs-logging-configMap/values.yaml for configMap-> acs_configMap_name
+### The serverApps_configMap_name should be same as the value you have specified in cs-logging-configMap/values.yaml for configMap-> serverApps_configMap_name
+
+logging:
+  cs:
+    configMap_name: <sname>cs-logging-configmap
+  jms:
+    acs_configMap_name: <sname>acs-logging-configmap
+    serverApps_configMap_name: <sname>serverapps-logging-configmap
+    otdsauth_configMap_name: <sname>otdsauth-logging-configmap
+    dmotdsrest_configMap_name: <sname>dmotdsrest-logging-configmap
+    saml_configMap_name: <sname>saml-logging-configmap
+    oauth_configMap_name: <sname>oauth-logging-configmap
+  bpm:
+    enable: false
+    bpm_configMap_name: <sname>bpm-logging-configmap
+  fluentdConf:
+    enable: false
+    fluentd_configMap_name: <sname>fluentd-configmap 
+  logrotate_configMap_name: <sname>logrotate-configmap
+  d2:
+    logback:
+      enable: false
+      d2_configMap_name: <sname>d2-logback-configmap
+
+### Graylog. Enable isnewGraylog if the graylog setup is a new one and not using legacy collector method ###
+graylog:
+  enable: true
+  image: artifactory.otxlab.net/bpdockerhub/graylog-sidecar:v1.8
+  imagePullPolicy: Always
+  server: 10.9.57.15
+  port: 9000
+  isnewGraylog: false
+  
+  ### Persistent Volume ###
+persistentVolume:
+  awsEFS: false
+  awsEFSCSIDriver: efs.csi.aws.com
+  awsEFSCSIHandle: fs-82630bfa
+  awsEFSCSIClaimPolicy: Retain
+  createPVC: true
+  csdataPVCName: dcs-data-pvc
+  #Make sure to specify existing PVC name to reuse key from other deployment
+  #Set to empty if each deployment should create its own key
+  shareKeyPVCName: ""
+  pvcAccessModes: ReadWriteMany
+  size: 1Gi
+  storageClass: trident-nfs
+  ### Below parameter if there is already existing volume to hook up. Please check Readme.txt ###
+  existVolumePv:
+
+  ### Volume Claim Template###
+volumeClaimTemplate:
+  vctName: dcs-vct
+  vctAccessModes: ReadWriteOnce
+  size: 1Gi
+  storageClass: trident-nfs
+  logVctAccessModes: ReadWriteOnce
+  logVctSize: 2Gi
+  logVctStorageClass: trident-nfs
+
+certificate:
+  use_certificate: false
+  dbrserviceName: <sname>dbr
+  #below is used when it is needed to switch to try_native_first before performing SSL certificate based upgrade.
+  customUpgrade:
+    enable: false
+    nativeFirst: true
+
+dbrpersistentVolume:
+  dbrdataPVCName: certdbr-data-pvc
+  size: 1Gi
+  storageClass: trident-nfs
+
+### S3 store enable ###
+s3Store:
+  enable: false
+  default: false
+  name:
+  proxyHost: noproxy
+  proxyPort: noproxy
+  proxyProtocal: http
+  noProxy: localhost,127.0.0.1,*.otxlab.net  
+  # The below property can be set true, if if multipart processing need to be done parallely.The default value is false.
+  multiPartEnable: false
+  # The number of threads that need to be used during Multipart parallel-processing.Default number of threads used for multipart parallel processing are 5
+  numThreads: 5
+  isworm: false
+  vendor: 
+  region: 
+  enable_md5: true
+  enable_v4signing: true
+
+  # this section applies if you are upgrading from any cs version prior to 21.2 and want to update proxy settings for those stores.  
+  updateExistingStore: false
+  # comma seperated list of existing public s3 stores (e.g store1,store2,store3).
+  storeListUpdate: 
+  proxyHostUpdate: 
+  proxyPortUpdate: 
+
+### Rest store enable ###
+restStore:
+  enable: false
+  default: false
+  name:
+  restStoreType: 0
+  proxyHost: 
+  proxyPort: 
+  proxyProtocal: http
+  noProxy: localhost,127.0.0.1,*.otxlab.net
+
+### GCP store enable ###
+gcpStore:
+  enable: false
+
+### email configurations ###
+email:
+  configure: false
+  smtpServer: 
+  smtpPort:
+  smtpAuth: false
+  smtpSSL: false
+  emailAddress: 
+  notification: false
+
+### Custom Script Execution. enableBPMPVC is introduced for backward compatibility. If it is set to true, then the old xCP approach will be used. Note that this flag will be removed in future ###
+  
+custom:
+  scriptExecute: false
+  scriptinPVC: false
+  enableBPMPVC: true
+  scriptPVCname: 
+  PVCSubPath: 
+  versions: 
+ ### Provide the marker file names of client products in any order separated by comma. Before CS copying the custom scripts, these marker files presence are verified. 
+  markerFiles:
+  useInitContainers: false
+
+### newrelic agent configuration. ###
+newrelic:
+  enable: false
+  app_name: DCS_JMS-PROD-OT2_CFCR_LI3-EIM-<sname>
+  proxy_host: 
+  proxy_port: 
+  proxy_protocol: http  
+  c_app_name : DCS_documentum-PROD-OT2_CFCR_LI3-EIM-<sname> 
+  
+fluentd_service:
+  enable: false
+  # Name and tag of should not be changed as they specify fluentd image details
+  image: artifactory.otxlab.net/bpdockerhub/fluentd:4.1.1
+  imagePullPolicy: Always
+  restartPolicy: Always
+  ##Values for TCPPort and RESTPort should be same as give for fluentdTCPPort and fluentdRESTPort in fluentdConf section
+  TCPPort: 24224
+  RESTPort: 8888
+  UDPPort: 20001
+  DFCLogLevel: 0
+  liveness:
+    enable: true
+
+### resources ###
+resources:
+  limits:
+    cpu: 4000m
+    memory: 8Gi
+  requests:
+    cpu: 100m
+    memory: 400Mi
+
+ingress:
+  #This value should be in the format  <INGRESS-HOSTNAME>.<CLUSTER-DOMAIN-NAME>. The INGRESS-HOSTNAME and CLUSTER-DOMAIN-NAME values has to be same as the one you mentioned in dctm-ingress helm charts
+  host: 
+  protocol: http
+  #In case if you dont want to update ACS URL with ingress host then set the below parameter to true. In that case you need to manually update the acs base url to appropriate value in acs_config_object 
+  disableUpdateAcsUrl: false
+  
+oracle:
+  isoracleimage: false
+  p12walletFileName: ewallet.p12
+  ssoWalletFileName: cwallet.sso
+  
+logrotate:
+  enable: false
+#the below is configured in minutes
+  interval: 1440
+  
+#logrotate is used for rotating fixed file names whereas log cleanup is used to clean the files generated with different names like session log
+#The folder and interval to cleanup the files under the folder are mentioned in extraEnv section with the format LOG_CLEANUP_FOLDER_N and LOG_CLEANUP_FOLDER_PERIOD_$COUNTER
+#Only the following folders and its subfolders can be mentioned: /opt/dctm/tomcat9.0.74/logs,/opt/dctm/product/23.4/install/logs,/opt/dctm/product/23.4/thumbsrv/container/logs,/opt/dctm/dba/log,/opt/dctm/logs,/opt/dctm_docker/logs
+#Note this will cleanup files recuresively under sub folders also.
+logcleanup:
+  enable: true
+#the below is configured in minutes and represents cron job interval
+  interval: 1440
+#the below is configured in minutes and represents the cleanup interval for the path /opt/dctm/dba/log/<hexa_id>/<installowner>  
+  sessionlogcleanupinterval: 10080
+
+### extra Environment Variables ###
+#OTDS parameters in extra env:
+#
+extraEnv:
+  - name: CERTIFICATE_1
+    value: ""
+  - name: OTDS_REST_TICKET_URL
+    value: ""
+  - name: docbase1_resource_id
+    value: ""
+  - name: docbase1_secretKey
+    value: ""
+  - name: TOKENTIMEOUT
+    value: "30"
+  - name: INACTIVE_DELETED_USER
+    value: "T"
+  - name: INACTIVE_UNSUBSCRIBED_USER
+    value: "F"
+  - name: LSS_CC_ENABLED
+    value: "F"
+  - name: DA_PRIVILEGE_ENABLED
+    value: "F"
+  - name: ACTIVATE_POSTMEMBER_ENABLED
+    value: "T"
+  - name: MIGRATE_LDAP_USERS
+    value: "F"
+  - name: MIGRATE_LDAP_DOCBASES
+    value: "docbase1"
+  - name: LDAP_CONFIGS_TOKENIZER
+    value: ","
+  - name: docbase1_MIGRATE_LDAP_CONFIGS
+    value: ""
+  - name: isCORSAllowed
+    value: "false"
+  - name: DM_CRYPTO_MIN_PASSWORD_LENGTH
+    value: "16"
+  - name: CUSTOM_JOB_ENABLED
+    value: "F"
+  - name: CUSTOM_USER_RENAMEJOB
+    value: ""  
+  - name: CUSTOM_USER_RENAME_METHOD
+    value: ""    
+    
+    
+extraInitContainers:
+
+### extra Volumes ###
+extraVolumes:
+
+### To configure the logging levels of the applications which are not part of out of the box JMS, add the volume and volumeMount as below for mapping the application config map with the volume. Below is the example of JMS/ServerApps application. 
+
+### <application_name>   - application  name
+### <APPLICATION_LOGGING_CONFIGMAP_NAME> - Config map name given in your application config map. 
+
+#- name: <application_name>-log4j-properties-volume
+#  configMap:
+#    name: <APPLICATION_LOGGING_CONFIGMAP_NAME>
+#    items:
+#      - key: log4j
+#        path: log4j2.properties
+
+### extra Volume Mounts ###
+extraVolumeMounts:
+
+### Please ensure to update the path of the log4j2.properties file as per your application
+
+#- mountPath: /opt/dctm/tomcat9.0.58/webapps/DmMethods/WEB-INF/classes/log4j2.properties
+#  name: <application_name>-log4j-properties-volume
+#  subPath: log4j2.properties
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

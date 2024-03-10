@@ -1,0 +1,132 @@
+{{- if eq .Values.vpningress.enable true }}
+
+{{- if $.Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+apiVersion: networking.k8s.io/v1
+{{ else }}
+apiVersion: extensions/v1beta1
+{{ end }}
+
+kind: Ingress
+metadata:
+  name: {{ .Values.ingressPrefix }}-vpn-ingress
+  annotations:
+{{- if not ($.Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress") }}
+{{- if .Values.vpningress.class }}
+    kubernetes.io/ingress.class: {{ .Values.vpningress.class }}
+{{- end }}
+{{- end }}
+
+{{- range $key, $value := $.Values.vpningress.annotations }}
+    {{ $key }}: {{ $value | squote }}
+{{- end }}
+
+spec:
+{{- if $.Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+  ingressClassName: {{ $.Values.vpningress.class }}
+{{- end }}
+  {{- if .Values.vpningress.tls.enable }}
+  tls:
+  - hosts:
+    - {{ .Values.vpningress.host }}.{{ .Values.vpningress.clusterDomainName }}
+    {{- if .Values.vpningress.openshifttls.enable }}
+    secretName: {{ .Values.vpningress.tls.secretName }}{{ "-tls" }} 
+    {{- else }}
+    secretName: {{ .Values.vpningress.tls.secretName }}
+    {{- end}}
+  {{- end}}
+  rules:
+{{- if eq .Values.vpningress.configureHost true }}  
+  - host: {{ .Values.vpningress.host }}.{{ .Values.vpningress.clusterDomainName }}
+    http:
+{{- else }}
+  - http:
+{{- end }}    
+      paths:
+    {{- if .Values.vpningress.dfsService.enable }}
+    {{ if eq .Values.platform "aws" }}
+      - path: /dfs*
+    {{ else }}
+      - path: /dfs
+    {{ end }}
+    {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: {{ .Values.vpningress.dfsService.serviceName }}
+            port:
+              number: {{ .Values.vpningress.dfsService.servicePort }}
+    {{- else }}
+        backend:
+          serviceName: {{ .Values.vpningress.dfsService.serviceName }}
+          servicePort: {{ .Values.vpningress.dfsService.servicePort }}    
+    {{- end }}    
+    {{- end }}
+
+    {{- if .Values.vpningress.cmisService.enable }}
+    {{ if eq .Values.platform "aws" }}
+      - path: /dctm-cmis*
+    {{ else }}
+      - path: /dctm-cmis
+    {{ end }}
+    {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: {{ .Values.vpningress.cmisService.serviceName }}
+            port:
+              number: {{ .Values.vpningress.cmisService.servicePort }}
+    {{- else }}
+        backend:
+          serviceName: {{ .Values.vpningress.cmisService.serviceName }}
+          servicePort: {{ .Values.vpningress.cmisService.servicePort }}    
+    {{- end }}    
+    {{- end }}
+    
+    {{- if .Values.vpningress.daService.enable }}
+    {{ if eq .Values.platform "aws" }}
+      - path: /da*
+    {{ else }}
+      - path: /da
+    {{ end }}
+    {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: {{ .Values.vpningress.daService.serviceName }}
+            port:
+              number: {{ .Values.vpningress.daService.servicePort }}
+    {{- else }}
+        backend:
+          serviceName: {{ .Values.vpningress.daService.serviceName }}
+          servicePort: {{ .Values.vpningress.daService.servicePort }}    
+    {{- end }}    
+    {{- end }}
+
+    {{- if .Values.vpningress.workflowDesignerService.enable }}
+    {{ if eq .Values.platform "aws" }}
+      - path: /DocumentumWorkflowDesigner*
+    {{ else }}
+      - path: /DocumentumWorkflowDesigner
+    {{ end }}
+    {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: {{ .Values.vpningress.workflowDesignerService.serviceName }}
+            port:
+              number: {{ .Values.vpningress.workflowDesignerService.servicePort }}
+    {{- else }}
+        backend:
+          serviceName: {{ .Values.vpningress.workflowDesignerService.serviceName }}
+          servicePort: {{ .Values.vpningress.workflowDesignerService.servicePort }}    
+    {{- end }}    
+    {{- end }}
+    
+    {{- if .Values.vpningress.configureHost }}    
+    {{- if eq ( .Values.vpningress.host | toString | regexFind "\\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}\\b") ("" | toString) }}
+    host: {{ .Values.vpningress.host }}.{{ .Values.vpningress.clusterDomainName }}
+    {{- end }}
+    {{- end }}
+
+{{ end }}
+

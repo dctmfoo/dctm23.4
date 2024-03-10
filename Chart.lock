@@ -1,0 +1,42 @@
+dependencies:
+- name: dctm-server
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: "23.4"
+- name: otds
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 23.3.0
+- name: d2config
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 23.4.0-157
+- name: d2classic
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 23.4.0-157
+- name: d2smartview
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 23.4.0-157
+- name: d2rest
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 23.4.0-157
+- name: d2ingress
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 23.4.0-157
+- name: appworks-gateway
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 23.4.0
+- name: xplore
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 22.1.4
+- name: otiv
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: 23.4.0
+- name: smartviewm365
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: "23.4"
+- name: bps
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: "23.4"
+- name: xda
+  repository: https://artifactory.otxlab.net/artifactory/BPhelm
+  version: "23.4"
+digest: sha256:0e21487bf08f56938b60e5b889c6a764cdd37fc8925aa80e9deab6981441d033
+generated: "2023-10-24T01:36:27.381024696Z"

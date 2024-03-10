@@ -1,0 +1,42 @@
+#These are specific configuration values passed for AWS ALB. Other values for dctm-ingress still need to be configured in main values.yaml only
+dctm-ingress:
+  platform: aws  
+  ingress:   
+    #Note that the below annotation are basic annotations. For more secured and customized setup, customer must use AWS ALB annotation documentation to provide below configurations
+    #To accomodate cluster 1.22 
+    class: alb 
+    annotations:
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/subnets: subnet-0c4a1017a4ffb7962, subnet-0bbd3ec1319a30772, subnet-0a6ab032a5e03be49
+      alb.ingress.kubernetes.io/target-type: 'ip'    
+      alb.ingress.kubernetes.io/target-group-attributes: stickiness.enabled=true,stickiness.lb_cookie.duration_seconds=1200
+      alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=600
+      alb.ingress.kubernetes.io/group.name: dctm-group
+      alb.ingress.kubernetes.io/backend-protocol: HTTP    
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]' 
+      #For secure connection, comment previous one annotation and uncomment below annotations.
+      #alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'    
+      #alb.ingress.kubernetes.io/certificate-arn: arn:aws:iam::820400221816:server-certificate/albselfsigned          
+
+contentconnect:
+  platform: aws
+  ingress:
+    class: alb
+    annotations:
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/subnets: subnet-0c4a1017a4ffb7962, subnet-0bbd3ec1319a30772, subnet-0a6ab032a5e03be49
+      alb.ingress.kubernetes.io/target-type: 'ip'    
+      alb.ingress.kubernetes.io/target-group-attributes: stickiness.enabled=true,stickiness.lb_cookie.duration_seconds=1200
+      alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=600
+      alb.ingress.kubernetes.io/group.name: dctm-group
+      alb.ingress.kubernetes.io/backend-protocol: HTTP    
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]' 
+      #For secure connection, comment previous two annotations and uncomment below annotations.
+      #alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'    
+      #alb.ingress.kubernetes.io/certificate-arn: arn:aws:iam::820400221816:server-certificate/albselfsigned
+      
+content-server:
+  platform: aws  
+  
+docbroker:
+  platform: aws  

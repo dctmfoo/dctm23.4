@@ -1,0 +1,223 @@
+# Default values for xplore.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+### General ###
+serviceAccount:
+  createServiceAccount: true
+  serviceAccountName: documentum-sa
+
+ingress:
+  name: xplore-ingress
+  domain: xplore.cfcr-lab.bp-paas.otxlab.net
+  hostName: xplore-ingress  
+  enable: true
+
+### Service ###
+# Please keep the same service name as the old deployment when do helm upgrading process.
+service:
+  indexserver:
+    name: indexserver
+    port: 9300
+    targetPort: 9300
+  indexagent:
+    name: indexagent
+    port: 9200
+    targetPort: 9200
+  cps:
+    name: cps
+    port: 9600
+    targetPort: 9600
+
+### Docker Image ###
+image:
+  repository: artifactory.otxlab.net/bpdockerhub
+  pullPolicy: IfNotPresent
+  pullSecrets:
+  indexserver:
+    name: dctm-xplore-indexserver
+    tag: 22.1.0040.0076
+  indexagent:
+    name: dctm-xplore-indexagent
+    tag: 22.1.0040.0076
+  cps:
+    name: dctm-xplore-cps
+    tag: 22.1.0040.0076
+
+### Graylog Sidecar ###
+graylog:
+  enable: true
+  image: artifactory.otxlab.net/bpdockerhub/graylog-sidecar:v1.8@sha256:d8ed2bf68399e34bafc68f883d8f4fb14feb9575e78d63722e544c1529f37db9
+  server: 10.9.57.15
+  port: 9000
+
+### Index Server ###
+indexserver:
+  persistLogs: false  
+  
+  #To use blow extraEnv paramters with #, plaese uncomment them.
+  extraEnv: 
+  #  PASSWORD: password
+  #  SCRIPT_DIR: /root/xPlore/rtdata/script
+  #  SCRIPT_INIT: init.sh
+  #  SCRIPT_BEFORE_START: before-start.sh
+  #  SCRIPT_AFTER_START: after-start.sh
+    
+  livenessProbe:
+    initialDelay: 90
+    timeout: 1
+    period: 60
+    failure: 6
+  readinessProbe:
+    initialDelay: 90
+    timeout: 1
+    period: 10
+    failure: 3
+
+### Index Agent ###
+indexagent:
+  docbaseName: docbase1
+  #Enter the Documentum Server installation owner user name
+  docbaseUser: dmadmin
+  persistLogs: false
+  #If not use secret to pass through password, please uncomment docbasePassword and registryPassword
+  #Enter the Documentum Server installation owner password
+  #docbasePassword: password
+  #registryPassword: password
+  
+  #If not use configmap to pass through below properties, please uncomment them
+  #brokerHost: xpl-dbr.default.svc.cluster.local
+  #brokerPort: 1489
+  #registryName: docbase1
+  #registryUser: dm_bof_registry
+  
+  #To use blow extraEnv paramters with #, please uncomment them.   
+  extraEnv: 
+    FORCE_CREATE_OBJECT: true
+  #  SCRIPT_DIR: /root/xPlore/rtdata/script
+  #  SCRIPT_INIT: init.sh
+  #  SCRIPT_BEFORE_START: before-start.sh
+  #  SCRIPT_AFTER_START: after-start.sh
+  
+  livenessProbe:
+    initialDelay: 150
+    timeout: 1
+    period: 60
+    failure: 6
+  readinessProbe:
+    initialDelay: 150
+    timeout: 1
+    period: 10
+    failure: 3
+
+### xPlore CPS ###
+cps:
+  replicaCount: 2
+  persistLogs: false
+  
+  #To use blow extraEnv paramters with #, please uncomment them.  
+  extraEnv: 
+    REGISTER_CPS_DELAY: 90
+  #  ESS_PASSWORD： password
+  #  SCRIPT_DIR: /root/xPlore/rtdata/script
+  #  SCRIPT_INIT: init.sh
+  #  SCRIPT_BEFORE_START: before-start.sh
+  #  SCRIPT_AFTER_START: after-start.sh
+  
+  livenessProbe:
+    initialDelay: 60
+    timeout: 1
+    period: 60
+    failure: 6
+  readinessProbe:
+    initialDelay: 60
+    timeout: 1
+    period: 10
+    failure: 3
+
+### Persistent Volume ###
+volumeMounts:
+  subPath: "."  
+persistentVolume:
+  # possible value: true | false . isExist: true means using an external volume instead of default one nested in xPlore chart
+  isExist: false
+  claimName: xpl-data-pvc  
+  # If isExist is true, then accessModes,size,storageClass will not be effective.
+  accessModes: ReadWriteMany
+  size: 1Gi
+  storageClass: trident-nfs
+  ### AWS related parameters ###
+  awsEFS: false
+  awsEFSCSIDriver: efs.csi.aws.com
+  awsEFSCSIHandle: 
+  ### Below parameter is used to provide aws PV name if AWS EFS CSI is used ###
+  awsEFSCSIPvName: 
+customVolume:
+  customMountPath: 
+  customClaimName: 
+  
+newRelic:
+  # Possible value: true | false. When set to true, you must set values of 'appNameSuffix' and 'licenseKey'.
+  enable: true
+  # Please ensure your application name is unique. xPlore will construct application name as '$NODE_NAME'-'$appNameSuffix' in newrelic.yml
+  appNameSuffix: DCS_XPLORE-PROD-OT2_CFCR_LI3-EIM-ce
+  licenseKey: 
+  # If your agent is behind a LAN and needs proxy to access external network, you must set the proxy properties.
+  proxyHost: bp2-prox01-l001.otxlab.net
+  proxyPort: 3128
+  proxyScheme:
+  configMap:
+    # Possible value: true | false. If using an existing configmap for new relic, then licenseKey and proxy needn't input and those properties should be included in the existing configmap.
+    isExist: false
+    name: new-relic.configmap
+    key:
+      newRelicConfigKey: newrelic.yml
+
+### Resources ###
+resources:
+  indexserver:
+    requests:
+      memory: "400Mi"
+      cpu: "100m"
+    limits:
+      memory: "6144Mi"
+      cpu: "2000m"
+  indexagent:
+    requests:
+      memory: "200Mi"
+      cpu: "100m"
+    limits:
+      memory: "4096Mi"
+      cpu: "500m"
+  cps:
+    requests:
+      memory: "400Mi"
+      cpu: "200m"
+    limits:
+      memory: "6144Mi"
+      cpu: "2500m"
+
+### Currently we support using cs-secrets to set some IndexAgent Env password properties ###
+### Please replace the secrets.name and keys with the actual value. ###
+# possible value: true | false
+useSecrets: true
+secrets:
+  cs:
+    name: cs-secret-config
+    key: 
+      docbasePassword: installOwnerPassword
+      registryPassword: globalRegistryPassword
+
+### dfc.properties configmap support ###
+# possible value: true | false
+useConfigMap: true
+configMap:
+  cs:
+    name: xpl-dbr.configmap
+    key: 
+      dfcPropertiesKey: dfc.properties
+# nodeSelector: {}
+
+# tolerations: []
+
+# affinity: {}
+

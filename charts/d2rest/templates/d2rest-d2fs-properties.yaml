@@ -1,0 +1,606 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2rest-d2fs-properties
+  {{- template "configMap.labels" . }}
+data:
+  D2FS.properties: |-
+    ###############################
+    #       Service plugins       #
+    ###############################
+    # Force the order of plugins by name
+    #pluginsOrder=C2,O2
+    
+    ###############################
+    #       Load on startup       #
+    ###############################
+    ## Deprecated
+    #LoadOnStartup.docbase.1=
+    #LoadOnStartup.username.1=
+    #LoadOnStartup.password.1=
+    #LoadOnStartup.domain.1=
+    
+    # Add the name of the repos (comma separated) to initialize those repositories on Startup. All variable for
+    # each repo needs to be defined in the D2 global registry keystore.
+    # Example: LoadOnStartup=repository1, repository2
+    # The following variables needs to be defined in the D2 global registry keystore
+    # LoadOnStartup.<repository>.username, LoadOnStartup.<repository>.password and LoadOnStartup.<repository>.domain
+    # Any changes to this property need application server restart.
+    LoadOnStartup=
+    
+    ############################
+    #       Login Dialog       #
+    ############################
+    # Comment out the following line or set the corresponding value to false to unhide the Domain selector
+    # field on the login dialog for all repositories by default.
+    # Any changes to this property need application server restart.
+    hideDomain=true
+    
+    # Uncomment the following to hide the Domain selector field on the login dialog
+    # for the given repository or repositories.  These settings override the hideDomain
+    # setting above for the indicated repositories.
+    # Any changes to this property need application server restart.
+    #hideDomain.YourRepoName1=true
+    #hideDomain.YourRepoName2=true
+    
+    # Default repository name to be shown in any repository picker.
+    #login.repository.default=repo1
+    
+    # List of repository names not to be shown in any repository picker.
+    # Any changes to this property need application server restart in case 'cacheRepositoryList'
+    # is set to true. Otherwise it is not required to restart the app server.
+    #login.repository.filter=repo2,repo3
+    
+    # Cache the repository list from the DocBroker to improve performance for getting the Product Info. The list can be
+    # refreshed from D2-Config or by restarting the app server
+    cacheRepositoryList=true
+    
+    #####################################
+    #       Temp files management       #
+    #####################################
+    # Maximum number of temporary files D2 can store in temporary location of application server
+    # If unset, default value = 10240
+    #maxTempFiles=10240
+    
+    # Uncomment the following to set the cleanUp fraction which is used to cleanup the temporary files in
+    # temporary location once it reaches its maximum limit.
+    # e.g. setting this value as 0.1 will set the cleanup size as maxTempFiles*0.1
+    # Range of this value should be 0.0 to 1.0  excluding 0 and 1. If unset, default value = 0.1
+    # It is advisable to set this value carefully after considering the maxTempFiles value set above.
+    # setting this value too high may cause the delay in response sometimes when system is performing cleanup.
+    #cleanUpFraction=0.1
+    
+    # Specify the shared folder location to store in-process files.
+    # If not specified, then D2 app server will store such files under java.io.tmpdir.
+    # If specified, it is assumed that the specified location references a mounted or shared directory that will be shared
+    # by all D2 app servers in a cluster.
+    #contentStagingLocation=
+    
+    #####################################################
+    #       Servers-side truncation and filtering       #
+    #####################################################
+    # Maximum result set size for the AdminUser, AdminGroups, Doclist widgets, and
+    # the list assistance dialog and combo box when server-side filtering is used.
+    # If unset, default value = 1000.
+    #maxResultSetSize=1000
+    
+    # Maximum result set size for Browser widget when browsing into the tree :
+    # If unset, default value == maxResultSetSize
+    #maxBrowserWidgetResultSetSize=100
+    
+    # Maximum result set size for AdminUser and AdminGroups widgets.
+    # If unset, default value == maxResultSetSize
+    #maxAdminWidgetResultSetSize=1000
+    
+    # Note that this property is now deprecated and can be configured from Doclist widget configuration in D2-Config
+    # Maximum result set size for Doclist widget when viewing the contents of a cabinet or folder.
+    # If unset, default value == maxResultSetSize
+    #maxDoclistWidgetResultSetSize=100
+    
+    # Flag set to true if ignoring xPlore order by.
+    # If unset, default value == false
+    #ignoreXploreOrderBy=true
+    
+    # Note that this property is now deprecated and can be configured from Docgallery widget configuration in D2-Config
+    # Maximum result set size for Docgallery widget when viewing the contents of a cabinet or folder.
+    # If unset, default value == maxResultSetSize
+    #maxDocgalleryWidgetResultSetSize=100
+    
+    # Maximum result set size for recycle bin widget before filtering is used.
+    # If unset, default value == maxResultSetSize
+    #maxRecycleBinWidgetResultSetSize=100
+    
+    # Maximum User selection set size for Performer type while sending to the workflow.
+    # If unset, default value == -1
+    #maxUserSelectionPerPerformerType=-1
+    
+    # Maximum result set size for list assistance dialogs or combo boxes when server-side filtering is used.
+    # If unset, default value == maxResultSetSize
+    #maxListAssistanceResultSetSize=50
+    
+    # Template Filter combo attributes
+    templateFilterPropertyName=object_name,title,subject
+    
+    ######################
+    #       Search       #
+    ######################
+    # Flag set to tru if a post processing of xPlore result set is needed.
+    # If unset, default value == false
+    #processXploreResultSet=true
+    
+    # Override generated DQL query used when Fulltext not using fulltext (direct query of repository)
+    #  The default is case insensitive and searches object_name, title, subject and keywords attributes for server term as a substring.
+    #  The default where clause will similar to the following with $value(search_term) replaced with the encoded search term:
+    #      (UPPER(title) like '%$value(search_term)%' escape '/'
+    #         or UPPER(subject) like '%$value(search_term)%' escape '/'
+    #         or UPPER(object_name) like '%$value(search_term)%' escape '/'
+    #         or or any UPPER(keywords) like '%$value(search_term)%' escape '/'
+    #
+    # To override this query definition, specify simpleSearchDql with a custom DQL template. Use "$value(search_term)" in your
+    #  template to reference the encoded DQL search value.
+    #
+    ## Example 1: Search just object_name STARTS WITH search term, case sensitive:
+    #simpleSearchDql=object_name like '$value(search_term)%' escape '/'
+    ## Example 2: search just object_name CONTAINS search term, case sensitive:
+    #simpleSearchDql=object_name like '%$value(search_term)%' escape '/'
+    ## Example 3: To search for object_name and title CONTAINS search term, case insensitive:
+    #simpleSearchDql=UPPER(object_name) like UPPER('%$value(search_term)%')  escape '/' OR UPPER(title) like UPPER('%$value(search_term)%')  escape '/'
+    #
+    #simpleSearchDql=YOUR_DQL_HERE
+    
+    # A maximum time to wait in milliseconds. if not set ,default will be 0 to have no timeout. If set throws
+    # DfSearchException if the timeout elapses
+    # Any changes to this property need application server restart.
+    #searchTimeout=TIMEOUTMILISEC
+    
+    ##########################################
+    #       Document format validation       #
+    ##########################################
+    # Validate whether given value can be a dm_format.name value or dm_sysobject.a_content_type value.
+    # This regular expression requires that the value have at least 1 character and at most 32 characters,
+    # where every character being a letter, digit, underscore, or hyphen.  dm_format.name values can have
+    # up to 64 characters, but dm_sysobject.a_content_type values must have no more than 32 characters.
+    # If commented out, no validation will be performed, but this introduces a DQL injection security vulnerability.
+    Validator.format=[a-zA-Z_\\-0-9]+{1,32}
+    
+    ######################################
+    #       Property page validation     #
+    ######################################
+    #Enable server side validation constraints on resolved property pages.
+    #Data assistances and conditions from a property page configuration will be re-resolved on the server before saving the data.
+    #Validating incoming data server-side may avoid potential data injection vulnerabilities.
+    #If set to false, no additional validation will be performed.
+    propertyPageConstraintValidation=false
+    
+    #####################################
+    #       Content Transfer URLs       #
+    #####################################
+    # Specify how long (in minutes) the login ticket in a content transfer url is valid after
+    # the url is generated.  Default is 15 minutes.
+    #contentTransferUrlTicketTimeout=15
+    
+    # single use tickets are always used for View/Download operation since 4.5 release.
+    # If you have a load balanced Documentum Server setup, then D2 4.5P05 and above needs
+    # relevant patch for the CS bug CS-50477. Once you apply the CS patch, set "true" value to this property.
+    # Set to true now since this version of D2 only supports Documentum Server versions that contain the fix.
+    loadBalancedContentServer=true
+    
+    # IRM login ticket timeout.  Default is 5 minutes.
+    #irmTicketTimeout=5
+    
+    ##############################
+    #       Content Upload       #
+    ##############################
+    # Maximum upload request size in bytes (default value is 16GB)
+    # The purpose of this setting is to prevent denial of service attacks caused by attempting to upload
+    # very large files.  Note that file upload to the D2 app server is implemented using a multipart
+    # form post, and as such the size of a file upload request body will be a little bit larger than the
+    # file itself.  This setting is used when the multipart form post request is parsed:  if the value
+    # of the Content-Length request header exceeds the maximum upload request size, the request is rejected.
+    # If the value of this setting is zero or negative, no restriction is imposed on the size of a multipart
+    # form request.
+    maxUploadRequestSize=17179869184
+    
+    # A list of aspect names that require upload through the D2 app server.
+    aspectsRequiringAppServerForUpload=irm_folder_aspect
+    
+    # IRM protected formats
+    irmProtectedFormats=pdf,msw8,excel18book,ppt8
+    
+    ############################################################
+    #   File upload restrictions based upon filename endings   #
+    ############################################################
+    # Case insensitive comparison is used when testing the end of a given filename against
+    # the list of file endings specified in allowedFileEndings or disallowedFileEndings.
+    # If neither of these are defined, there are no restrictions on file upload based on
+    # filename endings.
+    
+    # Allowed list of file endings that are the only endings allowed: an empty list blocks all files.
+    #allowedFileEndings=docx,xlsx,txt,pdf,msg
+    
+    # Disallowed list of file endings that are not allowed: an empty list allows all files.
+    # This setting is ignored if the allowedFileEndings setting is defined.
+    disallowedFileEndings=bat,com,exe,js,hta,html,htm,jar,vbs,vb,sfx,dll,tmp,py,msi,gadget,cmd,vbe,jse,ps1,ps2,ps1xml,ps2xml,psc1,psc2,lnk,inf,scf
+    
+    
+    # Specify whether files can be imported without a file extension.  This setting
+    # is ignored if both allowedFileEndings and disallowedFileEndings are not defined.
+    # If one of these is defined and allowedFilesWithNoExtension is not defined, a value
+    # of false will be understood.
+    allowFilesWithNoExtension=false
+    
+    ############################################################
+    #   File upload restrictions based upon file size		   #
+    ############################################################
+    # Do not allow uploading a file larger than maxUploadFileSize (in bytes)
+    # default is to have restrictions 
+    #maxUploadFileSize=10485760
+    
+    ########################
+    #       ACS/BOCS       #
+    ########################
+    # Determine whether content transfer can utilize D2-BOCS when available.
+    # This assumes that D2-BOCS has been deployed to all relevant BOCS servers, and,
+    # if includeAcsServer has been set to true below, to all relevant ACS servers.
+    # If this property is commented out below, a value of false is understood.
+    #D2-BOCS=true
+    
+    # Uncomment the following if D2-BOCS has been deployed to ACS.  This will
+    # allow files to be downloaded directly from ACS and files to be uploaded
+    # via D2-BOCS to ACS.  If this property is commented out below, a value
+    # of false is understood.
+    #includeAcsServer=true
+    
+    # The following setting determines which kinds of files are allowed to be compressed when
+    # downloading files using the applet, either through the D2 app server or through D2-BOCS
+    # or ACS or BOCS.  Note that if applet.download.compression.enabled = false in settings.properties,
+    # download through the applet will not utilize compression for any files.
+    #
+    # Because of a longstanding flaw with ACS or BOCS servers, thin client download from ACS
+    # or BOCS does not utilize compression in this case.  However, thin client download from
+    # the D2 app server does respect this setting.  The flaw with ACS and BOCS servers is that
+    # they do not obey the HTTP standard and emit the Content-Encoding response header when
+    # the requested content is compressed.  As a result, the browser does not know that it
+    # needs to uncompress the downloaded file.
+    #
+    # Note: docx, xlsx, pptx, and pdf formats are already compressed and should never appear
+    # in this list.
+    compressedExtensions=doc,xls,ppt,txt
+    
+    # Minimum file size (in bytes) to use BOCS or ACS
+    # Files whose size is less than this threshold will always be uploaded or downloaded
+    # through the D2 app server.  If commented out, this threshold is zero, which means
+    # that all uploads and downloads will use BOCS or ACS when available.
+    #minFileSizeForBocs=
+    
+    # Force DFC cache location to load before any download/upload attempt (requires load on startup configuration)
+    #cacheBocsUrl=false
+    
+    # Force computation for a list of specific locations, default use local IP
+    #cacheLocations=network1,network2
+    
+    # DQL to use to find a document to simulate location computation. If not set, a default one is used
+    #cacheDocumentDql=dm_document where r_content_size>102400 order by r_content_size asc
+    
+    ##############################
+    #       Doclist Widget       #
+    ##############################
+    # Show home cabinet or not - has been deprecated.  Showing the Home cabinet and Favorites is controlled by
+    # browser, doclist and docgallery widget settings.
+    #showHomeCabinet=true
+    
+    # This attribute should be false if an user does not wish to see the exception stacktrace for D2MissingRenditionException
+    #logExceptionForMissingRendition=true
+    
+    # This attribute should be true if linking of folder/document has to happen after security has been applied.
+    #forceLinkAfterSecurity=false
+    
+    ###############################
+    #       Database tuning       #
+    ###############################
+    # SQLServer Performance HINT - by default useSQLServerPerfHint is set to false
+    # On content server add "SQL_DEF_RESULT_SET_AND_OBJECT_BASED=1" setting in server.ini
+    #useSQLServerPerfHint=true
+    
+    ###########################################
+    #       D2 method invocation on JMS       #
+    ###########################################
+    # Specify the methods where JMS is tested before running any code.  The format is
+    #	classname1.methodname1, classname2.methodname2
+    # Some examples of D2 actions and methods
+    # Create new object: com.emc.o2.api.services.plugins.D2CreationServicePlugin.createProperties
+    # Checkin: com.emc.c2.webfs.services.download.D2DownloadServicePlugin.checkinAndLifeCycle
+    # promote/demote: com.emc.o2.api.services.plugins.D2LifeCycleServicePlugin.changeState
+    # Edit properties: com.emc.d2fs.dctm.web.services.property.D2PropertyService.saveProperties
+    # Any changes to this property need application server restart.
+    pretestJMSForMethods=com.emc.d2fs.dctm.web.services.workflow.D2WorkflowService.abortWorkflow
+    
+    ########################################
+    #       Object creation location       #
+    ########################################
+    # Specify a fixed location for initial object creation.
+    # By default, Documentum Server will implicitly link new objects the user's configured
+    # home cabinet/folder.  If users do not have WRITE access to their configured home cabinet/folder,
+    # this setting can be used to specify temporary location where objects will be created.
+    # When D2 completes the creation process, the object will be re-linked to it's final
+    # location as usual (ie. via auto linking or other D2 functionality)
+    # NOTE: This folder must exist and all users must have at least WRITE permission to the folder.  It will NOT be created by D2.
+    #objectCreationLocation=/Temp/CreationFolder
+    
+    ######################
+    #       Locale       #
+    ######################
+    # Locale fallback language.  NOTE: Currently this is only used for D2-Config localized configuration.
+    #   If specified, D2 will fallback to this language if the user's browser language is not installed on Documentum Server (not listed in DD_LOCALES).
+    #   If not specified, D2 will use the D2-Config labels for the user's locale regardless of DD_LOCALES and will return the config ID when
+    #   that localized config is missing (the existing behavior). This setting should contain only a language code if specified.
+    # Any changes to this property need application server restart.
+    #localeFallback=en
+    
+    ##########################
+    #       Renditions       #
+    ##########################
+    # Allow multiple rendition requests or not for the same document.
+    # Configure whether or not to allow a rendition request to be sent more than once for the same document in the queue.
+    # The valid values are:  true, false, or signoff.  When set to true, D2 will create a new rendition request for the
+    # same document without restriction, regardless of whether there are pending rendition requests in the queue.
+    # When set to signoff, D2 will check if the document is already signed off by the rendition server and then allow
+    # a rendition request else default behaviour.  When set to false, D2 will use the default behaviour of disallowing
+    # multiple rendition requests.
+    allowRenditionRequest=false
+    
+    # If true then it will not queue the rendition in dmi_queue_item that is coming from PDF viewer. Default value is false.
+    # Allowed values true/false
+    # Any changes to this property need application server restart.
+    blockViewerRenditionRequest=false
+    
+    # Specify the threshold value of number of pages for C2 processing.
+    # If this property's value is more than 0 and selected document has more pages than this value then C2 will not be applied on this document and a warning is displayed in the viewer.
+    # Default value is -1. This value -1 signifies that this check is not needed every time C2 is to be applied on selected documents.
+    # Any changes to this property need application server restart.
+    c2ProcessingMaxPageThreshold=-1
+    
+    #########################
+    #       Workflows       #
+    #########################
+    # Set showD2TasksOnly to true if D2 and other applications(such as xCP) co-exist and you want to display only those
+    # workflow tasks which were started by D2
+    # Any changes to this property need application server restart.
+    showD2TasksOnly=true
+    
+    # Set this to true is Workflows are attached with TBO.
+    #workflowWithTBO=false
+    
+    # Set this to true  if you want D2 to process the things even if the performer of workflow
+    # does not have access to the workflow attachment due to some acl change in the system but
+    # document is still present in the repository.
+    checkForMissingDocInWorkflow=true
+    
+    # Maximum result set size for Tasks widget when viewing the user's tasks,
+    # Note: Limiting the task list size would have an impact on the task folder displayed in the Task browser.
+    # If unset, default value == maxResultSetSize
+    #maxTaskResultSetSize=100
+    
+    # Setting this to false will ignore the $USER,$NOW ,$TODAY ..etc and user_preference locale changes of the user
+    # Group Task:
+    # 	It shows the same subject to all the users on specific task.
+    # 	Subject computation would happen based on the first user who views the task(In case of the group task)
+    # 	Creation of Task folders for respective users in the group tasks would be done only when the user load the task browser
+    # User Task:
+    #   A single subject is displayed for all the locales of the user
+    #Default value is true
+    #taskSubjectRecomputation=false
+    
+    # Maximum result set size for Workflow listing.
+    # If unset, default value == maxResultSetSize
+    #maxWorkflowResultSetSize=100
+    
+    #################################
+    #       Virtual Documents       #
+    #################################
+    # Use cases:
+    #
+    # 1. For a VD with a first child as simple document, adding a grandchild makes the first child a VD.
+    #    Performing a cancelCheckout on first child should convert the first child to a Simple document.
+    # 2. To convert a VD to a simple document on cancelCheckout action using context Menu option.
+    #
+    # If specified as true, a VD will be converted to a Simple document on cancelCheckout action.
+    # If not specified or specified as false, a VD will not be converted to a Simple document on cancelCheckout action.
+    # Any changes to this property need application server restart.
+    #cancelCheckoutVdConversionToSimpleDoc = true
+    
+    # UseCase: Parent_Doc(user having permit 7)--> child_Doc(user having permit 5) --> grandChild_doc(user having any permit 5 or 7)
+    # If Specified and true : A user with Version permit would not be allowed to convert a simple doc to VD and will get a failure message of insufficient access.
+    # If not specified or specified with false : A user having Version permit on a simple can convert it to a VD.On adding a grandchild_doc the child_Doc will be converted to VD.
+    #noConversionToVdWithVersionPermit = true
+    
+    # Validates Delegation creation on creation of new OOO delegation to see if any delegation already created for the given date range
+    #validateDelegationCreation=true
+    
+    #################################
+    #       Monitoring Dialog       #
+    #################################
+    # Hides Monitoring dialog to be displayed in D2. (This option overrides all the configurations on the "Monitoring" menu item and hides it when true.)
+    #hideMonitoringDialogForAdmin = false
+    
+    #################################
+    #	    Delegate Users          #
+    #################################
+    # Loads the Delegate to users list asynchronously
+    #loadDelegateToUsersAsynchronously=false
+    
+    ###########################################
+    #       Recently Accessed Templates       #
+    ###########################################
+    # Specify the maximum number of recently accessed templates that should be stored in the repository.
+    # These templates are used at document creation time. If not specified, a default value of 10 will be used.
+    maxEntriesForRecentlyUsedTemplates=10
+    
+    #################################
+    #       Creation profiles       #
+    #################################
+    # Specify the maximum folder depth level from the cabinet level when displaying creation profiles
+    # If commented out, a value of 0 is understood.  Any integral value is valid, and a negative value
+    # means that the maximum folder depth level is effectively infinite.
+    maxFolderDepthForCreationProfiles=4
+    
+    # Specify the maximum number of recently used profile records to be shown in the UI. Default is 5
+    #maxEntriesForRecentlyUsedProfiles=
+    
+    # Specify the maximum number of preset profile records to be shown in the UI. Default is 8
+    #maxEntriesForPresetProfiles=
+    
+    ####################################################
+    #       DCC / Core Integration Configuration       #
+    ####################################################
+    # To integrate with Core Share, configure the properties in this section, and also ensure that following properties
+    # are configured in D2 Keystore: dcc.user, dcc.password, core.clientId, core.clientSecret
+    
+    # Auth URL for Core OAuth2 integration. Default value is https://sso.core.opentext.com/otdsws/login
+    #coreOAuth2AuthUrl=
+    
+    # Access token URL for Core OAuth2 integration. Default value is https://sso.core.opentext.com/otdsws/oauth2/token
+    #coreOAuth2AccessTokenUrl=
+    
+    # Allow Core Login UI to be displayed within IFrame inside D2 UI. If value is not provided, then it defaults to true
+    #coreOAuth2UIwithinIFrame=
+    
+    # DCC Url for Shared to Core
+    # Any changes to this property need application server restart.
+    #dccUrl=
+    
+    ######################################################################################
+    #       BravaCSR Viewer Annotations ChangemarkConfig and Raster/Images Support       #
+    ######################################################################################
+    # Uncomment the following properties while configuring changemarks and rasters to support BravaCSRViewer Annotations
+    
+    # Folder in repository where images for image annotation are stored.
+    # If this property is commented out, no server-side images will be fetched.
+    #bravacsrViewerImageDirectory=/System/BravaCSRViewer/Images
+    
+    # Formats to be filtered for inside bravacsrViewerImageDirectory.
+    # If this property is commented out, the list of included formats defaults to bmp,gif,jpeg,png.
+    #bravacsrViewerImageFormats=bmp,gif,jpeg,png
+    
+    # Location of changemark config file in repository
+    #bravacsrViewerChangemarkConfig=/System/BravaCSRViewer/config/ChangemarkConfig.xml
+    
+    ################################################
+    #       BravaCSR Viewer Chunking Support       #
+    ################################################
+    #Uncomment the following properties to add chunking support in BravaCSRViewer
+    # Flag to indicate whether page chunking should be allowed or not
+    # (Default = false)
+    #bravacsrViewerAllowChunking = false
+    
+    # Even when chunking is allowed, it is triggered only when either file size is more than "filesizeMB", or total number of
+    # pages in the file is more than "pageCount"
+    # (Default = 5)
+    #bravacsrViewerChunkingTriggerFilesizeMB = 5
+    # (Default = 15)
+    #bravacsrViewerChunkingTriggerPagecount = 15
+    
+    # Number of pages to download in one chunk
+    # (Default = 5)
+    #bravacsrViewerChunkingChunksize = 5
+    
+    #For existing documents with missing metadata to support chunking,
+    #we queue up a profile request just in time when the document is accessed in bravaCSRViewer.
+    # (Default = true)
+    #justInTimePDFChunkingValidation = true
+    
+    ####################### END of BravaCSRViewer related options
+    
+    # Allow C2 protected native content to be fetched by users with read permission
+    enableC2Override=false
+    
+    #ENABLE or DISABLE the dump service 
+    #Values --> true|false, default --> false
+    #eg : enableDump=true
+    enableDump=
+    
+    #Users in the listed groups are allowed to perform a dump 
+    #Multiple groups can be configured, comma separated
+    #No group listed means all users are allowed to perform a dump if enableDump=true
+    #dumpGroupNames=group1,group2
+    dumpGroupNames=
+    
+    
+    ################################################
+    #   D2Rest/D2SV User Profile Image Support     #
+    ################################################
+    #Specify the applicable image formats/extension for user profile image for upload
+    #userProfileImageExtensions=bmp,jpeg,jpg,png,gif
+    
+    ####################################################
+    #   Allow detailed error in D2 Rest error response #
+    ####################################################
+    # By setting this property as false, the D2-Rest prevents sending details in the error response
+    # Default value is false (By default D2-Rest will be emptying details in error response)
+    # Possible values are true|false
+    #allowDetailedError=
+    
+    
+    ####################################################
+    #   Workflow Reporting Timeout
+    ####################################################
+    # UI to start showing popup for long running workflow search query.
+    # Default value = 60 seconds.
+    # Value to be specified in Seconds
+    #workflowReportingTimeout=
+    
+    #################################
+    #           Mass Update         #
+    #################################
+    # Specify the number of objects which can accept for mass update property page property expansion functionality
+    # If the number of object id for the request is greater than below property value then expansion won't work
+    # This means, D2-Rest won't be sending property value for each object ID.
+    # The default value is 1000
+    #maxObjectsForMassUpdatePropertyFetch=
+    
+    #######################################################
+    # User defined Client Product Name for End User Audit #
+    #######################################################
+    # This property is used for end user tracking and auditing purposes.
+    # Default value for this property is D2-Smartview.
+    # If this property is assigned with a different product name (eg : Life Sciences R&D) and X-CLIENT-APPLICATION-NAME header is either
+    # empty or not passed in the request then this assigned property value will be considered and 
+    # will be appended to the default product name.(eg : D2-Smartview(Life Sciences R&D) )
+    #
+    #clientProductName=
+    
+    # This configuration is used to restrict normal user from browsing internal cabinets like System and Resources
+    # These cabinets need to be accessible to the application hence ACL's should not be modified to restrict the access
+    # Multiple cabinets can be configured, comma separated
+    internalCabinets=System,Resources
+    
+    # Users in the listed groups are allowed to access the internalCabinets
+    # Multiple groups can be configured, comma separated
+    # No group listed means no user is allowed to access internalCabinets above-mentioned unless user is a superuser/sysadmin
+    # internalCabinetsAccessGroups=group1,group2
+    internalCabinetsAccessGroups=
+    
+    # Determines whether to enable message logging for Http client outbound requests and inbound responses.
+    # Currently it supports Request/Response logging for digital signature provider.
+    # To enable message logging, you also have to enable the DEBUG logging level.
+    # The default value is false
+    #httpClientMessageLoggingEnabled=false
+    
+    #ENABLE or DISABLE the markup migration
+    #Values --> true|false, default --> false
+    #eg : enableMarkupMigrationToIV=true
+    enableMarkupMigrationToIV=
+    
+    #By default we do not perform autolink during copy and paste of a content , so the default value is false for this property.
+    #In order to apply autolink during copy and paste of a content, this property should be uncommented and set to true.
+    #copyPasteWithAutolink=false
+
+{{- $configFileOverridesFile := printf "%s/%s" .Values.configFileOverrideFilesDir "D2FS.properties" }}
+{{- $configFileMsg0 := printf "\n\n##### Begin lines added from %s\n" $configFileOverridesFile }}
+{{- $configFileMsg1 := printf "##### End lines added from %s" $configFileOverridesFile }}
+{{- $configFileLinesToAppend := .Files.Get $configFileOverridesFile }}
+{{- if $configFileLinesToAppend }}
+{{ $configFileMsg0 | indent 4 }}
+{{ $configFileLinesToAppend | indent 4 }}
+{{ $configFileMsg1 | indent 4 }}
+{{- end }}

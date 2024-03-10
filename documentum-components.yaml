@@ -1,0 +1,125 @@
+#-------------------------------------------   Capabilities:     -----------------------------------------
+#Document Management: Boost productivity with easy-to-find, reliably managed and simple to share content
+#Governance & Protection: Deliver comprehensive lifecycle management for critical enterprise information
+#---------------------------------------------------------------------------------------------------------
+
+#Documentum Server, Documentum Content Storage Services, Documentum High-Volume Server, Documentum Trusted Content Services, Documentum Retention Policy Services 
+#OTDS
+otds:
+  enabled: false
+dctm-server:
+  docbroker:
+    enabled: true
+  content-server:
+    enabled: true
+  
+#-------------------------- Start - Infrastructure Components ---------------------------  
+  cs-secrets:
+    enabled: true
+
+  cs-logging-configMap:
+    enabled: true
+  
+  cs-dfc-properties:
+    enabled: true
+  
+  dctm-ingress:
+    enabled: true  
+
+  db:
+    enabled: true
+
+#-------------------------- End - Infrastructure Components ---------------------------    
+
+#-------------------------------------------   Capabilities:     -----------------------------------------
+#Start - External Sharing & Collaboration: Foster teamwork, share knowledge and drive efficiency
+#---------------------------------------------------------------------------------------------------------
+  #Documentum Connector for Core
+  dctm-dcc:
+    enabled: false  
+    
+#-------------------------------------------   Capabilities:     -----------------------------------------
+#Integration with Microsoft: Fuse content, collaboration and processes to amplify productivity and drive results
+#---------------------------------------------------------------------------------------------------------
+
+  #Documentum Content Connect
+  contentconnect:
+    enabled: false   
+
+#-------------------------------------------   Capabilities:     -----------------------------------------
+#Extensibilty and APIs: Expand and customize Documentum with simple-to-use developer tools
+#---------------------------------------------------------------------------------------------------------
+  #Documentum Rest
+  dctm-rest:
+    enabled: false
+
+  #Documentum Foundation Services
+  dfs:
+    enabled: false 
+    
+  #Documentum Content Management Interoperability Services
+  dctm-cmis:
+    enabled: false
+ 
+#-------------------------------------------   Capabilities:     -----------------------------------------
+#Workflow & Automation: Create a foundation for an intelligent and connected enterprise
+#---------------------------------------------------------------------------------------------------------
+  #Documentum Workflow
+  dctm-workflow-designer:
+    enabled: false 
+ 
+  #Documentum Administrator
+  da:
+    enabled: false
+    
+  #Documentum Records
+  records:
+    enabled: false
+  rqm:
+    enabled: false  
+  #Documentum Reports  
+  dtrbase:
+    enabled: false
+    
+#Documentum xPlore
+xplore:
+  enabled: false
+  
+#Documentum D2+Pack
+d2classic:
+  enabled: false
+d2config:
+  enabled: false
+d2rest:
+  enabled: false
+d2smartview:
+  enabled: false
+
+#D2 Mobile/Appworks Gateway
+appworks-gateway:
+  enabled: false
+
+#-------------------------------------------   Capabilities:     -----------------------------------------
+#Workflow & Automation: Create a foundation for an intelligent and connected enterprise
+#---------------------------------------------------------------------------------------------------------
+ 
+bps:
+  enabled: false
+
+xda:
+  enabled: false   
+  
+#-------------------------------------------   Capabilities:     -----------------------------------------
+#External Sharing & Collaboration: Foster teamwork, share knowledge and drive efficiency
+#---------------------------------------------------------------------------------------------------------
+smartviewm365:  
+    #Documentum Teams Integration 
+    enabled: false
+  
+#-------------------------------------------   Capabilities:     -----------------------------------------
+#Viewing & Transformation: Robust, reliable, in-place document viewing, mark-up and transformation for any file type
+#---------------------------------------------------------------------------------------------------------
+
+#Intelligent Viewer
+otiv:
+  enabled: false

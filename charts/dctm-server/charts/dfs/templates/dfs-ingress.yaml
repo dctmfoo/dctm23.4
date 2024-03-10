@@ -1,0 +1,18 @@
+##Service
+#apiVersion: extensions/v1beta1
+#kind: Ingress
+#metadata:
+#  name: {{ .Values.serviceName }}-ingress
+#  annotations:
+#    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+#    kubernetes.io/ingress.class: nginx
+#spec:
+#  rules:
+#  - host: <ingress-host>
+#    http:
+#      paths:
+#      - backend:
+#          serviceName: {{ .Values.serviceName }}
+#          servicePort: 8080
+#        path: /
+    

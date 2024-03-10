@@ -1,0 +1,10 @@
+content-server:
+     extraInitContainers:
+     - name: dctm-reports-installer
+       image: artifactory.otxlab.net/bpdockerhub/dctm-reports-installer:22.4.2
+       imagePullPolicy: Always
+       command: ['/bin/sh', '-c', 'yes |cp -rf /opt/dtr_build/* /opt/dctm_docker/customscriptpvc/']
+       volumeMounts:
+       - name: dcs-data-pvc
+         mountPath: /opt/dctm_docker/customscriptpvc 
+         subPath: initcontainercustomscripts/<sname>dcs-pg

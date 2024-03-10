@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "base.resource.name" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "publisher.name" . }}
+    helm.sh/chart: {{ include "publisher.chart" . }}
+    app.kubernetes.io/instance: {{ include "base.resource.name" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ include "base.resource.name" . }}
+      app.kubernetes.io/name: {{ include "publisher.name" . }}
+      app.kubernetes.io/instance: {{ include "base.resource.name" . }}
+      hazel: brava
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include "config.secret.checksum" . }}
+      labels:
+        app: {{ include "base.resource.name" . }}
+        app.kubernetes.io/name: {{ include "publisher.name" . }}
+        app.kubernetes.io/instance: {{ include "base.resource.name" . }}
+        hazel: brava
+        hazelcast: cvt
+      {{- if (include "is.ocp" .) }}
+        opentext.com/chart-hash: {{ printf "%063d" 0 }}
+      {{- end }}
+        {{- include "otiv.custom.labels" . }}
+    spec:
+      {{- with .Values.hostAliases }}
+      hostAliases:
+{{ toYaml . | indent 6 }}
+      {{- end }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      {{- template "topology.spread" . }}
+      {{- template "ocp.service.account" . }}
+    {{- if and (not .Values.global.usingServiceMesh) (include "is.iv" .) }}
+      serviceAccountName: otiv-asecret-sa
+      initContainers:
+      {{ template "init.otds.container" . }}
+    {{- end }}
+      containers:
+        - name: {{ include "base.resource.name" . }}
+          image: {{ include "image.source.path" . }}
+          imagePullPolicy: {{ include "image.pull.policy" . }}
+          securityContext:
+            allowPrivilegeEscalation: false
+          ports:
+          - name: hazelcast
+            containerPort: {{ .Values.global.hazelport }}
+          - name: http
+            containerPort: {{ .Values.service.targetPort }}
+            protocol: TCP
+          env:
+          {{ include "env.secrets" . }}
+          {{ template "pg.rb.env.passwords" . }}
+          - name: VERTX_CLUSTER_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          {{ template "env.resource" . }}
+          envFrom:
+          - configMapRef:
+              name: {{ include "base.resource.name" . }}-configmap
+          {{- template "resources.cpu.memory" . }}
+          {{- template "cvt.probes" . }}
+          {{- if .Values.command }}
+          command: {{ .Values.command }}
+          {{- end }}
+          {{- if (include "is.iv" .) }}
+          volumeMounts:
+          - mountPath: /var/mkondo/fs-0
+            name: bas-data
+          {{- end }}
+        {{ template "cloud.sql.proxy.container" . }}
+    {{- if .Values.global.imagePullSecret }}
+      imagePullSecrets:
+      - name: {{ .Values.global.imagePullSecret }}
+    {{- end }}
+      {{ template "transformation.grace.period" . }}
+    {{- if (include "is.iv" .) }}
+      volumes:
+        - name: bas-data
+          persistentVolumeClaim:
+            claimName: otiv-bas
+    {{- end }}

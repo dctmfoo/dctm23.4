@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.serviceName }}-configmap
+data:
+{{- $files := .Files }}
+{{- range .Values.configurationFiles }}
+  {{ . }}: |-
+{{ $files.Get .  | indent 4 }}
+{{- end }}

@@ -1,0 +1,224 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.deployment.name }}
+  labels:
+    app: {{ .Values.deployment.appName }}
+spec:
+  strategy:
+    type: {{ .Values.deployment.strategyType }}
+  replicas: {{ .Values.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.deployment.appName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.deployment.appName }}
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.serviceAccountName }}
+      {{- if .Values.images.da.imagePullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.images.da.imagePullSecrets }}
+      {{ end }}
+      containers:
+      {{- if eq .Values.images.graylog.enable true }}
+      - name: {{ .Values.images.graylog.name }}
+        image: {{.Values.images.graylog.image}}
+        imagePullPolicy: {{ .Values.images.graylog.pullPolicy }}
+        env:
+        - name: GRAYLOG_SERVER
+          value: {{ quote .Values.images.graylog.server }}
+        - name: GRAYLOG_PORT
+          value: {{ quote .Values.images.graylog.port }}
+        - name: TAGS
+          value: {{ quote .Values.images.graylog.tags }}
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NAMESPACE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        volumeMounts:
+          - name: shared-data
+            mountPath: /pod-data
+      {{ end }}
+      - name: {{ .Values.containers.da.name }}
+        image: {{ .Values.images.da.repository }}/{{ .Values.images.da.name }}:{{ .Values.images.da.tag }}
+        imagePullPolicy: {{ .Values.images.da.pullPolicy }}
+        env:
+        - name: DA_EXT_CONF
+          value: "{{ .Values.containers.da.externalFolderPath }}"
+        - name: KUBERNETES
+          value: "{{ .Values.containers.da.kubernetes }}"        
+        - name: DFC_GLOBALREGISTRY_PASSWORD
+          valueFrom:
+            secretKeyRef:              
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: globalRegistryPassword
+        - name: DFC_SSL_TRUSTSTORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: csCertTrustPassword
+        - name: PREFERPASS
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: preferencePassword
+        - name: PRESETPASS
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: presetPassword
+        - name: INSTALL_OWNER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: installOwner
+        - name: INSTALL_OWNER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+               name: {{ .Values.cs.csSecretConfigName }}
+               key: installOwnerPassword
+        - name: DOCBASE_NAME
+          value: {{ quote .Values.containers.da.docbaseName }}
+        # dctmreports env parameters
+        {{- if eq .Values.dctmreports.enable true }}
+        - name: DCTM_REPORTS_ENABLE
+          value: {{ quote .Values.dctmreports.enable }}
+        - name: DCTM_REPORTS_HOST
+          value: {{ quote .Values.dctmreports.url }}
+         {{ end }}  
+        # newrelic env parameters
+        {{- if eq .Values.newrelic.enable true }}
+        - name: NEW_RELIC_AGENT_ENABLED
+          value: {{ quote .Values.newrelic.enable }}
+        - name: NEW_RELIC_APP_NAME
+          value: {{ quote .Values.newrelic.appName }}        
+        - name: NEW_RELIC_LICENSE_KEY
+          valueFrom:
+            secretKeyRef:              
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: {{ .Values.newrelic.licenseKeyName }}          
+        {{- if .Values.newrelic.proxyHost }}
+        - name: NEW_RELIC_PROXY_HOST
+          value: {{ quote .Values.newrelic.proxyHost }}
+        {{ end }}
+        {{- if .Values.newrelic.proxyPort }}
+        - name: NEW_RELIC_PROXY_PORT
+          value: {{ quote .Values.newrelic.proxyPort }}
+        {{ end }}        
+        {{- if .Values.newrelic.proxyScheme }}
+        - name: NEW_RELIC_PROXY_SCHEME
+          value: {{ quote .Values.newrelic.proxyScheme }}
+        {{ end }}
+        {{ end }}
+        - name: ALLOW_TRUSTED_LOGIN
+          value: {{ quote .Values.cs.allowTrustedLogin }}
+        {{- if eq .Values.certificate.useCertificate true }}        
+        - name: USE_CERTIFICATE
+          value: {{ quote .Values.certificate.useCertificate }}
+        - name: TRUST_STORE_PASSWORD        
+          valueFrom: 
+            secretKeyRef:
+              name: {{ .Values.cs.csSecretConfigName }}
+              key: dbrCertpassword
+        {{ end }}
+        volumeMounts:         
+        - name: nfs-data
+          mountPath: {{ .Values.containers.da.externalFolderPath }}
+          subPath: da          
+        - name: dfc-properties-configmap
+          mountPath: {{ .Values.containers.da.externalFolderPath }}/dfc.properties
+          subPath: dfc.properties
+        - name: da-logging-configmap
+          mountPath: {{ .Values.containers.da.externalFolderPath }}/log4j2.properties
+          subPath: log4j2.properties
+        - name: da-appproperties-configmap
+          mountPath: {{ .Values.containers.da.externalFolderPath }}/app.properties
+          subPath: app.properties
+        {{- if eq .Values.otds.enable true }}
+        - name: da-otdsproperties-configmap
+          mountPath: {{ .Values.containers.da.externalFolderPath }}/otdsoauth.properties
+          subPath: otdsoauth.properties
+        {{ end }}
+        {{- if eq .Values.images.graylog.enable true }}
+        - name: shared-data
+          mountPath: /opt/tomcat/logs
+          subPath: logs/tomcat
+        - name: shared-data  
+          mountPath: {{ .Values.images.graylog.userhomedir }}/documentum/logs
+          subPath: logs/da
+        {{ end }}
+        {{- if eq .Values.certificate.useCertificate true }}
+        - name: {{ .Values.certificate.dbrDataPVCName }}
+          mountPath: /opt/dctm/certificate
+          subPath: certificate/{{ .Values.certificate.dbrDataPVCName }}
+        {{ end }}
+        resources:
+          requests:
+             memory: {{ .Values.resources.requests.memory | quote  }}
+             cpu: {{ .Values.resources.requests.cpu | quote  }}
+          limits:
+             memory: {{ .Values.resources.limits.memory | quote  }}
+             cpu: {{ .Values.resources.limits.cpu | quote  }}
+        ports:
+        - containerPort: {{ .Values.containers.da.containerPort }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.containers.da.probing.healthPath }}
+            port: {{ .Values.containers.da.probing.healthPort }}
+          initialDelaySeconds: {{ .Values.containers.da.probing.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.containers.da.probing.readinessProbe.periodSeconds }}
+          failureThreshold: {{ .Values.containers.da.probing.failureThreshold }}
+          successThreshold: {{ .Values.containers.da.probing.successThreshold }}
+          timeoutSeconds: {{ .Values.containers.da.probing.timeoutSeconds }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.containers.da.probing.healthPath }}
+            port: {{ .Values.containers.da.probing.healthPort }}
+          initialDelaySeconds: {{ .Values.containers.da.probing.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.containers.da.probing.livenessProbe.periodSeconds }}
+          failureThreshold: {{ .Values.containers.da.probing.failureThreshold }}
+          successThreshold: {{ .Values.containers.da.probing.successThreshold }}
+          timeoutSeconds: {{ .Values.containers.da.probing.timeoutSeconds }}
+      volumes:
+      {{- if eq .Values.images.graylog.enable true }}
+      - name: shared-data
+        emptyDir: {} 
+      {{ end }}
+      - name: dfc-properties-configmap
+      {{- if eq .Values.cs.useCSDfcConfigMap true }}
+        configMap:
+          name: {{ .Values.cs.configMapName}}
+      {{ else }}
+        configMap:
+          name: {{ .Values.deployment.name}}-dfcproperties-configmap
+      {{ end }}
+      - name: da-logging-configmap
+        configMap:
+          name: {{ .Values.deployment.name }}-logging-configmap
+      - name: da-appproperties-configmap
+        configMap:
+          name: {{ .Values.deployment.name }}-appproperties-configmap
+      {{- if eq .Values.otds.enable true }}
+      - name: da-otdsproperties-configmap
+        configMap:
+          name: {{ .Values.deployment.name }}-otdsproperties-configmap
+      {{ end }}
+      - name: nfs-data
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistentVolumeClaim.pvcName }}
+      {{- if eq .Values.certificate.useCertificate true }}
+      - name: {{ .Values.certificate.dbrDataPVCName }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.certificate.dbrServiceName }}-pvc
+      {{ end }}
+      restartPolicy: Always

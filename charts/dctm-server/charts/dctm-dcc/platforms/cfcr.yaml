@@ -1,0 +1,38 @@
+#These are specific configuration values passed for CFCR. Other values for dctm-ingress still need to be configured in main values.yaml only
+consul:
+  ingress:
+    host: <Consul_Host, E.g. consul.dcc.cfcr-lab.bp-paas.otxlab.net>
+    uipath: ui
+    backendpath: v1
+    
+syncagent:
+  ingress:
+    host: <Syncagent_Host, E.g. syncagent.dcc.cfcr-lab.bp-paas.otxlab.net>
+    path: syncagent
+
+syncnshareManual:
+  ingress:
+    host: <Syncagent_Manual_Host, E.g. syncagentmanual.dcc.cfcr-lab.bp-paas.otxlab.net>
+    path: syncnshare-manual
+
+pvc:
+  createPV: false
+    
+ingress:
+  #platform
+  platform: CFCR
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-hash: sha1
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+  domain: <domain of host, E.g. dcc.cfcr-lab.bp-paas.otxlab.net>
+  tls:
+    #set enabled as true if tls needs to be enabled.
+    enabled: false
+    secretName: ssl-secret
+    tlscrt: <Base 64 encoded certificate>
+    tlskey: <Base 64 enconded key>

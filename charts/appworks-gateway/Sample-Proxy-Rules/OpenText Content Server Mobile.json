@@ -1,0 +1,42 @@
+{
+  "rules": [
+    {
+      "id": "1673",
+      "name": "Sample OpenText Content Server Mobile",
+      "whitelist": [
+        "(?i)^(llisapi\\.dll|otcs|img|BravaServer)(/.*|$)"
+      ],
+      "blacklist": [
+        {
+          "match": "\\.\\./",
+          "responseCode": 400,
+          "location": null
+        }
+      ],
+      "urlRules": [
+        {
+          "match": "(?i)^(BravaServer)/?(.*|$)",
+          "replace": "http://host:port/BravaServer/$2",
+          "sort": 0,
+          "continue": false
+        },
+        {
+          "match": "(?i)^(otcs/llisapi\\.dll|llisapi\\.dll)/?(.*|$)",
+          "replace": "http://host:port/otcs/llisapi.dll/$2",
+          "sort": 1,
+          "continue": false
+        },
+        {
+          "match": "(?i)^(img)/?(.*|$)",
+          "replace": "http://host:port/img/$2",
+          "sort": 2,
+          "continue": false
+        }
+      ],
+      "outgoingRules": [],
+      "enabled": false,
+      "sort": 10,
+      "enableOAuth": false
+    }
+  ]
+}

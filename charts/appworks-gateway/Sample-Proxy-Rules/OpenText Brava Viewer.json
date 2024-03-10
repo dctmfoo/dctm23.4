@@ -1,0 +1,52 @@
+{
+  "rules": [
+    {
+      "id": "1653",
+      "name": "Sample OpenText Brava Viewer",
+      "whitelist": [
+        "(?i)^(img/brava.*)",
+        "(?i)^(otcs/livelink\\.exe\\?isbravarequest=true&func=brava.*)",
+        "(?i)^(BravaServer/.*|$)",
+        "(?i)^(otcs/livelink\\.exe\\?func=brava\\..*)",
+        "(?i)^(otcs/livelink\\.exe)$"
+      ],
+      "blacklist": [],
+      "urlRules": [
+        {
+          "match": "(?i)^(img/brava.*)",
+          "replace": "http://cs.myhost.com:8080/$1",
+          "sort": 1,
+          "continue": false
+        },
+        {
+          "match": "(?i)^(otcs/livelink\\.exe\\?func=brava\\..*)",
+          "replace": "http://cs.myhost.com:8080/$1",
+          "sort": 2,
+          "continue": false
+        },
+        {
+          "match": "(?i)^(otcs/livelink\\.exe\\?isbravarequest=true&func=brava.*)",
+          "replace": "http://cs.myhost.com:8080/$1",
+          "sort": 3,
+          "continue": false
+        },
+        {
+          "match": "(?i)^(BravaServer)/(.*)",
+          "replace": "http://cs.myhost.com:8080/$1/$2",
+          "sort": 4,
+          "continue": false
+        },
+        {
+          "match": "(?i)^(otcs/livelink\\.exe)$",
+          "replace": "http://cs.myhost.com:8080/$1",
+          "sort": 5,
+          "continue": false
+        }
+      ],
+      "outgoingRules": [],
+      "enabled": false,
+      "sort": 8,
+      "enableOAuth": true
+    }
+  ]
+}

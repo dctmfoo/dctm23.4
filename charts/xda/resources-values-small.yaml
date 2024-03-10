@@ -1,0 +1,11 @@
+#Persistent Volume Details
+persistentVolume:
+  size: 1Gi
+#resources
+resources:
+  limits:
+    cpu: 2000m
+    memory: 8Gi
+  requests:
+    cpu: 1000m
+    memory: 4Gi

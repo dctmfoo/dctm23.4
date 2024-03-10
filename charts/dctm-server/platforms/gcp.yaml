@@ -1,0 +1,30 @@
+#These are specific configuration values passed for GCP. Other values for dctm-ingress still need to be configured in main values.yaml only
+dctm-ingress:
+  platform: gcp
+  class: nginx  
+  ingress:       
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"      
+      nginx.ingress.kubernetes.io/affinity: cookie
+      nginx.ingress.kubernetes.io/session-cookie-hash: sha1
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "60" 
+      
+contentconnect:
+  platform: gcp  
+  ingress:  
+    class: nginx 
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      nginx.ingress.kubernetes.io/affinity: cookie
+      nginx.ingress.kubernetes.io/session-cookie-hash: sha1
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+      
+content-server:
+  platform: gcp    
+  
+docbroker:
+  platform: gcp  

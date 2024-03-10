@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.cps.name }}
+spec:
+  clusterIP: None
+  ports:
+  - name: cps-port
+    port: {{ .Values.service.cps.port }}
+    targetPort: {{ .Values.service.cps.targetPort }}
+    protocol: TCP
+  selector:
+    xplore/app: {{ .Values.service.cps.name }}
+    xplore/name: {{ .Chart.Name }}
+    xplore/release: {{ .Release.Name }}
+    

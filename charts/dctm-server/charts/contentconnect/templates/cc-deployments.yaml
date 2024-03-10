@@ -1,0 +1,109 @@
+##########################################################
+# Deployments for OpenText Content Connect
+# Access only available within kubernetes cluster
+# Update the docker image(s) below to the desired image
+##########################################################
+
+
+##########################################################
+# Postgres DB for OpenText Content Connect
+##########################################################
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.deployment.name }}
+  namespace: {{ .Values.namespace}}
+  labels: 
+    app: {{ .Values.deployment.app }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.deployment.app }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.deployment.app }}
+    spec: 
+{{- if .Values.images.pullSecrets }}
+      imagePullSecrets:
+      - name: {{ .Values.images.pullSecrets }}
+{{ end }}
+
+{{- if eq .Values.contentconnectdb.value true }}        
+      initContainers: 
+      - name: {{ .Values.dbdeployment.name }}
+        image: {{ .Values.images.ccdb.repository }}/{{ .Values.images.ccdb.name }}:{{ .Values.images.ccdb.tag }}
+        imagePullPolicy: {{ .Values.images.ccdb.pullPolicy }}
+        env:                
+         - name: DB_IP
+           value: {{ .Values.configmap.DB_IP }}
+         - name: DB_PORT
+           value: {{ .Values.configmap.DB_PORT | quote }}
+         - name: DB_PASSWORD
+           value: {{ .Values.secret.DB_PASSWORD }}
+         - name: DB_USERNAME
+           value: {{ .Values.configmap.DB_USERNAME }}
+        command: ["/bin/sh","-c","./csdb_startup.sh && node initialize.js dbconfig $${DB_IP} $${DB_PORT} {{ .Values.configmap.DB_DB }} $${DB_USERNAME} $${DB_PASSWORD} {{ .Values.configmap.DB_TYPE }} && node initialize.js tablespace {{ .Values.configmap.DB_TABLESPACE_NAME }} && sleep 1m && node initialize.js adminuser"]
+{{ end }} 
+      serviceAccountName: {{ .Values.serviceAccount.serviceAccountName }}
+      containers:
+      
+      - name: {{ .Values.deployment.containername }}
+        image: {{ .Values.images.cc.repository }}/{{ .Values.images.cc.name }}:{{ .Values.images.cc.tag }}  
+        imagePullPolicy: {{ .Values.images.cc.pullPolicy }}
+        env:                
+         - name: NEW_RELIC_APP_NAME
+           value: {{ .Values.newrelic.new_relic_app_name | quote }}
+         - name: NEW_RELIC_LICENSE_KEY
+           value: {{ .Values.newrelic.new_relic_license_key | quote }}         
+         - name: NEW_RELIC_NO_CONFIG_FILE
+           value: {{ .Values.newrelic.new_relic_no_config_file | quote }}
+         - name: NEW_RELIC_PROXY_URL
+           value: {{ .Values.newrelic.new_relic_proxy_protocol}}://{{.Values.newrelic.new_relic_proxy_host}}:{{.Values.newrelic.new_relic_proxy_port }} 
+         - name: NEW_RELIC_ENABLED
+           value: {{ .Values.newrelic.new_relic_enabled | quote }} 
+         - name: GRAYLOG_ENABLE
+           value: {{ .Values.graylog.enable | quote }}
+         - name: DB_IP
+           value: {{ .Values.configmap.DB_IP }}
+         - name: DB_PORT
+           value: {{ .Values.configmap.DB_PORT | quote }}
+         - name: DB_PASSWORD
+           value: {{ .Values.secret.DB_PASSWORD }}
+         - name: DB_USERNAME
+           value: {{ .Values.configmap.DB_USERNAME }}
+        command: ["/bin/sh","-c","node initialize.js dbconfig $${DB_IP} $${DB_PORT} {{ .Values.configmap.DB_DB }} $${DB_USERNAME} $${DB_PASSWORD} {{ .Values.configmap.DB_TYPE }} && node initialize.js cloud true && node initialize.js adminservice {{ .Values.configmap.authType }} {{ .Values.configmap.otdsClientID }} {{ .Values.configmap.otdsUrl }} && node initialize.js graphconfig {{ .Values.configmap.clientId }} {{ .Values.configmap.clientSecret }} {{ .Values.configmap.tenantId }} && node initialize.js ccextension {{ .Values.configmap.extension }} && node initialize.js updateprotocol {{ .Values.configmap.protocol }} && sleep 1m && node UsertableUpgrade.js  && node CloudDbMigration.js && mkdir -m777 /usr/src/app/Content_Connect/dist/   && npm run-script gulp ContentConnect && node postInstallScript.js && chmod -R 775 /usr/src/app/Content_Connect/dist && node postInstallScript.js &&  npm run-script gulp cc_webserver "]
+
+        resources:
+{{ toYaml .Values.resources | indent 12 }}
+        readinessProbe:
+          httpGet:
+            path: "/{{ .Values.configmap.extension }}/service/health-check"
+            port: {{ .Values.deployment.ports.containerport2 }}
+          initialDelaySeconds: {{ .Values.deployment.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.deployment.readinessProbe.periodSeconds }}
+          failureThreshold: {{ .Values.deployment.readinessProbe.failureThreshold }}
+          successThreshold: {{ .Values.deployment.readinessProbe.successThreshold }}
+          timeoutSeconds: {{ .Values.deployment.readinessProbe.timeoutSeconds }}
+        livenessProbe:
+          httpGet:
+            path: "/{{ .Values.configmap.extension }}/service/health-check"
+            port: {{ .Values.deployment.ports.containerport2 }}
+          initialDelaySeconds: {{ .Values.deployment.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.deployment.livenessProbe.periodSeconds }}
+        startupProbe:
+          httpGet:
+            path: "/{{ .Values.configmap.extension }}/service/health-check"
+            port: {{ .Values.deployment.ports.containerport2 }}
+          initialDelaySeconds: {{ .Values.deployment.startupProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.deployment.startupProbe.periodSeconds }}
+          failureThreshold: {{ .Values.deployment.startupProbe.failureThreshold }}
+          successThreshold: {{ .Values.deployment.startupProbe.successThreshold }}
+          timeoutSeconds: {{ .Values.deployment.startupProbe.timeoutSeconds }}
+        ports:
+        - containerPort: {{ .Values.deployment.ports.containerport1 }}
+        - containerPort: {{ .Values.deployment.ports.containerport2 }}
+
+        

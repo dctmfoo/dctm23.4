@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.serviceName }}-dfs-config
+  labels:
+    name: {{ .Values.serviceName }}-dfs-config
+data:
+  log4j: |-
+    rootLogger.level = {{ .Values.log4j.rootLogLevel }}
+    rootLogger.appenderRefs = A1, F1
+    rootLogger.appenderRef.A1.ref = STDOUT
+    rootLogger.appenderRef.F1.ref = File
+    monitorInterval = 5
+    
+    loggers=rt_rolling,datamodel_rolling,services_rolling,tools_rolling
+    # LOG LEVELS
+    # OFF > FATAL > ERROR > WARN > INFO > DEBUG > TRACE > ALL
+
+    logger.rt_rolling.name = com.emc.documentum.fs.rt
+    logger.rt_rolling.level = {{ .Values.log4j.rtLogLevel }}
+    logger.rt_rolling.additivity = true
+    logger.rt_rolling.appenderRefs = rt_rolling
+    logger.rt_rolling.appenderRef.rt_rolling.ref = File
+
+    logger.datamodel_rolling.name = com.emc.documentum.fs.datamodel
+    logger.datamodel_rolling.level = {{ .Values.log4j.datamodelLogLevel }}
+    logger.datamodel_rolling.additivity = true
+    logger.datamodel_rolling.appenderRefs = datamodel_rolling
+    logger.datamodel_rolling.appenderRef.datamodel_rolling.ref = File
+
+    logger.services_rolling.name = com.emc.documentum.fs.services
+    logger.services_rolling.level = {{ .Values.log4j.servicesLogLevel }}
+    logger.services_rolling.additivity = true
+    logger.services_rolling.appenderRefs = services_rolling
+    logger.services_rolling.appenderRef.services_rolling.ref = File
+    
+    logger.tools_rolling.name = com.emc.documentum.fs.tools
+    logger.tools_rolling.level = {{ .Values.log4j.toolsLogLevel }}
+    logger.tools_rolling.additivity = true
+    logger.tools_rolling.appenderRefs = tools_rolling
+    logger.tools_rolling.appenderRef.tools_rolling.ref = File
+    
+    logger.FILE_TRACE.name = com.emc.documentum.fs.tracing
+    logger.FILE_TRACE.level = {{ .Values.log4j.traceLogLevel }}
+    logger.FILE_TRACE.additivity = true
+    logger.FILE_TRACE.appenderRefs = FILE_TRACE
+    logger.FILE_TRACE.appenderRef.FILE_TRACE.ref = FileTrace
+    #------------------- CONSOLE --------------------------
+    appender.A1.type=Console
+    appender.A1.name=STDOUT
+    appender.A1.layout.type=PatternLayout
+    appender.A1.layout.pattern=%d{ABSOLUTE} %5p [%t] %c - %m%n
+    appender.A1.filter.threshold.type = ThresholdFilter
+    appender.A1.filter.threshold.level = DEBUG
+    #------------------- FILE --------------------------
+    appender.F1.type=RollingFile
+    appender.F1.name=File
+    appender.F1.fileName=/opt/tomcat/logs/dfs-runtime.log
+    appender.F1.filePattern=/opt/tomcat/logs/dfs-runtime-%d{yyyy-MM-dd}-%i.log.gz
+    appender.F1.layout.type=PatternLayout
+    appender.F1.layout.pattern=%d{ABSOLUTE} %5p [%t] %c - %m%n
+    appender.F1.policies.type=Policies
+    appender.F1.policies.time.type=TimeBasedTriggeringPolicy
+    appender.F1.policies.time.interval=1
+    appender.F1.policies.time.modulate=true
+    appender.F1.policies.size.type=SizeBasedTriggeringPolicy
+    appender.F1.policies.size.size=10MB
+    appender.F1.strategy.type=DefaultRolloverStrategy
+    appender.F1.strategy.max=5
+    #------------------- CATEGORY TRACE FILE --------------------------
+    appender.FILE_TRACE.type=RollingFile
+    appender.FILE_TRACE.name=FileTrace
+    appender.FILE_TRACE.fileName=/opt/tomcat/logs/dfs-runtime-trace.log
+    appender.FILE_TRACE.filePattern=/opt/tomcat/logs/dfs-runtime-trace-%d{yyyy-MM-dd}-%i.log.gz
+    appender.FILE_TRACE.layout.type=PatternLayout
+    appender.FILE_TRACE.layout.pattern=%d{ABSOLUTE} %5p [%t] %c - %m%n
+    appender.FILE_TRACE.policies.type=Policies
+    appender.FILE_TRACE.policies.time.type=TimeBasedTriggeringPolicy
+    appender.FILE_TRACE.policies.time.interval=1
+    appender.FILE_TRACE.policies.time.modulate=true
+    appender.FILE_TRACE.policies.size.type=SizeBasedTriggeringPolicy
+    appender.FILE_TRACE.policies.size.size=100MB
+    appender.FILE_TRACE.strategy.type=DefaultRolloverStrategy
+    appender.FILE_TRACE.strategy.max=5
+
+
+  dfc: |-
+    dfc.data.dir={{ .Values.dfc.dataDir }}
+    dfc.security.keystore.file=${dfc.data.dir}/dfc.keystore
+    dfc.docbroker.host[0]={{ .Values.dfc.docbroker }}
+    dfc.docbroker.port[0]={{ .Values.dfc.port }}
+    dfc.session.secure_connect_default={{ .Values.dfc.connectionMode }}
+    dfc.crypto.repository={{ .Values.dfc.cryptoRepository }}
+    dfc.globalregistry.repository={{ .Values.dfc.globalRegistryRepository }}
+    dfc.globalregistry.username={{ .Values.dfc.globalRegistryUsername }}
+    dfc.globalregistry.password={{ .Values.dfc.globalRegistryPassword }}
+    
+    # below two properties are used for SchemaService performance 
+    dfc.cache.type.currency_check_interval=86400
+    dfc.cache.ddinfo.size=10000
+    
+    # below properties are used for end user and event hub functionalities
+    dfc.client.should_use_enduserinfo={{ .Values.dfc.client.should_use_enduserinfo }}
+    dfc.client.should_use_eventhub={{ .Values.dfc.client.should_use_eventhub }}
+    dfc.client.eventhub.log_level={{ .Values.dfc.client.eventhub.log_level }}
+    dfc.client.eventhub.queue_size={{ .Values.dfc.client.eventhub.queue_size }}
+    {{- range .Values.dfc.additionalProperties }}
+    {{ . }}
+    {{- end }}

@@ -1,0 +1,31 @@
+{{- if hasKey .Values.image "pgInitContainer" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name:   awg-pg-init-container-config-map
+  labels: {{ include "appworks-gateway.labels" . | nindent 4 }}
+data:
+  {{- if hasKey .Values "database" }}
+  PGHOST: {{ .Values.database.server.host }}
+  PGPORT: {{ .Values.database.server.port | quote }}
+  PGDATABASE: {{ .Values.database.admin.database }}
+  PGUSER: {{ .Values.database.admin.user }}
+  PGSSLMODE: prefer
+  # Timeout is in seconds
+  PGCONNECT_TIMEOUT: "30"
+
+  PGNEWDATABASE: {{ .Values.database.appworksdb.database }}
+  PGNEWUSER: {{ .Values.database.appworksdb.user }}
+  {{- else }}
+  PGHOST: {{ .Values.postgres.server.host }}
+  PGPORT: {{ .Values.postgres.server.port | quote }}
+  PGDATABASE: {{ .Values.postgres.admin.database }}
+  PGUSER: {{ .Values.postgres.admin.user }}
+  PGSSLMODE: prefer
+  # Timeout is in seconds
+  PGCONNECT_TIMEOUT: "30"
+
+  PGNEWDATABASE: {{ .Values.postgres.appworksdb.database }}
+  PGNEWUSER: {{ .Values.postgres.appworksdb.user }}
+  {{- end}}
+{{- end }}

@@ -1,0 +1,916 @@
+#CS StatefulSet
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+   name: {{ .Values.serviceName }}
+spec:
+  serviceName: {{ .Values.serviceName }}
+  replicas: {{ .Values.contentserver.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.serviceName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.serviceName }}
+    spec:
+{{- if .Values.images.pullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.images.pullSecrets }}
+{{ end }}
+      serviceAccountName: {{ .Values.serviceAccount.serviceAccountName }}
+{{ if eq .Values.custom.useInitContainers true }}
+      initContainers:
+{{- if .Values.extraInitContainers }}
+{{ toYaml .Values.extraInitContainers | indent 6 }}
+{{- end }}
+{{- end }}
+
+      containers:
+# Fluentd Section Starts
+{{ if eq .Values.fluentd_service.enable true }}
+      - name: fluentd-sidecar-{{ .Values.serviceName }}
+        image: {{ .Values.fluentd_service.image | quote }}
+        imagePullPolicy: {{ .Values.fluentd_service.pullPolicy }}
+        readinessProbe:
+          exec: {
+            command: [
+              bash,
+                -c,
+                /fluentd-setup/scripts/fluentd_readiness.sh
+            ]            
+          }
+          initialDelaySeconds: 120
+          periodSeconds: 60
+          failureThreshold: 2
+          timeoutSeconds: 60
+{{ if eq .Values.fluentd_service.liveness.enable true }}
+        livenessProbe:
+          exec: {
+            command: [
+              bash,
+              -c,
+              /fluentd-setup/scripts/fluentd_liveliness.sh
+            ]            
+          }
+          initialDelaySeconds: 240
+          periodSeconds: 120
+          failureThreshold: 2
+          timeoutSeconds: 60
+{{ end }}
+        env:
+        - name: KUBERNETES
+          value: "true"
+        - name: FLUENTD_TCP_PORT
+          value: {{ .Values.fluentd_service.TCPPort | quote }}
+        - name: FLUENTD_REST_PORT
+          value: {{ .Values.fluentd_service.RESTPort | quote }}
+        - name: FLUENTD_LOG_FOLDER_PATH
+          value: fluentd-logging
+        - name: FLUENTD_CONFIG_MAP_PATH
+          value: fluentd-config-map
+        volumeMounts:
+        - mountPath: /fluentd-logging
+          name: fluentd-data-logs
+        - mountPath: /fluentd-config-map/config_map
+          name: fluentdconfig-map
+        ports:
+        - containerPort: {{ .Values.fluentd_service.TCPPort }}
+          name: fluentdtcpport
+        - containerPort: {{ .Values.fluentd_service.RESTPort }}
+          name: fluentdrestport
+        - containerPort: {{ .Values.fluentd_service.UDPPort }}
+          name: fluentdudpport
+{{ end }}
+# Fluentd Section Ends
+
+{{ if eq .Values.graylog.enable true }}
+      - name: graylog-sidecar-{{ .Values.serviceName }}
+        image: {{ .Values.graylog.image | quote }}
+        imagePullPolicy: {{ .Values.graylog.imagePullPolicy }}
+        env:
+        - name: GRAYLOG_SERVER
+          value: {{ .Values.graylog.server | quote }}
+        - name: GRAYLOG_PORT
+          value: {{ .Values.graylog.port | quote }}
+{{ if eq .Values.graylog.isnewGraylog false }}
+        - name: TAGS
+          value: "[\"linux\",\"apache\"]"
+{{ end }}
+{{ if eq .Values.graylog.isnewGraylog true }}
+        - name: GRAYLOG_SERVICE_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: graylogtoken
+{{ end }}
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NAMESPACE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        volumeMounts:
+          - name: shared-logs
+            mountPath: /pod-data
+{{ end }}
+      - name: {{ .Values.serviceName }}
+{{ if eq .Values.oracle.isoracleimage true }}
+        image: {{ .Values.images.repository }}/{{ .Values.images.contentserver.name }}/csorcldbimage:{{ .Values.images.contentserver.tag }}
+{{ else }}
+        image: {{ .Values.images.repository }}/{{ .Values.images.contentserver.name }}:{{ .Values.images.contentserver.tag }}
+{{ end }}
+        imagePullPolicy: {{ .Values.images.pullPolicy }}
+        readinessProbe:
+          exec: {
+            command: [
+              bash,
+              -c,
+              {{ .Values.contentserver.readinessScript }}
+            ]            
+          }
+          initialDelaySeconds: 60
+          periodSeconds: {{ .Values.contentserver.readiness.periodSeconds }}
+          failureThreshold: 2
+          successThreshold: 1
+          timeoutSeconds: 60
+{{- if .Values.contentserver.liveness.enable }}
+        livenessProbe:
+          exec: {
+            command: [
+              bash,
+              -c,
+              {{ .Values.contentserver.livenessScript }}
+            ]            
+          }
+          initialDelaySeconds: {{ .Values.contentserver.liveness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.contentserver.liveness.periodSeconds }}
+          failureThreshold: {{ .Values.contentserver.liveness.failureThreshold }}
+          timeoutSeconds: 60
+{{ end }}
+        env:
+        - name: KUBERNETES
+          value: "true"
+{{ if eq .Values.oracle.isoracleimage true }}
+        - name: DB_TYPE
+          value: "oracle"
+        - name: P12_WALLET_FILE_NAME
+          value: {{ .Values.oracle.p12walletFileName }}
+        - name: SSO_WALLET_FILE_NAME
+          value: {{ .Values.oracle.ssoWalletFileName }}        
+{{ end }}
+{{ if eq .Values.fluentd_service.enable true }}
+        - name: EVENT_HUB_FLUENTD_PORT
+          value: {{ .Values.fluentd_service.TCPPort | quote }}
+        - name: EVENT_HUB_FLUENTD_UDP_PORT
+          value: {{ .Values.fluentd_service.UDPPort | quote }}
+        - name: FLUENTD_SERVICE_ENABLED
+          value: {{ .Values.fluentd_service.enable | quote }}
+        - name: DFC_EVENT_LOG_LEVEL
+          value: {{ .Values.fluentd_service.DFCLogLevel | quote }}
+{{ end }}
+        - name: DOCBROKERS_COUNT
+          value: {{ .Values.contentserver.docbrokersCount | quote}}
+        - name: DOCBROKER_SERVICE_NAME
+          value: {{ .Values.docbroker.serviceName  }}
+        - name: DOCBROKER_CLUSTER_SPACE
+          value: {{ .Values.docbroker.clusterSpace  }}
+        - name: DOCBROKER_PORT
+          value: {{ .Values.docbroker.port | quote }}        
+        - name: CONTAINER_NAME
+          value: {{ .Values.serviceName }}
+        - name: DATABASE_HOST
+          value: {{ .Values.database.host  }}
+        - name: DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: dbUserName
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: dbPassword
+        - name: DATABASE_SERVER_PORT
+          value: {{ .Values.database.port | quote }}
+        - name: DATABASE_SERVICE_NAME
+          value: {{ .Values.database.databaseServiceName  }}
+        - name: DATABASE_SSL_SUPPORT
+          value: {{ .Values.database.sslEnabled | quote }}
+        - name: DATABASE_SSL_CERTIFICATE
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: dbCertificate
+        - name: DATABASE_SSL_MODE
+          value: {{ .Values.database.sslMode | quote }}
+        - name: DATABASE_SSL_CERT_PATH
+          value: {{ .Values.database.sslCertPath | quote }}
+        - name: DATABASE_PAAS_ENV
+          value: {{ .Values.database.paasEnv | quote }}
+        - name: DOCBASE_OWNER_DATABASE_PASSWORD_CHANGE
+          value: {{ .Values.database.docbaseOwnerPasswordChange | quote }}          
+        - name: ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: rootPassword
+        - name: INSTALL_OWNER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: installOwner
+        - name: INSTALL_OWNER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: installOwnerPassword
+        - name: DOCBASE_NAME
+          value: {{ .Values.docbase.name  }}
+        - name: DOCBASE_OWNER_NAME
+          value: {{ .Values.docbase.owner }}
+        - name: DOCBASE_CONNECT_MODE
+          value: {{ .Values.contentserver.connectMode | quote }}
+        - name: USE_EXISTING_DATABASE_ACCOUNT
+          value: {{ .Values.docbase.existing | quote }}
+        - name: OLD_MIG_HOSTNAME
+          value: {{ .Values.migration.oldhostname | quote  }}
+        - name: OLD_DOCUMENTUM
+          value: {{ .Values.migration.oldDocumentumHome | quote  }}
+        - name: MIGRATECS
+          value: {{ .Values.migration.migratecs | quote  }}
+        - name: MIGRATECS_FROM_WINDOWS
+          value: {{ .Values.migration.migfromwindows | quote  }}
+        - name: JMS_VERSION
+          value: {{ .Values.contentserver.jmsVersion }}
+        - name: JMS_MEM_SETTING
+          value: {{ .Values.contentserver.jmsMemSetting }}
+        - name: DM_LEFT_OUTER_JOIN_FOR_ACL
+          value: {{ .Values.contentserver.enableLeftOuterJoinForAcl | quote }}
+        - name: INDEXSPACE_NAME
+          value: {{ .Values.docbase.index }}
+        - name: FULLTEXT_ENGINE_SSVC_ENABLE
+          value: {{ .Values.contentserver.fulltextEngineSSVCEnable | quote  }}
+        - name: GLOBAL_REGISTRY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: globalRegistryPassword
+        - name: GLOBAL_REPOSITORY_NAME
+          value: {{ .Values.globalRepository.globalRepositoryName  }}
+        - name: GLOBAL_REPOSITORY_DOCBROKER_PORT
+          value: {{ .Values.globalRepository.globalRepositoryDocbrokerPort | quote }}
+        - name: GLOBAL_REPOSITORY_DOCBROKER_HOST
+          value: {{ .Values.globalRepository.globalRepositoryDocbrokerHost  }}
+        - name: AEK_PASSPHRASE
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: aekPassphrase
+        - name: OLD_AEK_PASSPHRASE
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: oldaekPassphrase
+        - name: AEK_ALGORITHM
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: aekAlgorithm
+        - name: DOCBASE_REPLICA_COUNT
+          value: {{ .Values.contentserver.replicaCount | quote  }}
+        - name: AEK_NAME
+          value: {{ .Values.contentserver.aek.name  }}
+        - name: AEK_LOCATION
+          value: {{ .Values.contentserver.aek.location }}
+{{ if eq .Values.contentserver.aek.shareKey true }}
+        - name: SHARE_KEY
+          value: "true"
+{{ end }}
+        - name: KMS_URL
+          value: {{ .Values.contentserver.kms.url }}
+        - name: KMS_MASTER_KEY_ID
+          value: {{ .Values.contentserver.kms.masterkey_id }}
+        - name: KMS_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: kmsApiKey
+        - name: CONFIGURE_THUMBNAIL_SERVER
+          value: {{ .Values.thumbnailServer.configure | quote  }}
+        - name: USER_MEM_ARGS
+          value: {{ .Values.thumbnailServer.userMemArgs  }}
+        - name: APP_SERVER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: appServerAdminPassword
+        - name: DOCBASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: docbasePassword
+        - name: VALIDATE_FQDN
+          value: {{ .Values.contentserver.validateFQDN | quote  }}
+        - name: DOCBASE_ID
+          value: {{ int .Values.docbase.id | quote }}
+        - name: THUMBNAIL_SERVER_PORT
+          value: {{ .Values.ports.tnsport | quote  }}
+        - name: THUMBNAIL_SERVER_SSL_PORT
+          value: {{ .Values.ports.tnssslport | quote }}        
+        - name: CONTENTSERVER_PORT
+          value: {{ .Values.ports.docbaseport | quote  }}
+        - name: USE_DEFAULT_SPACE
+          value: {{ .Values.contentserver.useDefaultSpace | quote  }}      
+        - name: RECORD_MANAGER_LICENSE
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: docbaseLicensesRecordManager
+        - name: PRM_LICENSE
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: docbaseLicensesPRM
+        - name: FED_RECD_SERVICE_LICENSE
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: docbaseLicensesFedRecdService
+        - name: RPS_LICENSE
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: docbaseLicensesRPS 
+        - name: SNAPLOCKSTORE_LICENSE
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: docbaseLicensesSnaplockstore
+        - name: STORAGEAWARE_LICENSE
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: docbaseLicensesStorageaware
+        - name: TRUSTED_LICENSE
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: docbaseLicensesTrusted
+        - name: HIGH_VOLUME_SERVER_LICENSE
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: docbaseLicensesHighVolumeServer
+        - name: JMS_HOST
+          value: {{ .Values.ingress.host }}
+        - name: INGRESS_PROTOCOL
+          value: {{ .Values.ingress.protocol }}
+        - name: DISABLE_UPDATE_ACS_URL
+          value: {{ .Values.ingress.disableUpdateAcsUrl | quote}}
+        - name: TNS_HOST
+          value: {{ .Values.ingress.host }}
+        - name: JMS_PROTOCOL
+          value: {{ .Values.contentserver.jmsProtocol }}          
+{{- if .Values.contentserver.liveness.enable }}
+        - name: CONSIDER_JMS_FOR_LIVENESS_PROBE
+          value: {{ .Values.contentserver.liveness.considerJMSForLiveness | quote}}
+        - name: CONSIDER_BPM_FOR_LIVENESS_PROBE
+          value: {{ .Values.contentserver.liveness.considerBPMForLiveness | quote}}
+{{ end }}
+        - name: CONSIDER_BPM_FOR_READINESS_PROBE
+          value: {{ .Values.contentserver.readiness.considerBPMForReadiness | quote}}
+        - name: TNS_PROTOCOL
+          value: {{ .Values.thumbnailServer.tnsProtocol }}          
+        - name: LAUNCH_CSREGR
+          value: {{ .Values.qaTest.launchCSregr | quote }}
+        - name: CONFIG_NAME_OPTION
+          value: {{ .Values.otds.configNameOption }}
+        - name: OTDS_SSL
+          value: {{ .Values.otds.ssl | quote }}
+        - name: CONFIGURE_OTDS
+          value: {{ .Values.otds.configureOTDS | quote}}
+        - name: CONFIGURE_DAR_INSTALL
+          value: {{ .Values.contentserver.configureDarInstall | quote}}
+        - name: SECRETS_CHANGE
+          value: {{ .Values.contentserver.secretsChange | quote}}
+        - name: OTDS_API_SVC
+          value: {{ .Values.otds.otdsAPIsvc }}
+        - name: OTDS_USERS_CLIENT_CAPABILITY
+          value: {{ .Values.otds.clientCapability | quote}}
+        - name: OTDS_USERS_PRIVILEGES
+          value: {{ .Values.otds.userPrivileges | quote}}
+        - name: OTDS_USERS_XPRIVILEGES
+          value: {{ .Values.otds.userXPrivileges | quote}}
+        - name: OTDS_USER_RENAME_ENABLED
+          value: {{ .Values.otds.userRenameEnabled | quote}}
+        - name: OTDS_USER_RENAME_UNLOCK_LOCKEDOBJ
+          value: {{ .Values.otds.userRenameUnlockLockedObject | quote}}
+        - name: OTDS_GROUP_RENAME_ENABLED
+          value: {{ .Values.otds.groupRenameEnabled | quote}}
+        - name: CERT_AUTO_REFRESH
+          value: {{ .Values.otds.auto_cert_refresh | quote}}
+        - name: CERT_JWKS_URL
+          value: {{ .Values.otds.cert_jwks_url | quote}}
+        - name: UPDATE_OTDSCERT_RESTART
+          value: {{ .Values.otds.updateOTDScertonrestart | quote}}
+        - name: PASSAUTH_USE_OAUTH2_TOKEN
+          value: {{ .Values.otds.passauth_use_oauth2_token | quote}}
+        - name: CLIENT_ID
+          value: {{ .Values.otds.client_id }}
+        - name: CLIENT_SECRET
+          value: {{ .Values.otds.client_secret }}
+        - name: OTDS_REST_OAUTH2_URL
+          value: {{ .Values.otds.otds_rest_oauth2_url }}
+        - name: SYNCED_USER_LOGIN_NAME
+          value: {{ .Values.otds.synced_user_login_name }}
+        - name: IS_HYBRID
+          value: {{ .Values.otds.is_hybrid | quote}}
+        - name: MAX_REPLICA
+          value: {{ .Values.contentserver.max_replica | quote }}
+        - name: EXT_DBR_PROJECTION_ENABLE
+          value: {{ .Values.ExtCS.enable | quote }}        
+        - name: EXT_DBR_DOCBROKER_PORT
+          value: {{ .Values.ExtCS.extDbrPort | quote }}
+        - name: CS_EXT_SERVICE_NAME
+          value: {{ .Values.ExtCS.tcp_route | quote }}
+        - name: CS_EXT_SERVICE_PORT
+          value: {{ .Values.ExtCS.nativeExtPort | quote }}
+        - name: CS_EXT_IP_ADDRESS
+          value: {{ .Values.ExtCS.isExtIPAddress | quote }}
+        - name: CS_LOCALE_NAME
+          value: {{ .Values.contentserver.localeName | quote }}          
+        - name: CUST_SCRIPT_EXE
+          value: {{ .Values.custom.scriptExecute | quote }}
+        - name: CUST_SCRIPT_IN_PVC
+          value: {{ .Values.custom.scriptinPVC | quote }}
+        - name: LOG_ROTATE_ENABLE
+          value: {{ .Values.logrotate.enable | quote }}
+        - name: LOG_ROTATE_INTERVAL_MIN
+          value: {{ .Values.logrotate.interval | quote }}
+        - name: LOG_CLEANUP_ENABLE
+          value: {{ .Values.logcleanup.enable | quote }}
+        - name: LOG_CLEANUP_INTERVAL_MIN
+          value: {{ .Values.logcleanup.interval | quote }}
+        - name: SESSIONLOG_CLEANUP_INTERVAL_MIN
+          value: {{ .Values.logcleanup.sessionlogcleanupinterval | quote }}
+        - name: ROOT_SQUASH_ENABLED
+          value: "true"
+        - name: USE_MONITORING_FORBPMLOG
+          value: {{ .Values.logging.bpm.enable | quote}}
+        - name: USE_MONITORING_FORD2LOGBACK
+          value: {{ .Values.logging.d2.logback.enable | quote}}
+      {{- if .Values.custom.scriptinPVC }}
+        - name: CUST_SCRIPT_VERSIONS
+          value: {{ .Values.custom.versions }}
+        - name: CUST_SCRIPT_MARKER_FILES
+          value: {{ .Values.custom.markerFiles }}
+      {{- end }}
+        - name: USE_INITCONTAINERS
+          value: {{ .Values.custom.useInitContainers | quote }}
+{{ if eq .Values.certificate.customUpgrade.enable true }}
+        - name: SET_TRY_NATIVE_FIRST
+          value: {{ .Values.certificate.customUpgrade.nativeFirst | quote }}
+{{ end }}
+{{ if eq .Values.certificate.use_certificate true }}
+        - name: DOCBASE_USE_CERTIFICATES
+          value: {{ .Values.certificate.use_certificate | quote }}
+        - name: DOCBASE_CERT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: csCertPassword
+        - name: DFC_SSL_TRUSTSTORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: csCertTrustPassword
+        - name: DOCBASE_PEM_CERT_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: csCertPemCertPrivKey
+        - name: DOCBASE_PEM_CERTIFICATE
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: csCertPemCertificate
+        
+{{ end }}
+      {{- if .Values.newrelic.enable }}
+        - name: NEWRELIC_ENABLE
+          value: {{ .Values.newrelic.enable | quote  }}
+        - name: NEWRELIC_APP_NAME
+          value: {{ .Values.newrelic.app_name }}.{{ .Release.Namespace }}
+        - name: NEWRELIC_PROXY_HOST
+          value: {{ .Values.newrelic.proxy_host }}
+        - name: NEWRELIC_C_APP_NAME
+          value: {{ .Values.newrelic.c_app_name }}
+        - name: NEWRELIC_PROXY_PROTOCOL
+          value: {{ .Values.newrelic.proxy_protocol }}
+        - name: NEWRELIC_PROXY_PORT
+          value: {{ .Values.newrelic.proxy_port | quote  }}
+        - name: NEWRELIC_LICENSE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: newrelicLicensekey
+      {{- end }}      
+      {{- if .Values.s3Store.enable }}
+      ### Environment variables for multipart upload
+      {{- if .Values.s3Store.multiPartEnable }}
+        - name: MULTIPART_ENABLE
+          value: {{ .Values.s3Store.multiPartEnable | quote }}
+        - name: MULTIPART_THREAD_NUM
+          value: {{ .Values.s3Store.numThreads | quote }}
+      {{- end }}
+        - name: S3_STORE_ENABLE
+          value: {{ .Values.s3Store.enable | quote }}
+        - name: S3_STORE_DEFAULT
+          value: {{ .Values.s3Store.default | quote }}
+        - name: S3_STORE_NAME
+          value: {{ .Values.s3Store.name }}
+        - name: S3_STORE_PROXY_HOST
+          value: {{ .Values.s3Store.proxyHost }}
+        - name: S3_STORE_PROXY_PORT
+          value: {{ .Values.s3Store.proxyPort | quote }}
+        - name: S3_STORE_UPDATE
+          value: {{ .Values.s3Store.updateExistingStore | quote }}
+      {{- if eq .Values.s3Store.updateExistingStore true }}
+        - name: S3_STORE_PROXY_HOST_UPDATE
+          value: {{ .Values.s3Store.proxyHostUpdate }}
+        - name: S3_STORE_PROXY_PORT_UPDATE
+          value: {{ .Values.s3Store.proxyPortUpdate | quote }}
+        - name: S3_STORE_LIST_UPDATE
+          value: {{ .Values.s3Store.storeListUpdate | quote }}
+      {{- end }}
+        - name: S3_STORE_PROXY_PROTOCAL
+          value: {{ .Values.s3Store.proxyProtocal }}
+        - name: S3_STORE_NO_PROXY
+          value: {{ .Values.s3Store.noProxy | quote }}
+        - name: S3_STORE_ISWORM
+          value: {{ .Values.s3Store.isworm | quote }}
+      {{- if eq .Values.s3Store.isworm true }}
+        - name: S3_STORE_VENDOR
+          value: {{ .Values.s3Store.vendor }}
+        - name: S3_STORE_REGION
+          value: {{ .Values.s3Store.region }}
+      {{- end }} 
+        - name: S3_MD5_ENABLE
+          value: {{ .Values.s3Store.enable_md5 | quote }}
+        - name: S3_V4SIGNING_ENABLE
+          value: {{ .Values.s3Store.enable_v4signing | quote }}    
+        - name: S3_STORE_BASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: s3StoreBaseUrl
+        - name: S3_STORE_CREDENTIAL_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: s3StoreCredentialID
+        - name: S3_STORE_CREDENTIAL_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: s3StoreCredentialKEY
+        - name: S3_SSL_CERTIFICATE
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: s3sslCertificate
+   
+      {{- end }}
+      {{- if .Values.restStore.enable }}
+        - name: REST_STORE_ENABLE
+          value: {{ .Values.restStore.enable | quote }}
+        - name: REST_STORE_DEFAULT
+          value: {{ .Values.restStore.default | quote }}
+        - name: REST_STORE_NAME
+          value: {{ .Values.restStore.name | quote }}
+        - name: REST_STORE_PROXY_HOST
+          value: {{ .Values.restStore.proxyHost | quote }}
+        - name: REST_STORE_PROXY_PORT
+          value: {{ .Values.restStore.proxyPort | quote }}
+        - name: REST_STORE_PROXY_PROTOCAL
+          value: {{ .Values.restStore.proxyProtocal | quote }}
+        - name: REST_STORE_NO_PROXY
+          value: {{ .Values.restStore.noProxy | quote }}
+        - name: REST_STORE_TYPE
+          value: {{ .Values.restStore.restStoreType | quote }}
+        - name: REST_STORE_BASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: restStoreBaseUrl
+        - name: REST_STORE_CREDENTIAL_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: restStoreCredentialID
+        - name: REST_STORE_CREDENTIAL_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: restStoreCredentialKEY
+        - name: REST_AZURE_STORE_SSL_CERT
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: azureStoresslCertificate
+        - name: REST_GCP_STORE_SSL_CERT
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: gcpStoresslCertificate
+      {{- end }}
+
+      {{- if .Values.restStore.enable }}
+        - name: GCP_STORE_ENABLE
+          value: {{ .Values.gcpStore.enable | quote }}
+        - name: GCP_STORE_CREDENTIALS
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: gcpStorecredentials
+      {{- end }}
+        - name: DM_SECRETLIB_PATH
+          value: "/opt/dctm/secret-library"
+        - name: EMAIL_NOTIFICATION
+          value: {{ .Values.email.notification | quote }}
+      {{- if .Values.email.configure }}
+        - name: CONFIGURE_EMAIL
+          value: {{ .Values.email.configure | quote }}
+        - name: SMTP_SERVER
+          value: {{ .Values.email.smtpServer | quote }}
+        - name: SMTP_PORT
+          value: {{ .Values.email.smtpPort | quote }}
+        - name: SMTP_AUTH
+          value: {{ .Values.email.smtpAuth | quote }}
+        - name: SMTP_SSL
+          value: {{ .Values.email.smtpSSL | quote }}
+        - name: SMTP_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name | quote }}
+              key: smtpUser
+        - name: SMTP_PASS
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name | quote }}
+              key: smtpPass        
+        - name: SMTP_SSL_CERTIFICATE
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name | quote }}
+              key: smtpSSLCertificate  
+        - name: EMAIL_ADDRESS
+          value: {{ .Values.email.emailAddress | quote }}
+      {{- end }}
+        - name: IS_EXTERNAL_USER_ENABLED
+          value: {{ .Values.contentserver.externalUserEnable | quote  }}
+
+{{- if .Values.extraEnv }}
+{{ toYaml .Values.extraEnv | indent 8 }}
+{{- end }}
+        ports:
+        - containerPort: {{ .Values.ports.docbaseport }}
+          name: docbaseport
+        - containerPort: {{ .Values.ports.docbasesslport }}
+          name: docbasesslport                                  
+        - containerPort: {{ .Values.ports.jmsport }}
+          name: jmsport
+        - containerPort: {{ .Values.ports.tnsport }}
+          name: tnsport
+        - containerPort: {{ .Values.ports.tnssslport }}
+          name: tnssslport
+        volumeMounts:
+        - mountPath: /opt/dctm/odbc
+          name: {{ .Values.volumeClaimTemplate.vctName }}
+          subPath: odbc
+        - mountPath: /opt/dctm/dba/auth
+          name: {{ .Values.volumeClaimTemplate.vctName }}
+          subPath: dba/auth
+        - mountPath: /opt/dctm/dba/config
+          name: {{ .Values.volumeClaimTemplate.vctName }}
+          subPath: dba/config
+        - mountPath: /opt/dctm/dba/java_methods
+          name: {{ .Values.volumeClaimTemplate.vctName }}
+          subPath: dba/java_methods
+        - mountPath: /opt/dctm/dba/secure
+          name: {{ .Values.volumeClaimTemplate.vctName }}
+          subPath: dba/secure
+{{ if eq .Values.certificate.use_certificate true }}
+        - mountPath: /opt/dctm/certificate
+          name: {{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+          subPath: certificate/{{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+{{ end }}
+        - mountPath: /opt/dctm/kube
+          name: {{ .Values.volumeClaimTemplate.vctName }}
+          subPath: kube          
+        - mountPath: /opt/dctm/share
+          name: {{ .Values.persistentVolume.csdataPVCName }}
+          subPath: share/{{ .Values.serviceName }}
+{{- if .Values.custom.enableBPMPVC }}
+        - mountPath: /opt/dctm/{{ .Values.contentserver.jmsVersion }}/webapps/bpm
+          name: {{ .Values.persistentVolume.csdataPVCName }}
+          subPath: deployments/{{ .Values.serviceName }}
+{{- end }}
+        - mountPath: /opt/dctm/config
+          name: {{ .Values.volumeClaimTemplate.vctName }}
+          subPath: config
+        - mountPath: /opt/dctm/mdserver_conf
+          name: {{ .Values.volumeClaimTemplate.vctName }}
+          subPath: mdserverconf
+        - mountPath: /opt/dctm/product/{{ .Values.contentserver.csVersion }}/thumbsrv/conf
+          name: {{ .Values.volumeClaimTemplate.vctName }}
+          subPath: thumb/conf
+        - mountPath: /opt/dctm/product/{{ .Values.contentserver.csVersion }}/thumbsrv/container/webapps/thumbsrv/WEB-INF
+          name: {{ .Values.volumeClaimTemplate.vctName }}
+          subPath: thumb/webinf
+        - mountPath: /opt/dctm/data
+          name: {{ .Values.persistentVolume.csdataPVCName }}
+          subPath: data/{{ .Values.serviceName }}
+{{- if .Values.migration.migratecs }}
+        - mountPath: /opt/dctm/migdba
+          name: {{ .Values.persistentVolume.csdataPVCName }}
+          subPath: dba_mig/{{ .Values.serviceName }}
+{{- end }}
+{{- if eq .Values.custom.scriptinPVC true }}
+        - mountPath: /opt/dctm_docker/customscriptpvc
+          name: custom-script-pvc
+          subPath: {{ .Values.custom.PVCSubPath }}
+{{- end }}
+{{- if and (eq .Values.custom.useInitContainers true) (eq .Values.custom.scriptinPVC false) }}
+        - mountPath: /opt/dctm_docker/customscriptpvc
+          name: {{ .Values.persistentVolume.csdataPVCName }}
+          subPath: initcontainercustomscripts/{{ .Values.serviceName }}
+{{- end }}
+        - mountPath: /opt/dctm_docker/cstests
+          name: {{ .Values.persistentVolume.csdataPVCName }}
+          subPath: cstests/testdriver/{{ .Values.serviceName }}         
+        - mountPath: /opt/dctm/dba/log
+          name: shared-logs
+          subPath: dba
+        - mountPath: /opt/dctm/{{ .Values.contentserver.jmsVersion }}/logs
+          name: shared-logs
+          subPath: DctmServer_MethodServer/logs
+        - mountPath: /opt/dctm/product/{{ .Values.contentserver.csVersion }}/install/logs/
+          name: shared-logs
+          subPath: install
+        - mountPath: /dctm/product/{{ .Values.contentserver.csVersion }}/thumbsrv/container/logs
+          name: shared-logs
+          subPath: thumbsrv_container
+        - mountPath: /opt/dctm/product/{{ .Values.contentserver.csVersion }}/thumbsrv/configurator/logs
+          name: shared-logs
+          subPath: thumbsrv_configurator
+        - mountPath: /opt/dctm/logs
+          name: shared-logs
+          subPath: dfc
+        - mountPath: /opt/dctm_docker/cs_logging_config/config_map
+          name: cs-logging-configmap
+        - mountPath: /opt/dctm_docker/cs_logging_config/config_map_acs
+          name: acs-log4j-properties-volume          
+        - mountPath: /opt/dctm_docker/cs_logging_config/config_map_serverapps
+          name: serverapps-log4j-properties-volume
+        - mountPath: /opt/dctm_docker/cs_logging_config/config_map_otdsauth
+          name: otdsauth-log4j-properties-volume
+        - mountPath: /opt/dctm_docker/cs_logging_config/config_map_dmotdsrest
+          name: dmotdsrest-log4j-properties-volume
+        - mountPath: /opt/dctm_docker/cs_logging_config/config_map_saml
+          name: saml-log4j-properties-volume
+        - mountPath: /opt/dctm_docker/cs_logging_config/config_map_oauth
+          name: oauth-log4j-properties-volume
+{{- if .Values.logrotate.enable }}
+        - mountPath: /opt/dctm_docker/cs_logging_config/logrotate
+          name: logrotate-volume
+{{- end }}
+{{- if .Values.logging.d2.logback.enable }}
+        - mountPath: /opt/dctm_docker/cs_logging_config/d2logback
+          name: d2-logback-volume
+{{- end }}
+{{- if .Values.logging.bpm.enable }}                          
+        - mountPath: /opt/dctm_docker/cs_logging_config/config_map_bpm
+          name: bpm-log4j-properties-volume         
+{{- end }}
+{{ if eq .Values.contentserver.aek.shareKey true }}
+        - mountPath: /opt/dctm/shared_key
+          name: {{ .Values.serviceName }}-sharedkey-pvc
+{{ else if ne .Values.persistentVolume.shareKeyPVCName ""}}
+        - mountPath: /opt/dctm/shared_key
+          name: {{ .Values.persistentVolume.shareKeyPVCName }}
+{{ end }}
+{{- if .Values.extraVolumeMounts }}
+{{ toYaml .Values.extraVolumeMounts | indent 8 }}
+{{- end }}
+        resources:
+          requests:
+            memory: {{ .Values.resources.requests.memory | quote  }}
+            cpu: {{ .Values.resources.requests.cpu | quote  }}
+          limits:
+            memory: {{ .Values.resources.limits.memory | quote  }}
+            cpu: {{ .Values.resources.limits.cpu | quote  }} 
+      volumes:
+{{ if eq .Values.fluentd_service.enable true }}
+        - name: fluentd-data-logs
+          emptyDir: {}
+        - name: fluentdconfig-map
+          configMap:
+            #Name of the fluentd config map that we want
+            name: {{ .Values.logging.fluentdConf.fluentd_configMap_name }}
+{{ end }}
+{{ if eq .Values.graylog.enable true }}
+        - name: shared-logs
+          emptyDir: {}
+{{ end }}
+        - name: cs-logging-configmap
+          configMap:
+            name: {{ .Values.logging.cs.configMap_name }}
+        - name: {{ .Values.persistentVolume.csdataPVCName }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.serviceName }}-pvc
+{{ if eq .Values.certificate.use_certificate true }}
+        - name: {{ .Values.dbrpersistentVolume.dbrdataPVCName }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.certificate.dbrserviceName }}-pvc
+{{- end }}
+{{- if eq .Values.custom.scriptinPVC true }}
+        - name: custom-script-pvc
+          persistentVolumeClaim:
+            claimName: {{ .Values.custom.scriptPVCname }}
+{{- end }}
+{{- if .Values.extraVolumes }}
+{{ toYaml .Values.extraVolumes | indent 8 }}
+{{- end }}
+        - name: acs-log4j-properties-volume
+          configMap:
+            name: {{ .Values.logging.jms.acs_configMap_name }}                             
+        - name: serverapps-log4j-properties-volume
+          configMap:
+            name: {{ .Values.logging.jms.serverApps_configMap_name }}
+        - name: otdsauth-log4j-properties-volume
+          configMap:
+            name: {{ .Values.logging.jms.otdsauth_configMap_name }}
+        - name: dmotdsrest-log4j-properties-volume
+          configMap:
+            name: {{ .Values.logging.jms.dmotdsrest_configMap_name }}
+        - name: saml-log4j-properties-volume
+          configMap:
+            name: {{ .Values.logging.jms.saml_configMap_name }}
+        - name: oauth-log4j-properties-volume
+          configMap:
+            name: {{ .Values.logging.jms.oauth_configMap_name }}
+{{- if .Values.logrotate.enable }} 
+        - name: logrotate-volume
+          configMap:
+            name: {{ .Values.logging.logrotate_configMap_name }}
+{{- end }}
+{{- if .Values.logging.d2.logback.enable }}
+        - name: d2-logback-volume
+          configMap:
+            name: {{ .Values.logging.d2.logback.d2_configMap_name }}
+{{- end }}          
+{{- if .Values.logging.bpm.enable }}                
+        - name: bpm-log4j-properties-volume
+          configMap:
+            name: {{ .Values.logging.bpm.bpm_configMap_name }}
+{{- end }}
+{{ if eq .Values.contentserver.aek.shareKey true }}
+        - name: {{ .Values.serviceName }}-sharedkey-pvc
+          persistentVolumeClaim:
+            claimName: {{ .Values.serviceName }}-sharedkey-pvc
+{{ else if ne .Values.persistentVolume.shareKeyPVCName ""}}
+        - name: {{ .Values.persistentVolume.shareKeyPVCName }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistentVolume.shareKeyPVCName }}
+{{ end }}          
+      restartPolicy: Always
+  volumeClaimTemplates:
+  - metadata:
+      name: {{ .Values.volumeClaimTemplate.vctName }}
+    spec:
+      accessModes:
+        - {{ .Values.volumeClaimTemplate.vctAccessModes }}
+      resources:
+         requests:
+            storage: {{ .Values.volumeClaimTemplate.size }}
+      storageClassName: {{ .Values.volumeClaimTemplate.storageClass }}
+{{ if eq .Values.graylog.enable false }}
+  - metadata:
+      name: shared-logs
+    spec:
+      accessModes:
+        - {{ .Values.volumeClaimTemplate.logVctAccessModes }}
+      resources:
+         requests:
+            storage: {{ .Values.volumeClaimTemplate.logVctSize }}
+      storageClassName: {{ .Values.volumeClaimTemplate.logVctStorageClass }}
+{{ end }}

@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.prefix }}-bps-dfc-config
+  labels:
+    name: {{ .Values.prefix }}-bps-dfc-config
+data:
+  bps-config: |-
+    <?xml version="1.0"?>
+      <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <polling_interval>{{ .Values.bpsConfig.pollingInterval }}</polling_interval>
+        <message_store_home_dir>{{ .Values.bpsConfig.messageStoreHomeDir }}</message_store_home_dir>
+        <instance_name>{{ .Values.bpsConfig.instanceName }}</instance_name>
+        <ha_enabled>{{ .Values.bpsConfig.haEnabled }}</ha_enabled>
+        <config_properties>
+            <property name="mail.imap.partialfetch" value="false"/>
+            <property name="mail.debug" value="false"/>
+        </config_properties>
+        <connections>
+            <docbase-connection>
+                <docbase>{{ .Values.docbaseConnection.docbase }}</docbase>
+                <user>{{ .Values.docbaseConnection.username }}</user>
+                <password>{{ .Values.docbaseConnection.password }}</password>
+                <domain>{{ .Values.docbaseConnection.domain }}</domain>
+            </docbase-connection>
+        </connections>
+    </config> 
+  dfc-properties-config: |-
+    dfc.data.dir={{ .Values.dfc.dataDir }}
+    dfc.tokenstorage.dir=${dfc.data.dir}/apptoken
+    dfc.tokenstorage.enable=false
+    dfc.docbroker.host[0]={{ .Values.docbaseConnection.docbroker }}
+    dfc.docbroker.port[0]={{ .Values.docbaseConnection.port }}
+    dfc.globalregistry.repository={{ .Values.docbaseConnection.globalRegistryRepository }}
+    dfc.globalregistry.username={{ .Values.docbaseConnection.globalRegistryUsername }}
+    dfc.globalregistry.password={{ .Values.docbaseConnection.globalRegistryPassword }}
+    dfc.security.keystore.file=${dfc.data.dir}/dfc.keystore
+    {{ if eq .Values.docbaseConnection.use_certificate true }}
+    dfc.security.ssl.truststore=/opt/dctm/certificate/dfc.keystore    
+    dfc.security.ssl.truststore_password={{ .Values.docbaseConnection.truststorePassword }}
+    dfc.session.secure_connect_default=try_secure_first                                    
+    dfc.security.ssl.use_existing_truststore=false                                             
+    {{ else }}
+    dfc.session.secure_connect_default=try_native_first
+    {{ end }}

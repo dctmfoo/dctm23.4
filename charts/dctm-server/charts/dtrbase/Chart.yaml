@@ -1,0 +1,5 @@
+apiVersion: v2
+appVersion: 22.4.0002.0054
+description: A Helm chart for Kubernetes
+name: dtrbase
+version: 22.4.2

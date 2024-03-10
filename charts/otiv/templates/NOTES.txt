@@ -1,0 +1,47 @@
+{{- $prefix := "otiv" }}
+{{- $name := "Intelligent Viewing" }}
+{{- if .Values.global.cssFqdn -}}
+{{- $prefix = "cvt" }}
+{{- $name = "Core Viewing & Transformation" }}
+{{- end }}
+{{- if .Values.postgresql.enabled }}
+Postgresql was installed with the following values:
+Database Host: {{ .Values.postgresql.fullnameOverride }}
+Database User: {{ .Values.postgresql.postgresqlUsername }}
+Database Name: {{ .Values.postgresql.postgresqlDatabase }}
+{{- end }}
+
+{{ $name }} services are available at the following urls:
+
+
+{{- if .Values.publication.enabled }}
+
+{{ $.Values.global.publicWebProtocol }}://{{ $prefix }}-publication{{ include "ingress.suffix" . }}
+{{- end }}
+{{- if .Values.asset.enabled }}
+{{ $.Values.global.publicWebProtocol }}://{{ $prefix }}-asset{{ include "ingress.suffix" . }}
+{{- end }}
+{{- if .Values.viewer.enabled }}
+{{ $.Values.global.publicWebProtocol }}://{{ $prefix }}-viewer{{ include "ingress.suffix" . }}
+{{- end }}
+{{- if .Values.highlight.enabled }}
+{{ $.Values.global.publicWebProtocol }}://{{ $prefix }}-highlight{{ include "ingress.suffix" . }}
+{{- end }}
+{{- if .Values.markup.enabled }}
+{{ $.Values.global.publicWebProtocol }}://{{ $prefix }}-markup{{ include "ingress.suffix" . }}
+{{- end }}
+{{- if .Values.otds.enabled }}
+
+OTDS is available at:
+{{ include "otds.admin.url" . }}
+{{- end }}
+
+Documentation is available at:
+https://developer.opentext.com/imservices/products/viewingtransformationservices
+{{- if .Values.otcs }}
+{{- if not .Values.otcs.skipVatUpdate }}
+
+When completed and the logs aren't required, the cs-vat-job Job/Pods can be deleted by executing:
+   kubectl -n {{ .Release.Namespace }} delete job otiv-cs-vat-job
+{{- end }}
+{{- end }}

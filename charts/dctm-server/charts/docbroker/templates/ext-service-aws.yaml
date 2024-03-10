@@ -1,0 +1,32 @@
+{{ if eq .Values.platform "aws" }}
+{{ if eq .Values.ExtDocbroker.useELB true }}
+{{ if eq .Values.ExtDocbroker.enable true }}
+{{ if eq .Values.ExtDocbroker.createExtService true }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ .Values.serviceName }}       
+  name: dbrext-{{ .Values.serviceName }}
+{{ if eq .Values.ExtDocbroker.useLBAnnotations true }}
+  annotations:
+    {{ toJson .Values.ExtDocbroker.LBAnnotations }}
+{{ end }}
+spec:    
+  ports:
+  - name: dbrnative
+    port: 80
+    protocol: TCP
+    targetPort: {{ .Values.ports.extNativePort }} 
+  - name: dbrssl
+    port: 81
+    protocol: TCP
+    targetPort: {{ .Values.ports.extSSLPort }}
+  selector:
+    app: {{ .Values.serviceName }}   
+  sessionAffinity: None
+  type: LoadBalancer
+{{ end }}
+{{ end }}
+{{ end }}
+{{ end }}

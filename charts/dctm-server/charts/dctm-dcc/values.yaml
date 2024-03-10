@@ -1,0 +1,299 @@
+# Default values for DCC.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+#Prefix
+prefix: <Application_prefix, E.g. dcc>
+
+# Kubernetes Namespace in which this Helm chart is deployed
+namespace: <Namespace>
+
+#Consul 
+consul:
+  prefix: consul
+  image:
+    path: artifactory.otxlab.net/bpdockerhub/dctm-dcc-consul
+    tag: 22.4.0004
+    pullPolicy: Always
+  containerPort: 8500
+  replicaCount: 1
+  service:
+    servicePort: 8500
+    targetPort: 8500
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+## Database configuration ##
+database:
+  dbSchemaName: postgres
+  driverClassName: org.postgresql.Driver
+  quartzdbDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+  username: <DB_USERNAME>
+  password: <DB_ENCRYPTED_PASSWORD>
+  dbunencryptedpassword: <DB_UNENCRYPTED_PASSWORD>
+  db_host: <DB_HOST>
+  db_port: <DB_PORT>
+  dbSchemaInit:    
+    image:
+      pullPolicy: IfNotPresent
+      path: artifactory.otxlab.net/bpdockerhub/dctm-dcc-dbschema
+      tag: 22.4.0004
+
+dardeploy:
+  enabled: false
+  image:
+    pullPolicy: IfNotPresent
+    path: artifactory.otxlab.net/bpdockerhub/dctm-dcc-dardeployment
+    tag: 22.4.0004
+  prefix: dardeployment
+  docbase_name: <docbase_name>
+  install_owner: <docbase_owner>
+  install_owner_password: <docbase_password>
+  configmap:
+    dfc:
+      properties:
+        - dfc.docbroker.host[0]= <docbase host>
+        - dfc.docbroker.port[0]= <docbase port>
+        - dfc.globalregistry.repository= <repository>
+        - dfc.globalregistry.username= <username>
+  cs:
+    useCSDfcConfigMap: false
+    configMapName: <Content Server configmap like cedbr.configmap>
+    csSecretConfigName: <Content Server secret like cecs-secret-config>
+    allowTrustedLogin: false
+  certificate:
+    useCertificate: false
+    dbrServiceName: <Docbroker service name like cedbr>
+    dbrDataPVCName: <Docbroke persistent volume claim like certdbr-data-pvc>
+
+## New Relic Common Configuration ## 
+newrelic:  
+  license_key: <New Relic License Key>
+  proxy_enable: false
+  proxy_host: 
+  proxy_port: 
+
+## meta data service ##
+metadata:
+  prefix: metadata
+  enabled: true
+  dbSchemaInit:
+    enabled: false
+    dbname: <DB_NAME>
+  configMap:
+    database:
+      ## url specified the url used to connect to the DB for metadata service.      
+      url: jdbc:postgresql://<DB_HOST>:<DB_PORT>/<DB_NAME>?escapeSyntaxCallMode=callIfNoReturn
+    serviceRegistry:
+      serverPort: 9000
+  replicaCount: 1
+  image:
+    path: artifactory.otxlab.net/bpdockerhub/dctm-dcc-metadataservice
+    tag: 22.4.0004
+    pullPolicy: Always
+  service:
+    servicePort: 8080
+    targetPort: 8080
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 400m
+      memory: 500Mi
+  newrelic:    
+    enabled: false
+    app_name: DCC_METADATA-PROD-OT2_CFCR-LI3-EIM-<app_name>
+  
+## Syncagent ##
+syncagent:
+  prefix: syncagent
+  enabled: true
+  dbSchemaInit:
+    enabled: false
+    dbname: <DB_NAME>
+  configMap:
+    database:
+      ## url specified the url used to connect to the DB for syncagent service.     
+      url: jdbc:postgresql://<DB_HOST>:<DB_PORT>/<DB_NAME>?escapeSyntaxCallMode=callIfNoReturn
+    mail:
+      fromEmailId: <sender email id>
+      toEmailId: <recipient email ids separated by comma>
+      bccEmailId: <Bcc recipient list separated by comma>
+      ccEmailId: <CC recipient list separated by comma>
+      subject: <Subject line for the email to be sent for Failed items>
+    serviceRegistry:
+      serverPort: 8080
+    proxy:
+      enabled: false
+      proxyHost: 
+      proxyPort: 
+      noProxyHosts: 
+  replicaCount: 1
+  image:
+    path: artifactory.otxlab.net/bpdockerhub/dctm-dcc-syncagent
+    tag: 22.4.0004
+    pullPolicy: Always
+  containerPort: 8080
+  service:
+    servicePort: 8080
+    targetPort: 8080
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+  newrelic:    
+    enabled: false
+    app_name: DCC_SYNCAGENT-PROD-OT2_CFCR-LI3-EIM-<app_name>
+    
+## Syncnshare manual ##
+syncnshareManual:
+  prefix: syncagent-manual
+  enabled: false
+  dbSchemaInit:
+    enabled: false
+    dbname: <DB_NAME>
+  configMap:
+    database:
+      ## url specified the url used to connect to the DB for syncshare manual service.
+      url: jdbc:postgresql://<DB_HOST>:<DB_PORT>/<DB_NAME>?escapeSyntaxCallMode=callIfNoReturn
+    serviceRegistry:
+      serverPort: 8080
+    setup:
+      sourceRepoName: <Provide the Documentum repository name. For E.g. testenv>
+      sourceRepoUser: <Provide the Documentum super user repository user name. For E.g. Administrator>
+      sourceRepoPassword: <Provide the Documentum super user repository encrypted password>
+      sourceRepoUrl: <Provide the Documentum D2 Rest URL. For E.g. https://<hostname>:<port>/d2rest>
+      targetRepoUrl: <Provide the Core Share Endpoint URL. For E.g. https://core.opentext.com>
+      targetRepoClientId: <Provide the Client Id created by the Core Share Admin>
+      targetRepoClientSecret: <Provide the Core Share encrypted Client Secret>
+    proxy:
+      enabled: false
+      proxyHost: 
+      proxyPort: 
+      noProxyHosts: 
+  replicaCount: 1
+  image:
+    path: artifactory.otxlab.net/bpdockerhub/dctm-dcc-syncnshare-manual
+    tag: 22.4.0004
+    pullPolicy: Always
+  containerPort: 8080
+  javaConfigModify: false
+  service:
+    servicePort: 8080
+    targetPort: 8080
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+  newrelic:    
+    enabled: false
+    app_name: DCC_SYNCMANUAL-PROD-OT2_CFCR-LI3-EIM-<app_name>
+    
+## Core Notification ##
+coreNotification:
+  prefix: core-notification
+  enabled: true
+  dbSchemaInit:
+    enabled: false
+    dbname: <DB_NAME>
+  configMap:
+    database:
+      ## url specified the url used to connect to the DB for core notification service.
+      url: jdbc:postgresql://<DB_HOST>:<DB_PORT>/<DB_NAME>?escapeSyntaxCallMode=callIfNoReturn
+    serviceRegistry:
+      serverPort: 9002
+    extApiconfig:      
+      dccroboticFQDN: syncagent
+      dccmanualFQDN: syncnshare-manual
+      dccapiuser: 
+      dccapipassword: 
+  replicaCount: 1
+  image:
+    path: artifactory.otxlab.net/bpdockerhub/dctm-dcc-corenotificationservice
+    tag: 22.4.0004
+    pullPolicy: Always
+  proxy:
+      enabled: false
+      proxyHost: 
+      proxyPort: 
+      noProxyHosts: 
+  service:
+    servicePort: 8080
+    targetPort: 8080
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 400m
+      memory: 500Mi
+  newrelic:    
+    enabled: false
+    app_name: DCC_CN-PROD-OT2_CFCR-LI3-EIM-<app_name>
+  
+## Mail Service ##
+mailService:
+  prefix: mail
+  enabled: true
+  configMap:
+    mailconfig:
+      smtpmailhost: <SMTP_RELAY_HOST>
+      smtpmailport: <SMTP_PORT>
+      usermail: <SMTP_RELAY_USERNAME>
+      mailpassword: <SMTP_RELAY_PASSWORD>
+      starttls: false
+    serviceRegistry:
+      serverPort: 9001
+  replicaCount: 1
+  image:
+    path: artifactory.otxlab.net/bpdockerhub/dctm-dcc-mailservice
+    tag: 22.4.0004
+    pullPolicy: Always
+  service:
+    servicePort: 8080
+    targetPort: 8080
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 400m
+      memory: 500Mi
+  newrelic:    
+    enabled: false
+    app_name: DCC_MAIL-PROD-OT2_CFCR-LI3-EIM-<app_name>
+
+## Persistent volume claim ##
+pvc:
+  ## enable if logs needs to be stored in persistent volume
+  enablePV: true
+  storageClass: <Persistent_Volume_Storage_class, E.g. trident-nfs>
+  size: 200Mi
+
+## graylog-sidecar for logs ##
+graylog:
+  enable: false
+  image:
+    path: artifactory.otxlab.net/bpdockerhub/graylog-sidecar@sha256
+    tag: d8ed2bf68399e34bafc68f883d8f4fb14feb9575e78d63722e544c1529f37db9
+  pullPolicy: IfNotPresent
+  name: graylog-sidecar
+  server: <Graylog Server host>
+  port: <Graylog port>
+  tags: "[\"linux\",\"apache\"]"
+
+ingress:
+  ##enable below if we need to use dcc ingress
+  enableDCCIngress: false

@@ -1,0 +1,17 @@
+#Servics
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.serviceName }}  
+  namespace: {{ .Values.namespace }}
+spec:  
+  ports:
+  - port: {{ .Values.containers.rqm.rqmadminport }}
+    name: rqmadminport
+  - port: {{ .Values.containers.rqm.rqmjettyport }}
+    name: rqmjettyport  
+  - port: {{ .Values.containers.rqm.docbrokerport }}
+    name: docbrokerport     
+  clusterIP: None
+  selector:
+    app: {{ .Values.serviceName }}

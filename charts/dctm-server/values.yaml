@@ -1,0 +1,2785 @@
+rwoStorage: &rwo_storage_class trident-nfs
+rwmstorage: &rwm_storage_class trident-nfs
+env: &env_domain docu.svc.cluster.local
+docbase: &docbase_name docbase1
+csSecrets: &cs_secret_name <sname>cs-secret-config
+dctmotds: &otds_enabled true
+grayLog: &graylog_enabled true
+docbrokerRepCount: &docbroker_replica_count 2
+dbrServiceName: &dbr_service_name <sname>dbr
+openshiftEnable: &openshift_enable false
+openshiftTls: &openshifttls_enable false
+pullPolicyType: &pull_policy_type IfNotPresent
+### If there is secrets for pulling of images then update this value. If there is no secrets then keep it empty ###
+pullSecretName: &pull_secret_name <pullsecretsname>
+livenessEnable: &liveness_enabled true
+imageReposiotry: &image_repository registry.opentext.com
+imageTag: &image_tag 23.4
+grayLogImage: &graylog_image registry.opentext.com/graylog-sidecar:v1.8
+graylogServer: &graylog_server 10.9.57.15
+graylogPort: &graylog_port 9000
+useCertificates: &use_certificates false
+aekLocation: &aek_location Local
+kmsUrl: &kms_url https://kmsurl:port
+newrelicEnable: &newrelic_enabled false
+newrelicProxyHost: &newrelic_proxy_host 
+newrelicProxyPort: &newrelic_proxy_port 
+newrelicProxyProtocol: &newrelic_proxy_protocol http
+connectMode: &connect_mode dual
+externalAccessEnabled: &external_access_enable false
+### Global variables for fluentd side car ###
+fluentd: &fluentd_enabled false
+fluentdTcpPort: &fluentd_tcp_port 24224
+fluentdRestPort: &fluentd_rest_port 8888
+fluentdUdpPort: &fluentd_udp_port 20001
+fluentdImage: &fluentd_image registry.opentext.com/fluentd-4.4.2-1:23.4
+eventLogLevel: &event_log_level 0
+dfcRPCTracing: &dfc_rpc_log_enable false
+docbrokerPort: &dbrport 1489
+databaseHost: &database_host <sname>db-pg-0.<sname>db-pg.<namespace>.svc.cluster.local
+databasePort: &database_port 5432
+dbrConfigmapName: &dbr_configmap_name <sname>dbr.configmap
+namespace: &namespace docu
+kafka_admin_user_name: &kafka_admin_username kafka-user
+kafka_admin_user_password: &kafka_admin_password kafka-password
+kafka_topic_name: &kafka_topic Cs-Audit-Topic
+kafkaBrokerList: &brokerList localhost:9092
+xcpRepository: &xcp_repository registry.opentext.com/xcp
+ccExtension: &ccExtension cc
+dccPrefix: &dccPrefix dcc
+cslogrotate: &cslogrotate false
+tomcatbaseimage_name: &tomcatbaseimage_name dctm-tomcat
+tomcatbaseimage_tag: &tomcatbaseimage_tag 23.4
+tomcatbase_usecommonpvc: &tomcatbase_usecommonpvc false
+tomcatbase_commonpvcname: &tomcatbase_commonpvcname
+#Change value of this parameter to a different numeric value than previous value, if there are changes only in cs-secrets so that pod gets recreated during upgrade
+secrets_Change: &secrets_Change 1
+installowner: &installOwner dmadmin
+dctmserviceaccount: &dctm_service_account default
+externalUserEnable: &extUserEnable false
+
+cs-secrets:
+    enabled: true
+    secret:
+       name: *cs_secret_name
+    docbroker:
+      certificate:
+        password:
+        aekpassphrase: 
+        trustpassword:
+        pemCertPrivKey: 
+        pemCertificate: 
+    
+    docbase:
+      password: Password@1234567890
+      licenses:
+        recordManager: 
+        prm: 
+        fedRecdService: 
+        rps: 
+        snaplockstore: 
+        storageaware: 
+        trusted: 
+        highVolumeServer: 
+        
+    contentserver:
+      installOwner:
+        userName : *installOwner
+        password : &installOwnerPassword password
+      globalRegistry :
+        password: &globalRegistryPassword Password@1234567890
+      aek:
+        algorithm: AES_256_CBC
+        oldPassphrase:
+        passphrase: Password@1234567890
+      certificate:
+        password:
+        trustpassword:
+        pemCertPrivKey: 
+        pemCertificate: 
+      install:
+        appserver:
+            admin:
+                password: Password@1234567890
+        root:
+            password: password
+    kms:
+      apiKey: <KMS_API_KEY>
+    ### Database ###
+    database:
+      userName: postgres
+      password: password
+      certificate: |
+        -----BEGIN CERTIFICATE-----
+        MIIDdzCCAl+gAwIBAgIEAgAAuTANBgkqhkiG9w0BAQUFADBaMQswCQYDVQQGEwJJ
+        RTESMBAGA1UEChMJQmFsdGltb3JlMRMwEQYDVQQLEwpDeWJlclRydXN0MSIwIAYD
+        VQQDExlCYWx0aW1vcmUgQ3liZXJUcnVzdCBSb290MB4XDTAwMDUxMjE4NDYwMFoX
+        DTI1MDUxMjIzNTkwMFowWjELMAkGA1UEBhMCSUUxEjAQBgNVBAoTCUJhbHRpbW9y
+        ZTETMBEGA1UECxMKQ3liZXJUcnVzdDEiMCAGA1UEAxMZQmFsdGltb3JlIEN5YmVy
+        VHJ1c3QgUm9vdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKMEuyKr
+        mD1X6CZymrV51Cni4eiVgLGw41uOKymaZN+hXe2wCQVt2yguzmKiYv60iNoS6zjr
+        IZ3AQSsBUnuId9Mcj8e6uYi1agnnc+gRQKfRzMpijS3ljwumUNKoUMMo6vWrJYeK
+        mpYcqWe4PwzV9/lSEy/CG9VwcPCPwBLKBsua4dnKM3p31vjsufFoREJIE9LAwqSu
+        XmD+tqYF/LTdB1kC1FkYmGP1pWPgkAx9XbIGevOF6uvUA65ehD5f/xXtabz5OTZy
+        dc93Uk3zyZAsuT3lySNTPx8kmCFcB5kpvcY67Oduhjprl3RjM71oGDHweI12v/ye
+        jl0qhqdNkNwnGjkCAwEAAaNFMEMwHQYDVR0OBBYEFOWdWTCCR1jMrPoIVDaGezq1
+        BE3wMBIGA1UdEwEB/wQIMAYBAf8CAQMwDgYDVR0PAQH/BAQDAgEGMA0GCSqGSIb3
+        DQEBBQUAA4IBAQCFDF2O5G9RaEIFoN27TyclhAO992T9Ldcw46QQF+vaKSm2eT92
+        9hkTI7gQCvlYpNRhcL0EYWoSihfVCr3FvDB81ukMJY2GQE/szKN+OMY3EU/t3Wgx
+        jkzSswF07r51XgdIGn9w/xZchMB5hbgF/X++ZRGjD8ACtPhSNzkE1akxehi/oCr0
+        Epn3o0WC4zxe9Z2etciefC7IpJ5OCBRLbf1wbWsaY71k5h+3zvDyny67G7fyUIhz
+        ksLi4xaNmjICq44Y3ekQEe5+NauQrz4wlHrQMz2nZQ/1/I6eYs9HRCwBXbsdtTLS
+        R9I4LtD+gdwyah617jzV/OeBHRnDJELqYzmp
+        -----END CERTIFICATE----- 
+    ### Thumbnail Server ###
+    thumbnailServer:
+      appServerPassword: password@123
+    ### Email Server ###
+    email:
+       smtpUser: 
+       smtpPass:
+       smtpSSLCertificate: |
+       
+    ### S3 store enable ###
+    ### S3 Store ###
+    s3Store:
+      s3StoreBaseUrl: 
+      s3StoreCredentialID: nocredentials
+      s3StoreCredentialKEY: nocredentials
+      ### S3 Store ssl certificate, below value is for (otx-sgws01-l000.otxlab.net) change accordnigly ###
+      certificate: |
+        -----BEGIN CERTIFICATE-----
+        MIICzDCCAbSgAwIBAgIJAOd7/dcwQv9dMA0GCSqGSIb3DQEBCwUAMBcxFTATBgNV
+        BAMMDCoub3R4bGFiLm5ldDAeFw0xODAxMDMxODUyMTdaFw0yODAxMDExODUyMTda
+        MBcxFTATBgNVBAMMDCoub3R4bGFiLm5ldDCCASIwDQYJKoZIhvcNAQEBBQADggEP
+        ADCCAQoCggEBAMbvOwEkeDIgua+tMEQkp7qAr59K9mzFjAlPp4Ng4dYTa5T8JH/A
+        t28K7TGHj2hl2PZEhN177xtBl1U2LAufE5fbItqVQu1JPnYr4wrOdyA6Aiz7yR7w
+        KblDiQdtz3BCLcQy+PURxfR9LQhY2AKxt4DUtpMbLG2FYwbCiOToW/yF1e2f0BaN
+        MAOQxvqqZbCgZv3UagoROX+ZX7F3SZES6bGuPwufo80tGX+3ZgpblRSVf+z8ANIv
+        zuNGL29OIYSBXg+vdH0lNb+XYCFd3tP3/hLRC992WSDibf4phgrD4VC1I9qUN7B1
+        eN2iemVGtSs9jO/IW4zHBMN8UxG8PErqyj8CAwEAAaMbMBkwFwYDVR0RBBAwDoIM
+        Ki5vdHhsYWIubmV0MA0GCSqGSIb3DQEBCwUAA4IBAQAUX6bZDeKKkMXxOV1DgQGq
+        w4QUvtqYkxQhwPPXP9cbVaA6fJ359HzJkrggP63Ko9e+xcI9OiYMlZ6xfnkzMMUs
+        EYw2l62BnxHXYPqN0h5NqDm1BT/UK4prHecRzyjw18RyQf80/1QQlSULCwfloWfh
+        PFC9AyJv/CVpqTswi8+OmVyT7dIUHAoPFGUTyJ2U5jD7QyI1ifqN+QmN0aXH//QP
+        glZkTA57ZvbLRwT8atpRh+a4VsDioTHuJAhc1C6H49kAq2wCd2vGUalvMPk2Q3p2
+        YVui1RhsHuFm2UPApDFvtYvKXdm0Ma+jBoBqu1Ofita6kFLn6M4MGKHkiZ4qY8Gm
+        -----END CERTIFICATE-----
+    ### Rest Store ###
+    restStore:
+        restStoreBaseUrl: 
+        restStoreCredentialID: 
+        restStoreCredentialKEY: 
+        ## rest Store ssl certificate, below value is for (azure blob store) change accordnigly ###
+        azurecertificate: |
+           -----BEGIN CERTIFICATE-----
+           MIIOMjCCDBqgAwIBAgITfwAdjGo0xiH+OJr8PwAAAB2MajANBgkqhkiG9w0BAQsF
+           ADBPMQswCQYDVQQGEwJVUzEeMBwGA1UEChMVTWljcm9zb2Z0IENvcnBvcmF0aW9u
+           MSAwHgYDVQQDExdNaWNyb3NvZnQgUlNBIFRMUyBDQSAwMjAeFw0yMTExMTcyMzQ1
+           MThaFw0yMjExMTcyMzQ1MThaMCIxIDAeBgNVBAMMFyouYmxvYi5jb3JlLndpbmRv
+           d3MubmV0MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAySI9OmbypJu1
+           pyuEiH6Z1bq8itwTmz7RPWWJBmTzi8KILvb5fguII1Ogwg4lLD3meaToI/5Z32wF
+           qlLPsXRTKLdnV6XW4g3i7qKV2GHMq2fI7Vo5Hf5+odgFRpQKK90SS4wTf/YnpPJ1
+           yeYW49YsojT8D+Bn0rVyZWfEjYdHu1TQvR9a91Ugd7aW5Z2jPYTT5peYx4jPx6yp
+           QFWhPgY/jnIz2cDB7YXkx4mBvp15WR5f2yBjI4vmb3dQQfCQlLK8Gth2G/itNjdk
+           KGCtk9XVMdVV8RGxfsh4DP/8lF3lKabc4xq9eGyHbpC3aNWhwe2zkrboJLBopBDP
+           t8uHRRaypQIDAQABo4IKMjCCCi4wggF+BgorBgEEAdZ5AgQCBIIBbgSCAWoBaAB3
+           ACl5vvCeOTkh8FZzn2Old+W+V32cYAr4+U1dJlwlXceEAAABfTBTlvQAAAQDAEgw
+           RgIhAL8dgxw6b+3eGpEhomxO5Kiroc/eSyVIEPKho7vmKo4vAiEAw9LOsk6ziy9J
+           ATP8RsuEEFUVySZ0Yoy8IeQH8oqcMPoAdQBVgdTCFpA2AUrqC5tXPFPwwOQ4eHAl
+           CBcvo6odBxPTDAAAAX0wU5e5AAAEAwBGMEQCIC8CdVqYwGtp1SnxCLnkv0jFpTnp
+           Np3XHY4yHwC9f5SKAiBc6C54/yO+xTwFCeheYro5iFOTxAAZTYEd+ezLYNPUGAB2
+           AEalVet1+pEgMLWiiWn0830RLEF0vv1JuIWr8vxw/m1HAAABfTBTlsUAAAQDAEcw
+           RQIhAJexaCrWr8sPoaw7fr+esyetrfHx5GgBsT6W7AVY2FPHAiAsBvRSh7v3AEu5
+           ZALXqO63HE2vv5eyUNKctp3t+NFoPjAnBgkrBgEEAYI3FQoEGjAYMAoGCCsGAQUF
+           BwMBMAoGCCsGAQUFBwMCMD4GCSsGAQQBgjcVBwQxMC8GJysGAQQBgjcVCIfahnWD
+           7tkBgsmFG4G1nmGF9OtggV2Fho5Bh8KYUAIBZAIBJzCBhwYIKwYBBQUHAQEEezB5
+           MFMGCCsGAQUFBzAChkdodHRwOi8vd3d3Lm1pY3Jvc29mdC5jb20vcGtpL21zY29y
+           cC9NaWNyb3NvZnQlMjBSU0ElMjBUTFMlMjBDQSUyMDAyLmNydDAiBggrBgEFBQcw
+           AYYWaHR0cDovL29jc3AubXNvY3NwLmNvbTAdBgNVHQ4EFgQUAb72eBs2S4J/rVdj
+           5T8OZAM/hvcwDgYDVR0PAQH/BAQDAgSwMIIGOgYDVR0RBIIGMTCCBi2CFyouYmxv
+           Yi5jb3JlLndpbmRvd3MubmV0giUqLnlxMXByZHN0cjA3YS5zdG9yZS5jb3JlLndp
+           bmRvd3MubmV0ghgqLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCGyouejEuYmxvYi5z
+           dG9yYWdlLmF6dXJlLm5ldIIbKi56Mi5ibG9iLnN0b3JhZ2UuYXp1cmUubmV0ghsq
+           LnozLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCGyouejQuYmxvYi5zdG9yYWdlLmF6
+           dXJlLm5ldIIbKi56NS5ibG9iLnN0b3JhZ2UuYXp1cmUubmV0ghsqLno2LmJsb2Iu
+           c3RvcmFnZS5henVyZS5uZXSCGyouejcuYmxvYi5zdG9yYWdlLmF6dXJlLm5ldIIb
+           Ki56OC5ibG9iLnN0b3JhZ2UuYXp1cmUubmV0ghsqLno5LmJsb2Iuc3RvcmFnZS5h
+           enVyZS5uZXSCHCouejEwLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejExLmJs
+           b2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejEyLmJsb2Iuc3RvcmFnZS5henVyZS5u
+           ZXSCHCouejEzLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejE0LmJsb2Iuc3Rv
+           cmFnZS5henVyZS5uZXSCHCouejE1LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCou
+           ejE2LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejE3LmJsb2Iuc3RvcmFnZS5h
+           enVyZS5uZXSCHCouejE4LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejE5LmJs
+           b2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejIwLmJsb2Iuc3RvcmFnZS5henVyZS5u
+           ZXSCHCouejIxLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejIyLmJsb2Iuc3Rv
+           cmFnZS5henVyZS5uZXSCHCouejIzLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCou
+           ejI0LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejI1LmJsb2Iuc3RvcmFnZS5h
+           enVyZS5uZXSCHCouejI2LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejI3LmJs
+           b2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejI4LmJsb2Iuc3RvcmFnZS5henVyZS5u
+           ZXSCHCouejI5LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejMwLmJsb2Iuc3Rv
+           cmFnZS5henVyZS5uZXSCHCouejMxLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCou
+           ejMyLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejMzLmJsb2Iuc3RvcmFnZS5h
+           enVyZS5uZXSCHCouejM0LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejM1LmJs
+           b2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejM2LmJsb2Iuc3RvcmFnZS5henVyZS5u
+           ZXSCHCouejM3LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejM4LmJsb2Iuc3Rv
+           cmFnZS5henVyZS5uZXSCHCouejM5LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCou
+           ejQwLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejQxLmJsb2Iuc3RvcmFnZS5h
+           enVyZS5uZXSCHCouejQyLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejQzLmJs
+           b2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejQ0LmJsb2Iuc3RvcmFnZS5henVyZS5u
+           ZXSCHCouejQ1LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejQ2LmJsb2Iuc3Rv
+           cmFnZS5henVyZS5uZXSCHCouejQ3LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCou
+           ejQ4LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejQ5LmJsb2Iuc3RvcmFnZS5h
+           enVyZS5uZXSCHCouejUwLmJsb2Iuc3RvcmFnZS5henVyZS5uZXQwgbAGA1UdHwSB
+           qDCBpTCBoqCBn6CBnIZNaHR0cDovL21zY3JsLm1pY3Jvc29mdC5jb20vcGtpL21z
+           Y29ycC9jcmwvTWljcm9zb2Z0JTIwUlNBJTIwVExTJTIwQ0ElMjAwMi5jcmyGS2h0
+           dHA6Ly9jcmwubWljcm9zb2Z0LmNvbS9wa2kvbXNjb3JwL2NybC9NaWNyb3NvZnQl
+           MjBSU0ElMjBUTFMlMjBDQSUyMDAyLmNybDBXBgNVHSAEUDBOMEIGCSsGAQQBgjcq
+           ATA1MDMGCCsGAQUFBwIBFidodHRwOi8vd3d3Lm1pY3Jvc29mdC5jb20vcGtpL21z
+           Y29ycC9jcHMwCAYGZ4EMAQIBMB8GA1UdIwQYMBaAFP8vf+EG9DjzLe0ljZjC/g72
+           bPz6MB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEFBQcDAjANBgkqhkiG9w0BAQsF
+           AAOCAgEAuspBwhhs6/QFJF1DcIklY6g4aNditwzyMTKj9WCf+Mer/ZuEFXRh7hVU
+           ysiOUqaUevsXUwYPztRawHMpaing0IolxZGfndo3/QtuYSjNnLKGkdaUYlaVYsS3
+           tj5/IRvx9ZZHZeTFNbXjKQ5QhiKaQ18dOzGPqTUihGDPKrMMMKjrbG+iijG4EoO0
+           eI+BoIEo1tOaX4C1dTLUruul+jpIy6/IAzYNi7bdKnb3yMp9Qaprz2+dZHFJb/ng
+           1EJTekYVZ2yXTkabRLYaCcj5Slp9ZzvrL23hZ276oTCcoQIGJahCr2VyUxGJ3mof
+           iXkJwgGIYQLtDDZgRMtjqwllw7ck0bZ/ohEwOEKIri2LGIrzttdgi4TTn/u8NMfO
+           PhDAw5ZevYGvXp1t3WUCrfHKBIK0ffU3eJLApdfrlcryOWSGXhgo15UKV9IDiYBz
+           /704oYUPWIZzB5qeIGi/80G8qGZBXjaphm5ahlbjTGg8q5ZXgmzvRqD2x0rYpdrK
+           yTk0a3wiMVCpLRbSjSUUNCE5f2r7cdnlf6lQYGmhtnQSK7XHM0Bh6Pz07RTxAmSz
+           Q44w1yZyD3SlEn9SNipsbOgZ2dfXAMndlFABuRXa9qiW4lP+or8UktGMn9DoLzS1
+           tTCLgzP88155Ed7xP/wcEHZ0wa1/cva2Lp9EPjNs7FIC6/Kn+wM=
+           -----END CERTIFICATE-----
+           -----BEGIN CERTIFICATE-----
+           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
+           -----END CERTIFICATE-----
+        ## rest Store ssl certificate, below value is for (gcp blob store) change accordnigly ###
+        gcpcertificate: |
+            -----BEGIN CERTIFICATE-----
+            MIIGMzCCBRugAwIBAgIRAJd3etXbkJKwCgAAAAEZUxowDQYJKoZIhvcNAQELBQAw
+            RjELMAkGA1UEBhMCVVMxIjAgBgNVBAoTGUdvb2dsZSBUcnVzdCBTZXJ2aWNlcyBM
+            TEMxEzARBgNVBAMTCkdUUyBDQSAxQzMwHhcNMjExMTAxMDI1MTQ2WhcNMjIwMTI0
+            MDI1MTQ1WjAjMSEwHwYDVQQDDBgqLnN0b3JhZ2UuZ29vZ2xlYXBpcy5jb20wWTAT
+            BgcqhkjOPQIBBggqhkjOPQMBBwNCAAQ7+P3BXMNvpJ2v4Kmw0y2JkeAqGkv8GaDY
+            4shOybeVnR6I+MtyouPCraWL51HHyf0Gzca6bTBCEMALArX3pPNJo4IECDCCBAQw
+            DgYDVR0PAQH/BAQDAgeAMBMGA1UdJQQMMAoGCCsGAQUFBwMBMAwGA1UdEwEB/wQC
+            MAAwHQYDVR0OBBYEFEI98U54udbUMuVCUUP1lg06mKCXMB8GA1UdIwQYMBaAFIp0
+            f6+Fze6VzT2c0OJGFPNxNR0nMGoGCCsGAQUFBwEBBF4wXDAnBggrBgEFBQcwAYYb
+            aHR0cDovL29jc3AucGtpLmdvb2cvZ3RzMWMzMDEGCCsGAQUFBzAChiVodHRwOi8v
+            cGtpLmdvb2cvcmVwby9jZXJ0cy9ndHMxYzMuZGVyMIIBuQYDVR0RBIIBsDCCAayC
+            GCouc3RvcmFnZS5nb29nbGVhcGlzLmNvbYIQKi5nb29nbGVhcGlzLmNvbYIgY29t
+            bW9uZGF0YXN0b3JhZ2UuZ29vZ2xlYXBpcy5jb22CIiouY29tbW9uZGF0YXN0b3Jh
+            Z2UuZ29vZ2xlYXBpcy5jb22CFnN0b3JhZ2UuZ29vZ2xlYXBpcy5jb22CG3N0b3Jh
+            Z2UubXRscy5nb29nbGVhcGlzLmNvbYIkKi5hcHBzcG90LmNvbS5zdG9yYWdlLmdv
+            b2dsZWFwaXMuY29tgiAqLmNvbnRlbnQtc3RvcmFnZS5nb29nbGVhcGlzLmNvbYIj
+            Ki5jb250ZW50LXN0b3JhZ2UtcDIuZ29vZ2xlYXBpcy5jb22CJyouY29udGVudC1z
+            dG9yYWdlLXVwbG9hZC5nb29nbGVhcGlzLmNvbYIpKi5jb250ZW50LXN0b3JhZ2Ut
+            ZG93bmxvYWQuZ29vZ2xlYXBpcy5jb22CHyouc3RvcmFnZS11cGxvYWQuZ29vZ2xl
+            YXBpcy5jb22CISouc3RvcmFnZS1kb3dubG9hZC5nb29nbGVhcGlzLmNvbTAhBgNV
+            HSAEGjAYMAgGBmeBDAECATAMBgorBgEEAdZ5AgUDMDwGA1UdHwQ1MDMwMaAvoC2G
+            K2h0dHA6Ly9jcmxzLnBraS5nb29nL2d0czFjMy96ZEFUdDBFeF9Gay5jcmwwggED
+            BgorBgEEAdZ5AgQCBIH0BIHxAO8AdQApeb7wnjk5IfBWc59jpXflvld9nGAK+PlN
+            XSZcJV3HhAAAAXzZn+c4AAAEAwBGMEQCIGO+IZVN97FGP/abVOo9X8caOCeO33Yo
+            snpzT9q3ggzfAiAUuOoEigNnreDRI1HtsBqLNPX6Q6/9owl4t32SOQbL1wB2AEHI
+            yrHfIkZKEMahOglCh15OMYsbA+vrS8do8JBilgb2AAABfNmf58MAAAQDAEcwRQIh
+            AOgoy+PE/ewRAn6ZaQSjEX6DzAiZh/GRr18gVq0g/WsWAiAZwNNkcvsKhaMvzKHk
+            bhAx3DQlmMuBFmkOPMb6JLI4/jANBgkqhkiG9w0BAQsFAAOCAQEAodBh51uJBnc0
+            2gDIxKgC1dQQqfWNSj9DgS1p6V8li28Ew6S3aR04dlF9kwYm4NDgwUKklsEQKUOk
+            2K4ORBXAoqZkSw5tJ+1qzzIiXQULaC3AGWr2GxEzebV4DQ/qO68jER0lyiWU5PWw
+            kRrdmMMpaBmePzKo3OfBFXmW070i0l1+wmYEiJ5xXdU96evXNBP0njanoskSI7Ud
+            F0A7I4zBT6x+lTSPwiT3rvLFy9Ro0rg7PFSHDxrYMN6AcqMccHihkJklas9gC/zz
+            0obtpEh4VmKp4dRvl/h4DWrNlJQ/4BEQXE7rgym9JKO6qxg3t70MZS7neBU+7gIH
+            mdq9LUXTcg==
+            -----END CERTIFICATE-----
+            -----BEGIN CERTIFICATE-----
+            MIIFljCCA36gAwIBAgINAgO8U1lrNMcY9QFQZjANBgkqhkiG9w0BAQsFADBHMQsw
+            CQYDVQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZpY2VzIExMQzEU
+            MBIGA1UEAxMLR1RTIFJvb3QgUjEwHhcNMjAwODEzMDAwMDQyWhcNMjcwOTMwMDAw
+            MDQyWjBGMQswCQYDVQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZp
+            Y2VzIExMQzETMBEGA1UEAxMKR1RTIENBIDFDMzCCASIwDQYJKoZIhvcNAQEBBQAD
+            ggEPADCCAQoCggEBAPWI3+dijB43+DdCkH9sh9D7ZYIl/ejLa6T/belaI+KZ9hzp
+            kgOZE3wJCor6QtZeViSqejOEH9Hpabu5dOxXTGZok3c3VVP+ORBNtzS7XyV3NzsX
+            lOo85Z3VvMO0Q+sup0fvsEQRY9i0QYXdQTBIkxu/t/bgRQIh4JZCF8/ZK2VWNAcm
+            BA2o/X3KLu/qSHw3TT8An4Pf73WELnlXXPxXbhqW//yMmqaZviXZf5YsBvcRKgKA
+            gOtjGDxQSYflispfGStZloEAoPtR28p3CwvJlk/vcEnHXG0g/Zm0tOLKLnf9LdwL
+            tmsTDIwZKxeWmLnwi/agJ7u2441Rj72ux5uxiZ0CAwEAAaOCAYAwggF8MA4GA1Ud
+            DwEB/wQEAwIBhjAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwEgYDVR0T
+            AQH/BAgwBgEB/wIBADAdBgNVHQ4EFgQUinR/r4XN7pXNPZzQ4kYU83E1HScwHwYD
+            VR0jBBgwFoAU5K8rJnEaK0gnhS9SZizv8IkTcT4waAYIKwYBBQUHAQEEXDBaMCYG
+            CCsGAQUFBzABhhpodHRwOi8vb2NzcC5wa2kuZ29vZy9ndHNyMTAwBggrBgEFBQcw
+            AoYkaHR0cDovL3BraS5nb29nL3JlcG8vY2VydHMvZ3RzcjEuZGVyMDQGA1UdHwQt
+            MCswKaAnoCWGI2h0dHA6Ly9jcmwucGtpLmdvb2cvZ3RzcjEvZ3RzcjEuY3JsMFcG
+            A1UdIARQME4wOAYKKwYBBAHWeQIFAzAqMCgGCCsGAQUFBwIBFhxodHRwczovL3Br
+            aS5nb29nL3JlcG9zaXRvcnkvMAgGBmeBDAECATAIBgZngQwBAgIwDQYJKoZIhvcN
+            AQELBQADggIBAIl9rCBcDDy+mqhXlRu0rvqrpXJxtDaV/d9AEQNMwkYUuxQkq/BQ
+            cSLbrcRuf8/xam/IgxvYzolfh2yHuKkMo5uhYpSTld9brmYZCwKWnvy15xBpPnrL
+            RklfRuFBsdeYTWU0AIAaP0+fbH9JAIFTQaSSIYKCGvGjRFsqUBITTcFTNvNCCK9U
+            +o53UxtkOCcXCb1YyRt8OS1b887U7ZfbFAO/CVMkH8IMBHmYJvJh8VNS/UKMG2Yr
+            PxWhu//2m+OBmgEGcYk1KCTd4b3rGS3hSMs9WYNRtHTGnXzGsYZbr8w0xNPM1IER
+            lQCh9BIiAfq0g3GvjLeMcySsN1PCAJA/Ef5c7TaUEDu9Ka7ixzpiO2xj2YC/WXGs
+            Yye5TBeg2vZzFb8q3o/zpWwygTMD0IZRcZk0upONXbVRWPeyk+gB9lm+cZv9TSjO
+            z23HFtz30dZGm6fKa+l3D/2gthsjgx0QGtkJAITgRNOidSOzNIb2ILCkXhAd4FJG
+            AJ2xDx8hcFH1mt0G/FX0Kw4zd8NLQsLxdxP8c4CU6x+7Nz/OAipmsHMdMqUybDKw
+            juDEI/9bfU1lcKwrmz3O2+BtjjKAvpafkmO8l7tdufThcV4q5O8DIrGKZTqPwJNl
+            1IXNDw9bg1kWRxYtnCQ6yICmJhSFm/Y3m6xv+cXDBlHz4n/FsRC6UfTd
+            -----END CERTIFICATE-----
+            -----BEGIN CERTIFICATE-----
+            MIIFYjCCBEqgAwIBAgIQd70NbNs2+RrqIQ/E8FjTDTANBgkqhkiG9w0BAQsFADBX
+            MQswCQYDVQQGEwJCRTEZMBcGA1UEChMQR2xvYmFsU2lnbiBudi1zYTEQMA4GA1UE
+            CxMHUm9vdCBDQTEbMBkGA1UEAxMSR2xvYmFsU2lnbiBSb290IENBMB4XDTIwMDYx
+            OTAwMDA0MloXDTI4MDEyODAwMDA0MlowRzELMAkGA1UEBhMCVVMxIjAgBgNVBAoT
+            GUdvb2dsZSBUcnVzdCBTZXJ2aWNlcyBMTEMxFDASBgNVBAMTC0dUUyBSb290IFIx
+            MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAthECix7joXebO9y/lD63
+            ladAPKH9gvl9MgaCcfb2jH/76Nu8ai6Xl6OMS/kr9rH5zoQdsfnFl97vufKj6bwS
+            iV6nqlKr+CMny6SxnGPb15l+8Ape62im9MZaRw1NEDPjTrETo8gYbEvs/AmQ351k
+            KSUjB6G00j0uYODP0gmHu81I8E3CwnqIiru6z1kZ1q+PsAewnjHxgsHA3y6mbWwZ
+            DrXYfiYaRQM9sHmklCitD38m5agI/pboPGiUU+6DOogrFZYJsuB6jC511pzrp1Zk
+            j5ZPaK49l8KEj8C8QMALXL32h7M1bKwYUH+E4EzNktMg6TO8UpmvMrUpsyUqtEj5
+            cuHKZPfmghCN6J3Cioj6OGaK/GP5Afl4/Xtcd/p2h/rs37EOeZVXtL0m79YB0esW
+            CruOC7XFxYpVq9Os6pFLKcwZpDIlTirxZUTQAs6qzkm06p98g7BAe+dDq6dso499
+            iYH6TKX/1Y7DzkvgtdizjkXPdsDtQCv9Uw+wp9U7DbGKogPeMa3Md+pvez7W35Ei
+            Eua++tgy/BBjFFFy3l3WFpO9KWgz7zpm7AeKJt8T11dleCfeXkkUAKIAf5qoIbap
+            sZWwpbkNFhHax2xIPEDgfg1azVY80ZcFuctL7TlLnMQ/0lUTbiSw1nH69MG6zO0b
+            9f6BQdgAmD06yK56mDcYBZUCAwEAAaOCATgwggE0MA4GA1UdDwEB/wQEAwIBhjAP
+            BgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTkrysmcRorSCeFL1JmLO/wiRNxPjAf
+            BgNVHSMEGDAWgBRge2YaRQ2XyolQL30EzTSo//z9SzBgBggrBgEFBQcBAQRUMFIw
+            JQYIKwYBBQUHMAGGGWh0dHA6Ly9vY3NwLnBraS5nb29nL2dzcjEwKQYIKwYBBQUH
+            MAKGHWh0dHA6Ly9wa2kuZ29vZy9nc3IxL2dzcjEuY3J0MDIGA1UdHwQrMCkwJ6Al
+            oCOGIWh0dHA6Ly9jcmwucGtpLmdvb2cvZ3NyMS9nc3IxLmNybDA7BgNVHSAENDAy
+            MAgGBmeBDAECATAIBgZngQwBAgIwDQYLKwYBBAHWeQIFAwIwDQYLKwYBBAHWeQIF
+            AwMwDQYJKoZIhvcNAQELBQADggEBADSkHrEoo9C0dhemMXoh6dFSPsjbdBZBiLg9
+            NR3t5P+T4Vxfq7vqfM/b5A3Ri1fyJm9bvhdGaJQ3b2t6yMAYN/olUazsaL+yyEn9
+            WprKASOshIArAoyZl+tJaox118fessmXn1hIVw41oeQa1v1vg4Fv74zPl6/AhSrw
+            9U5pCZEt4Wi4wStz6dTZ/CLANx8LZh1J7QJVj2fhMtfTJr9w4z30Z209fOU0iOMy
+            +qduBmpvvYuR7hZL6Dupszfnw0Skfths18dG9ZKb59UhvmaSGZRVbNQpsg3BZlvi
+            d0lIKO2d1xozclOzgjXPYovJJIultzkMu34qQb9Sz/yilrbCgj8=
+            -----END CERTIFICATE-----
+    
+    ### newrelic ###
+    newrelic:
+      license_key: 
+    ### GCP Store credentials ###
+    # update the gcp store credentials in the below format
+    # gcpStore_credentials: |
+    # {
+    # JSON credential Object of GCP store.
+    # }
+    gcpStore_credentials: 
+
+    graylog:
+      token: 
+    # ingress TLS #
+    # tlscrt: <base64-encoded TLS certificate> as one line i.e. without any carriage returns or wrapped lines.
+    # tlscrt: <base64-encoded TLS key> as one line i.e. without any carriage returns or wrapped lines.
+    # use openssl utility or any other mechanism to generate key and certificate.
+    # openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout KEY_FILE.crt -out CERT_FILE.crt -subj "/CN=<domain name>/O=<domain name>"
+    # which generates a private key file "KEY_FILE.crt" and a certificate "CERT_FILE.crt" respectively for a given domain, convert content to base64.
+    # The below command generates a 2048-bit RSA private key (KEY_FILE.crt) and a X509 certificate (CERT_FILE.crt) valid for 365 days for host (cfcr-lab.bp-paas.otxlab.net).
+    # openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout KEY_FILE.crt -out CERT_FILE.crt -subj "/CN=cfcr-lab.bp-paas.otxlab.net/O=cfcr-lab.bp-paas.otxlab.net"
+    # NOTE: If the host(CN name) name specified during the certificate request process, doesn't match the host defined in your ingress route,
+    # your ingress controller displays a Kubernetes Ingress Controller Fake Certificate warning. Make sure your certificate and ingress route host names match.
+    ingress:
+        tlscrt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURlVENDQW1HZ0F3SUJBZ0lVREptV05TMFl3elJTWENsVUZkRUFHdVphdE5Jd0RRWUpLb1pJaHZjTkFRRUwKQlFBd1RERWtNQ0lHQTFVRUF3d2JZMlpqY2kxc1lXSXVZbkF0Y0dGaGN5NXZkSGhzWVdJdWJtVjBNU1F3SWdZRApWUVFLREJ0alptTnlMV3hoWWk1aWNDMXdZV0Z6TG05MGVHeGhZaTV1WlhRd0hoY05NakF3TnpJNE1EZ3lOVFU1CldoY05NakV3TnpJNE1EZ3lOVFU1V2pCTU1TUXdJZ1lEVlFRRERCdGpabU55TFd4aFlpNWljQzF3WVdGekxtOTAKZUd4aFlpNXVaWFF4SkRBaUJnTlZCQW9NRzJObVkzSXRiR0ZpTG1Kd0xYQmhZWE11YjNSNGJHRmlMbTVsZERDQwpBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQ0FRb0NnZ0VCQU1XNXJLS2diekVzck54bXVFbEpBMnBUCmo3cTFKaTBnK1ZKa3JmcnNXc1A4SkpUS2pOUFRvOE1xRkN1cVF6VzQ4WDFwZGVzcDk3Wkt0WmVyaHdVU0VkVHUKM2tpT243SGUyQmlZQ1RzdDJ6dUlhNHFGcE1TVnpzSm5pV29ZRHl0bGxFZDAzNkdxWFdvQlpXVVdCcFNYUmt0dQp6VnQ0eHdzcUV6enM1UWRpYVFXUWdkWm51T2Y5cWRDbmJXejBJa0lPTnl4M3h3dHdPbkIzcGlhTDJzM2dlWStrCks4cnk1eTk0dkVlaWhkWDl6MFRaV1BMNjIwNkwva05EVUNtUWdrY2JONjBYUWtrUkdPaGFuQjlEbEJuL1BsbGkKQ05qYzBZUzFPYjRZZzgyR3NpdEcydVhwNlBLMFdVbHJqczViMjBGTlR0cWh0dGhDV3diOEFzK20wT2JXY2xNQwpBd0VBQWFOVE1GRXdIUVlEVlIwT0JCWUVGT3A3bEZSMVNxbU9RejYvV3hiYjV1bytKMXBzTUI4R0ExVWRJd1FZCk1CYUFGT3A3bEZSMVNxbU9RejYvV3hiYjV1bytKMXBzTUE4R0ExVWRFd0VCL3dRRk1BTUJBZjh3RFFZSktvWkkKaHZjTkFRRUxCUUFEZ2dFQkFGa1dOMnBILytOcytBWkk0V2g5djZrRUFYUmFDa1JueXlqeUgyZEhmRVBZcVFlYwovRU5kMnFGQ05BMUpvWW1BY0VmS3hWSWhFd3JEb1dVTW9KUEMyZGRJeGZRSXZ6TDU2ZVQ2bzFGK2lTQ004bVU3CmVpT0JwdlJEdW1DOFpwTC9yMjFyMHQ4bmFIM3hQOEJPLzNPU1I0RlBCT2hSZGwzMXQ0S1ErVFl3MitXeTNudEUKWXg3aUdKK1ZTVWsxOWYwRUIwbm1tWnJNcGdiMUVUS1ZVZCtRSjlyb2RHMnRhZ1hoSmo4WXg5VUE1RFNwekd3UgpaQWg1UGlaUmUvUWhWYzh3VUw0MnFSOEJQNzd5VWs4eC9jS3ZTeTdpY3NKSlpXMWRtLzNhSDg3TzU5ek0walBvCmZKOVJaSEVMeVJOaXQrSEdnL3pjcGNwV0VXblhOTkh0MTAvMFQyWT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQ==
+        tlskey: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRREZ1YXlpb0c4eExLemMKWnJoSlNRTnFVNCs2dFNZdElQbFNaSzM2N0ZyRC9DU1V5b3pUMDZQREtoUXJxa00xdVBGOWFYWHJLZmUyU3JXWApxNGNGRWhIVTd0NUlqcCt4M3RnWW1BazdMZHM3aUd1S2hhVEVsYzdDWjRscUdBOHJaWlJIZE4raHFsMXFBV1ZsCkZnYVVsMFpMYnMxYmVNY0xLaE04N09VSFlta0ZrSUhXWjdqbi9hblFwMjFzOUNKQ0RqY3NkOGNMY0Rwd2Q2WW0KaTlyTjRIbVBwQ3ZLOHVjdmVMeEhvb1hWL2M5RTJWankrdHRPaS81RFExQXBrSUpIR3pldEYwSkpFUmpvV3B3ZgpRNVFaL3o1WllnalkzTkdFdFRtK0dJUE5ocklyUnRybDZlanl0RmxKYTQ3T1c5dEJUVTdhb2JiWVFsc0cvQUxQCnB0RG0xbkpUQWdNQkFBRUNnZ0VBTUp3bFJSWU1RQnFycE1QY0txZzRucnRNYXFwK2FEbmpFYzZPdDFIRVBzcU8KYzhZWU9UdWUxeXhSS1NzQ3V3SnMzRmhCRlQrTUZ0VG5NQktMYjBPeC9wZDdMbnRoNTJqUjE3b0pDdk9MSW1lMwppS2F5aTJJSkl1SXhkbFBUNXVkaVBPOE95OEFHbHprZ3BHbDExTEljSmc5bmpVVjBLZHArUUV3OVFrTi9iazVaCjduYitlc3FwSkFyMlhRenNkTE9aaU11RXNkZTFZMGVrUUtDbzJiVVBEQjNoYjY0M1ZvRDhJQVBGUmtEQ2ZLdlQKRkdzTUtSb2grNVlEb2lFQ1dqRlY1OUZ0Q01lMmcvOVpMajAxSC8rZDMwUkQyR054NjBSZG9mWlNXRE91MHQvaAp0c1ByZGVwbU5kV3lET2p2d0k5N3JhdjRLQzdTS2dwaUJ5VzZLeExQZ1FLQmdRRG9iYUdVNGNzYnQ3ZTdVLzZHCmpaSExaRnEwTWRMRHltUnVqVEtZRE13NkVudXFzN2EyM2YzMVBpRGFWQXhTTytBOFdjSk1GT0FsWjIwcndSVEQKOHMzNWl5MWpBdUNkWDNidmlRSFNGK1cvK0JuWFRld1habjd4dW5KWFRKVGxUTCtHaFNkNk5XY2pkQWQzZG9ySApNaitlUGRUalQ3eXpNNnE5NFNVeThic3IzUUtCZ1FEWnh4TTMwelZKL0tjVDJGWE9oZlo1a1I4bHRFMUU1ckc3CkoyRSt4clNGb3BQUy9RNVJTcnpWUWZIempBUXBiL1dPZkVVQjBCSGVHME81UUg4N09sQUpuaHhpaTBNTlJXMkIKcVhuakdldkVrQVpORFQxV2UrdG1LbnRsZVBmS09RMDdHc0pscjNzSUVmWGpjTTlhRXAvdEtZUkg1bmtJeS8vNwpMdlNBOXE0TDd3S0JnUURVa0c3VjJpb0dqMTVZMDloUzllWUFQU2MyNU5uOGRYeWtIajNIRU8wMXJ2R3FpL0R1CkROZlZFWnk2RDJPMVVVMGg1SFR0WDZvZWl4Z3NpOGlSNjl5eis3VG1lQnN6MGJyVUZsaXo2MmNTeWJQWVZFczIKbTJZOWJHWmxzSVA3c05UNEVZNnBGVzNkM3A5MWdkUXBtS3JWN1haazdPZUdmQm9LelgxWHVmdVRnUUtCZ0dPVwpEbXE3MGFXSXZKcHRsaWQveVFza1dycnlMVmR4cXhxclVtUFRsOTk0VGVMd3gyaFRKZkRiWEJvRUVDOG12SUt3CnZ4bXFIVkdVNUM1Rm1TanJiSWhKWGkrT0FWYURSaVZCNjdQM09ZSkVYaTFEL2FXYnV6U1gvcCtUWnJSNXpGd1gKeTRlV2JFdHZjeUxUaG01cEQrcnl6a1BXMThnM0NWTEMwUnBjTTVEUEFvR0FYK0JuUGdoRUFwb3ZEZFQvVFNkRQpUdnJJbmpDTzhLZjJzRFc2bXZ6SnFacm5DZWxIWm1QQjZsODV3NFpWczArdDN1Ykc3RWlUTjBkdVdZektzMTZ5CnNQckw5Mk1BNXpBWm84RTFaUmdFRE83aGxLZ0FVcHZGTHFrYVNrMEZNUFBBREMrcG94ZU1nSnlzK2JVeDRnTE0KOFBIVDUwa05mRVFhVngxQWFCUEVuRVk9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0=
+    openshifttls:
+      enable: *openshifttls_enable
+    #Client app secrets are going to add here 
+    clients:
+        drServiceAccountUser: dctmreports
+        drServiceAccountPassword: Password@1234567890
+        preferencePassword: webtopUser@12345
+        presetPassword: webtopUser@12345
+
+    documentumsearch:
+      zk_password: password
+      solr_zk_password: password
+      solr_auth_password: Password@123
+
+db:
+    enabled: true
+    ###User Name/ID
+    serviceName: <sname>db-pg
+    images:
+       repository : *image_repository
+       db :
+          tag : 15.2
+       pullPolicy : *pull_policy_type
+       pullSecrets: *pull_secret_name
+    secret:
+        name: *cs_secret_name
+    ### Persistent Volume ###
+    persistentVolume:
+      storageClass: *rwo_storage_class
+      
+    configMap:
+      configName: <sname>-alter
+      volumeName: <sname>-alter-volume
+    alterParam:
+      max_connections:
+      default_statistics_target:
+      maintenance_work_mem:
+      effective_cache_size:
+      wal_buffers:
+      work_mem:
+  
+    rootsquash:
+      enable: false
+      ispg12orgreater: false
+      
+    openshift:
+      enable: *openshift_enable
+  
+docbroker:
+    enabled: true
+    ###User Name/ID
+    serviceName: *dbr_service_name
+    serviceAccount:
+      createserviceaccount: false
+      serviceAccountName: *dctm_service_account
+    images:
+       repository : *image_repository
+       contentserver :
+          tag : *image_tag
+       pullPolicy : *pull_policy_type
+       pullSecrets: *pull_secret_name
+    openshift:
+      enable: *openshift_enable
+    secret:
+       name: *cs_secret_name
+    docbroker:
+      replicaCount: *docbroker_replica_count
+      #connectMode can be native, secure or dual
+      connectMode: *connect_mode
+      liveness:
+        enable: *liveness_enabled
+      secretsChange: *secrets_Change
+    ### Persistent Volume ###
+    persistentVolume:
+      vctName: dbr-vct
+      dbrdataPVCName: certdbr-data-pvc
+      storageClass: *rwo_storage_class
+      logVctStorageClass: *rwo_storage_class
+      ### Below parameter is used when there are different storage classes for vct and PVC ###
+      pvcStorageClass:
+      pvcStorageSize: 1Gi
+      ### Below parameter if there is already existing volume to hook up.
+      existVolumePv:
+      awsEFS: false
+      awsEFSCSIDriver: efs.csi.aws.com
+      awsEFSCSIHandle: 
+      awsEFSCSIClaimPolicy: Retain
+      
+    graylog:
+        enable: *graylog_enabled
+        image: *graylog_image
+        server: *graylog_server
+        port: *graylog_port
+    #External Docbroker
+    ExtDocbroker:
+      enable: *external_access_enable  
+      extNativeNodePort: 
+      extSSLNodePort: 
+      createExtService: true
+      useELB: false
+      enableLiveness: false
+      useLBAnnotations: false
+      LBAnnotations:
+    
+    certificate:
+      use_certificate: *use_certificates
+      aekname: aek_name
+      aeklocation: *aek_location
+    kms:
+      url: *kms_url
+      masterkey_id: <KMS_MASTERKEY_ID>
+    newrelic:
+      enable: *newrelic_enabled
+      proxy_host: *newrelic_proxy_host
+      proxy_port: *newrelic_proxy_port
+      proxy_protocol: *newrelic_proxy_protocol 
+      c_app_name : DBR_documentum-PROD-OT2_CFCR_LI3-EIM-<sname>     
+    
+    
+  
+content-server:
+    enabled: true
+    ###User Name/ID
+    serviceName: <sname>dcs-pg
+    serviceAccount:
+      createserviceaccount: false
+      serviceAccountName: *dctm_service_account
+    images:
+       repository : *image_repository
+       contentserver :
+          tag : *image_tag
+       pullPolicy : *pull_policy_type
+       pullSecrets: *pull_secret_name
+    secret:
+       name: *cs_secret_name  
+    docbroker:
+      serviceName: *dbr_service_name
+      clusterSpace: *env_domain
+
+    ### Docbase ###
+    docbase:
+      name: *docbase_name
+      id: 123456
+      owner: *docbase_name
+      existing: false
+      index: DM_DOCBASE1_DOCBASE
+
+    contentserver:
+      replicaCount: 2
+      docbrokersCount: *docbroker_replica_count
+      connectMode: *connect_mode
+      externalUserEnable: *extUserEnable      
+      aek:
+        name: aek_name
+        location: *aek_location
+        #If ShareKey is set to true, new PVC will be created with name <sname>-sharedkey-pvc and AEK will be copied post CS deployment
+        shareKey: false
+      kms:
+        url:  *kms_url
+        masterkey_id: <KMS_MASTERKEY_ID>
+      jmsProtocol: http
+      jmsVersion: tomcat10.1.13
+      localeName: en
+      #It will switch from Dsearch query plugin to Solr query plugin in Documentum Server setup if we set it true
+      fulltextEngineSSVCEnable: false
+      #Below parameter can be used to set up the memory setting of JMS. Default value is -Xms1024m -Xmx1024m -Xss256k -XX:+DisableExplicitGC. Give the setting inside double quote
+      jmsMemSetting: ""
+      secretsChange: *secrets_Change
+      
+      readiness:
+        considerBPMForReadiness: false
+        periodSeconds: 60
+
+      
+      liveness:
+        enable: *liveness_enabled
+        initialDelaySeconds: 600
+        considerJMSForLiveness: true
+        considerBPMForLiveness: false
+    
+    ### Global repository details  ###
+    #   set globalRepositoryName value to global repository name which has to be used as the global repository for the current docbase
+    #       If it is set with some value then that will be used as the global repository for this repository, otherwise the current repository 
+    #       will be configured as the global repository
+    #   set globalRepositoryDocbrokerHost value to appropriate value, if not set it will use the current docbroker's host value
+    #   set globalRepositoryDocbrokerPort value to appropriate value, if not set it will use the current docbroker's port value
+    ###
+    globalRepository:
+      globalRepositoryName: ""
+      globalRepositoryDocbrokerHost: ""
+      globalRepositoryDocbrokerPort: ""
+      
+    ###External CS###
+    ExtCS:
+      enable: *external_access_enable
+      tcp_route: 10.0.0.0
+      nativeExtPort: 
+      sslExtPort:
+      extDbrPort: 1491
+      createExtService: true
+      useELB: false
+      useLBAnnotations: false
+      LBAnnotations:
+            
+    ### Database ###
+    database:
+      host: *database_host
+      databaseServiceName: MyPostgres
+      port: *database_port
+      sslEnabled: false
+      paasEnv: false
+      docbaseOwnerPasswordChange: false
+    ### Thumbnail Server ###
+    thumbnailServer:
+        configure: true
+        userMemArgs:
+        tnsProtocol: http
+        
+    otds:
+      configureOTDS: *otds_enabled
+      configNameOption: HA
+      otdsAPIsvc: otdsapi-highland.dev.bp-paas.otxlab.net
+      ssl: false
+      clientCapability: 0
+      userPrivileges: 0
+      userXPrivileges: 0
+      userRenameEnabled: F
+      userRenameUnlockLockedObject: T
+      groupRenameEnabled: F
+      updateOTDScertonrestart: false
+      ### Use oAuth token for password authentication
+      passauth_use_oauth2_token: false
+      client_id: 
+      client_secret: 
+      otds_rest_oauth2_url:
+      synced_user_login_name: 
+      auto_cert_refresh: false
+      cert_jwks_url: http://otdsauth-highland.dev.bp-paas.otxlab.net/oauth2/jwks
+      is_hybrid: false
+
+    ### Custom Script Execution ### 
+    custom:
+      scriptExecute: false
+      scriptinPVC: false
+      enableBPMPVC: false
+      scriptPVCname: shared-pvc
+      PVCSubPath: customscripts
+      versions: 
+      ### Provide the marker file names of client products in any order separated by comma. Before CS copying the custom scripts, these marker files presence are verified. 
+      markerFiles:
+      useInitContainers: false
+      
+    graylog:
+      enable: *graylog_enabled
+      image: *graylog_image
+      server: *graylog_server
+      port: *graylog_port
+      
+    ### Persistent Volume ###
+    persistentVolume:
+       storageClass: *rwm_storage_class
+       size: 1Gi
+       awsEFS: false
+       awsEFSCSIDriver: efs.csi.aws.com
+       awsEFSCSIHandle: 
+       awsEFSCSIClaimPolicy: Retain
+       csdataPVCName: dcs-data-pvc
+       #Make sure to specify existing PVC name to reuse key from other deployment
+       #Set to empty if each deployment should create its own key
+       shareKeyPVCName: ""
+       createPVC: true
+       ### Below parameter if there is already existing volume to hook up.
+       existVolumePv:
+      ### Volume Claim Template###
+    volumeClaimTemplate:
+      vctName: dcs-vct
+      storageClass: *rwo_storage_class
+      logVctStorageClass: *rwo_storage_class      
+    certificate:
+      use_certificate: *use_certificates
+      dbrserviceName: *dbr_service_name
+      #below is used when it is needed to switch to try_native_first before performing SSL certificate based upgrade.
+      customUpgrade:
+        enable: false
+        nativeFirst: true
+    dbrpersistentVolume:
+      dbrdataPVCName: certdbr-data-pvc
+      storageClass: *rwm_storage_class
+      size: 1Gi
+    ### email configurations ###
+    email:
+       configure: false
+       smtpServer: 
+       smtpPort:
+       smtpAuth: false
+       smtpSSL: false
+       emailAddress:
+       notification: false
+    ### S3 store enable ###
+    s3Store:
+      enable: false
+      default: false
+      name:
+      proxyHost: noproxy
+      proxyPort: noproxy
+      proxyProtocal: http
+      noProxy: localhost,127.0.0.1,*.otxlab.net  
+      # The below property can be set true, if if multipart processing need to be done parallely.The default value is false.
+      multiPartEnable: false
+      # The number of threads that need to be used during Multipart parallel-processing.Default number of threads used for multipart parallel processing are 5
+      numThreads: 5
+      isworm: false
+      vendor: 
+      region: 
+      enable_md5: true
+      enable_v4signing: true
+
+      # this section applies if you are upgrading from any cs version prior to 21.4.0000.0155
+      updateExistingStore: false
+      # comma seperated list of existing public s3 stores (e.g store1,store2,store3).
+      storeListUpdate: 
+      proxyHostUpdate: 
+      proxyPortUpdate: 
+    
+    ### GCP store enable ###
+    gcpStore:
+      enable: false
+  
+    ### Rest store enable ###
+    restStore:
+      enable: false
+      default: false
+      name:
+      restStoreType: 0
+      proxyHost: 
+      proxyPort: 
+      proxyProtocal: http
+      noProxy: localhost,127.0.0.1,*.otxlab.net  
+      
+    ### newrelic agent configuration. ###
+    newrelic:
+      enable: *newrelic_enabled
+      app_name: DCS_JMS-PROD-OT2_CFCR_LI3-EIM-<sname>
+      proxy_host: *newrelic_proxy_host
+      proxy_port: *newrelic_proxy_port
+      proxy_protocol: *newrelic_proxy_protocol 
+      c_app_name : DCS_documentum-PROD-OT2_CFCR_LI3-EIM-<sname>
+      
+    fluentd_service:
+      enable: *fluentd_enabled
+      # Name and tag of should not be changed as they specify fluentd image details
+      image: *fluentd_image
+      imagePullPolicy: *pull_policy_type
+      restartPolicy: Always
+      ##Values for TCPPort, UDPPort and RESTPort should be same as give for TCPPort, UDPPort and RESTPort in fluentdConf section
+      TCPPort: *fluentd_tcp_port
+      RESTPort: *fluentd_rest_port
+      UDPPort: *fluentd_udp_port
+      DFCLogLevel: *event_log_level
+      liveness:
+        enable: true
+
+    ingress:
+      #This value should be in the format  <INGRESS-HOSTNAME>.<CLUSTER-DOMAIN-NAME>. The INGRESS-HOSTNAME and CLUSTER-DOMAIN-NAME values has to be same as the one you mentioned in dctm-ingress helm charts
+      host: 
+      protocol: http    
+      
+    logrotate:
+      enable: *cslogrotate
+#the below is configured in minutes
+      interval: 1440
+      
+#logrotate is used for rotating fixed file names whereas log cleanup is used to clean the files generated with different names like session log
+#The folder and interval to cleanup the files under the folder are mentioned in extraEnv section with the format LOG_CLEANUP_FOLDER_N and LOG_CLEANUP_FOLDER_PERIOD_$COUNTER
+#Only the following folders and its subfolders can be mentioned: /opt/dctm/tomcat10.1.13/logs,/opt/dctm/product/23.4/install/logs,/opt/dctm/product/23.4/thumbsrv/container/logs,/opt/dctm/dba/log,/opt/dctm/logs,/opt/dctm_docker/logs
+#Note this will cleanup files recuresively under sub folders also.
+    logcleanup:
+      enable: true
+#the below is configured in minutes
+      interval: 1440
+#the below is configured in minutes and represents the cleanup interval for the path /opt/dctm/dba/log/<hexa_id>/<installowner>  
+      sessionlogcleanupinterval: 10080
+      
+    logging:
+      cs:
+        configMap_name: <sname>cs-logging-configmap
+      jms:
+        acs_configMap_name: <sname>acs-logging-configmap
+        serverApps_configMap_name: <sname>serverapps-logging-configmap
+        otdsauth_configMap_name: <sname>otdsauth-logging-configmap
+        dmotdsrest_configMap_name: <sname>dmotdsrest-logging-configmap
+        saml_configMap_name: <sname>saml-logging-configmap
+        oauth_configMap_name: <sname>oauth-logging-configmap
+      bpm:
+        enable: false
+        bpm_configMap_name: <sname>bpm-logging-configmap
+      fluentdConf:
+        enable: *fluentd_enabled
+        fluentd_configMap_name: <sname>fluentd-configmap
+      logrotate_configMap_name: <sname>logrotate-configmap
+      d2:
+        logback:
+          enable: false
+          d2_configMap_name: <sname>d2-logback-configmap
+    extraEnv:
+      - name: LOG4J_FORMAT_MSG_NO_LOOKUPS
+        value: "true"
+      - name: CERTIFICATE_1
+        value: ""
+      - name: OTDS_REST_TICKET_URL
+        value: ""
+      - name: docbase1_resource_id
+        value: ""
+      - name: docbase1_secretKey
+        value: ""        
+      - name: TOKENTIMEOUT
+        value: "30"
+      - name: INACTIVE_DELETED_USER
+        value: "T"
+      - name: INACTIVE_UNSUBSCRIBED_USER
+        value: "F"
+      - name: LSS_CC_ENABLED
+        value: "F"
+      - name: DA_PRIVILEGE_ENABLED
+        value: "F"
+      - name: ACTIVATE_POSTMEMBER_ENABLED
+        value: "T"
+      - name: MIGRATE_LDAP_USERS
+        value: "F"
+      - name: MIGRATE_LDAP_DOCBASES
+        value: "docbase1"
+      - name: LDAP_CONFIGS_TOKENIZER
+        value: ","
+      - name: docbase1_MIGRATE_LDAP_CONFIGS
+        value: ""
+      - name: isCORSAllowed
+        value: "false"
+      - name: DM_CRYPTO_MIN_PASSWORD_LENGTH
+        value: "16"
+      - name: CUSTOM_JOB_ENABLED
+        value: "F"
+      - name: CUSTOM_USER_RENAMEJOB
+        value: ""  
+      - name: CUSTOM_USER_RENAME_METHOD
+        value: ""   
+      
+    extraInitContainers:
+cs-logging-configMap:
+    enabled: true
+    ###User Name/ID
+    serviceName: <sname>
+
+    configMap:
+       cs_configMap_name: <sname>cs-logging-configmap
+       acs_configMap_name: <sname>acs-logging-configmap
+       serverApps_configMap_name: <sname>serverapps-logging-configmap
+       bpm_configMap_name: <sname>bpm-logging-configmap
+       otdsauth_configMap_name: <sname>otdsauth-logging-configmap
+       dmotdsrest_configMap_name: <sname>dmotdsrest-logging-configmap
+       saml_configMap_name: <sname>saml-logging-configmap
+       oauth_configMap_name: <sname>oauth-logging-configmap
+       fluentd_configMap_name: <sname>fluentd-configmap
+       logrotate_configmap_name: <sname>logrotate-configmap
+       d2_configMap_name: <sname>d2-logback-configmap
+
+    loggingConfiguration:
+       containerName: <sname>dcs-pg
+
+    ### DFC EventHUb related traces
+    dfcEventHubTracing:
+      enable: *dfc_rpc_log_enable
+      level: *event_log_level
+    dfcTraceing:
+      enable: false
+
+    docbaseTrace:
+      enable: false
+      options: rpctrace,trace_authentication
+    
+    serverApps:
+      log4j:
+        # Log Levels for ServerApps application. Valid values are DEBUG, INFO, WARN, ERROR, FATAL
+        rootLogLevel: WARN
+        layout_type: PatternLayout
+        layout_pattern: "%d{ABSOLUTE} %5p [%t] %c - %m%n"
+        monitorInterval: 30
+    
+    otdsauth:
+      log4j:
+        rootLogLevel: INFO
+    
+    dmotdsrest:
+      log4j:
+        rootLogLevel: INFO
+        dmotdsrestLogLevel: INFO
+    
+    saml:
+      log4j:
+        rootLogLevel: INFO
+        
+    oauth:
+      log4j:
+        rootLogLevel: INFO
+        
+    acs:
+      log4j:
+        # Log Levels for ACS application. Valid values are DEBUG, INFO, WARN, ERROR, FATAL
+        rootLogLevel: WARN
+        acsLogLevel: WARN
+        atmosLogLevel: WARN
+
+    ### BPM ###
+    bpm:
+      log4j:
+        enable: false
+        # Log Levels for BPM application. Valid values are DEBUG, INFO, WARN, ERROR, FATAL
+        rootLogLevel: WARN
+        bpmLogLevel: WARN
+        bpsLogLevel: WARN 
+        traceLogLevel: DEBUG
+        
+    logrotate:
+      enable: *cslogrotate
+      configmap: |-
+       /opt/dctm/<env>TOMCAT<env>/logs/catalina.out <openbrace>
+       copytruncate
+       dateext dateformat -%Y-%m-%d-%s
+       rotate 7
+       size 10M
+       <closebrace>
+       /opt/dctm/dba/log/<env>SERVER_CONFIG_NAME<env>.log <openbrace>
+       copytruncate
+       dateext dateformat -%Y-%m-%d-%s
+       rotate 7
+       size 10M
+       <closebrace>
+       
+    d2:
+      logback:
+        enable: false
+        file: /tmp/D2-JMS.log
+        fileNamePattern: /tmp/D2-JMS-%d{yyyy-MM-dd}.log.zip
+        logLevel: info
+
+    ### Fluentd config ### 
+    fluentdConf:
+      enable: *fluentd_enabled
+      # This value specifies the port on which fluentd is listening for TCP connection.
+      # Make sure the port you specify is not used else where in the helm chart
+      TCPPort: *fluentd_tcp_port
+
+      # This value specifies the port on which fluentd is listening for REST connection.
+      # Make sure the port you specify is not used else where in the helm chart
+      RESTPort: *fluentd_rest_port
+
+      # This value specifies the port on which fluentd is listening for UDP connection.
+      # Make sure the port you specify is not used else where in the helm chart
+      UDPPort: *fluentd_udp_port
+
+
+      # Here give the topic name that was specified during kafka broker deployment
+      kafkaTopic: *kafka_topic
+      kafkaUser: *kafka_admin_username
+      kafkaUsrPasswd: *kafka_admin_password
+      # In this version only one compression mode is supported gzip.
+      compressionMode: gzip
+      # Two buffering mode are supported file buffer and memory buffer.
+      # If the value FILEBUFFER then file buffer will be used otherwise memmory buffer will be used.
+      bufferingMode: FILEBUFFER
+      # This value will only be considered if file buffer mechanism is used. For memory buffer this value will be ignored.
+      flushInterval: 3s
+
+      kafkaBrokerList: *brokerList
+
+
+dctm-ingress:
+  enabled: false  
+  #prefix for the ingress name
+  ingressPrefix: <prefix>
+  ingress:
+    #No need to configure host: and clusetrDomainName: if configureHost is false.
+    configureHost: true
+    #Domain name of the ingress controller in the cluster namespace
+    host: <INGRESS-HOSTNAME>
+    clusterDomainName: <CLUSTER-DOMAIN-NAME>
+    #To accomodate cluster 1.22 
+    class: nginx
+    #annotations for the ingress object
+    annotations: {}     
+
+  jmsService:
+    enable: false
+    serviceName: <sname>dcs-pg-jms-service 
+    servicePort: 9080
+
+  jmsBase:
+    enable: false
+    serviceName: <sname>dcs-pg-jms-service 
+    servicePort: 9080
+
+  acsService:
+    enable: false
+    serviceName: <sname>dcs-pg-jms-service 
+    servicePort: 9080
+
+  tnsService:
+    enable: false
+    serviceName: <sname>dcs-pg-tns-service
+    servicePort: 8081
+
+  d2clientService:
+    enable: false
+    serviceName: <d2client-service-name>
+    servicePort: 8080
+    path: D2
+
+  d2configService:
+    enable: false
+    serviceName: <d2config-service-name>
+    servicePort: 8080
+    path: D2-Config
+
+  daService:
+    enable: false
+    serviceName: <da-service-name>
+    servicePort: 8080
+
+  appHostService:
+    enable: false
+    serviceName: <apphost-service-name>
+    servicePort: 8080
+
+  bamService:
+    enable: false
+    serviceName: <bam-service-name>
+    servicePort: 8080
+
+  bpsService:
+    enable: false
+    serviceName: <bps-service-name>
+    servicePort: 8080
+
+  xdaService:
+    enable: false
+    serviceName: <xda-service-name>
+    servicePort: 7000
+  
+  smartviewm365:
+    enable: false
+    serviceName: smartviewm365
+    servicePort: 8080
+    path: /SmartViewM365
+
+  dsearchadminService:
+    enable: false    
+    serviceName: <indexserver>
+    servicePort: 9300
+  
+  documentumSearchService:
+    enable: false
+    serviceName: admin
+    servicePort: 8800
+    path: /admin
+
+  indexagentService:
+    enable: false    
+    serviceName: <indexagent>
+    servicePort: 9200
+  
+  otdsadmin:
+    enable: false
+    #Name of the otds service.
+    serviceName: <otdsServiceName>
+    #otds clusterIP service port. Default 80
+    servicePort: 80
+
+  otdsws:
+    enable: false
+     #Name of the otds service.
+    serviceName: <otdsServiceName>
+     #otds clusterIP service port. Default 80
+    servicePort: 80
+
+  otdstenant:
+    enable: false
+     #Name of the otds service.
+    serviceName: <otdsServiceName>
+     #otds clusterIP service port. Default 80
+    servicePort: 80
+  
+    ### enable TLS ###
+  openshifttls:
+    enable: *openshifttls_enable
+  tls:
+    enable: false
+    secretName: *cs_secret_name
+  
+  dtrbaseService:
+    enable: false
+    serviceName: <service name of Documentum Report Base>
+    servicePortCore: 5001
+    servicePortServlet: 8080
+  
+  restService:
+    enable: false
+    serviceName: <sname>-rest
+    servicePort: 8080
+
+  cmisService:
+    enable: false
+    serviceName: <sname>-cmis
+    servicePort: 8080
+  
+  webtopService:
+    enable: false
+    serviceName: <webtop-service-name>
+    servicePort: 8080
+  
+  dmotdsrestService:
+    enable: false
+    serviceName: <dmotdsrest-service-name>
+    servicePort: 9080
+  
+  dfsService:
+    enable: false
+    serviceName: <sname>dfs-server
+    servicePort: 8080
+  
+  workflowDesignerService:
+    enable: false
+    serviceName: <dctm-workflow-designerServiceName>
+    servicePort: 8080
+    
+  bpm:
+   enable: false
+   #Name of the jms clusterIp service. Refer CS Service Yaml
+   serviceName: <bpmServiceName>
+   #bpm clusterIP service port. Default 9080
+   servicePort: 9080
+  
+  recordsService:
+   enable: false
+   serviceName: records-svc
+   servicePort: 8080
+
+  dcc:
+   enable: false
+   prefix: *dccPrefix
+   consul:
+    prefix: consul
+    service:
+     servicePort: 8500
+   syncagent:
+    enabled: false
+    prefix: syncagent
+    service:
+     servicePort: 8080    
+   syncnshareManual:
+    enabled: false
+    prefix: syncagent-manual
+    service:
+     servicePort: 8080
+     
+  ccService:
+   enabled: false
+   serviceName: cc
+   servicePort: 8080
+   extension: *ccExtension
+
+  ccadminService:
+   enabled: false
+   serviceName: cc-admin
+   servicePort: 80
+   extension: *ccExtension   
+
+cs-dfc-properties:
+    enabled: false
+    ### Environment ###
+    env:
+      domain: *env_domain
+      
+    ###User Name/ID
+    serviceName: *dbr_service_name
+
+    ### ConfigMap metadata ###
+    configMap:
+      namespace: *namespace
+
+    ### Globalregistry ###
+    globalregistry:
+      repository: *docbase_name
+      username: &globalUsername dm_bof_registry
+
+dctm-rest:
+    enabled: false
+    serviceAccount:
+      createServiceAccount: false
+      serviceAccountName: *dctm_service_account
+    serviceName: <sname>-rest
+    namespace: *namespace
+    customLabels:
+      app: <sname>-rest
+    containerName: rest-container
+    #deployment
+    replicaCount: 1
+    #image
+    image: *image_repository
+    path: *tomcatbaseimage_name
+    imageTag: *tomcatbaseimage_tag
+    imagePullPolicy: *pull_policy_type
+    imagePullSecrets:
+    
+    timeZone:
+      enable: false
+      value: Etc/UTC
+      
+    restInitContainers:
+      name: rest-init-container
+      image: registry.opentext.com/dctm-rest
+      imageTag: 23.4
+      imagePullPolicy: Always
+
+    extraInitContainers:
+      name: rest-custom
+      image:
+      imageTag:
+      imagePullPolicy: Always
+      volumeMounts:
+        # should not be modified by ct
+        name: custom-script-pvc
+        # this should be created in init container docker file and init container startup script should copy the customization files from init container image to this mount path.
+        mountPath: /opt/customscriptpvc
+        # should not be modified by ct
+        subPath: initcontainercustomscripts/dctm-rest-custom
+        
+    rest:
+      useCommonPVC: *tomcatbase_usecommonpvc
+  # The common pvc name
+      commonPVCname: *tomcatbase_commonpvcname
+
+    #service
+    httpPort: 8080
+    httpsPort: 8443
+
+    #configmap
+    existingConfigMap: *dbr_configmap_name
+
+    configurationFiles:
+
+    extraConfigMountPath: /home/dmadmin/ext-conf
+    
+    #Customers can add their own java options below
+    java:
+      #adding dev/./urandom parameter by deafult to improve the application performace wrt to random number generation
+      javaOptions: -Djava.security.egd=file:/dev/./urandom
+
+    content_server:
+      secretName: *cs_secret_name
+    
+    #certificate
+    docbroker:
+      useCertificate: *use_certificates
+      dbrServiceName:
+      pvcCertSubPath: certificate/certdbr-data-pvc
+
+    #logging
+    log4j:
+      rootLogLevel: INFO
+      restLogLevel: INFO
+      dfcLogLevel: INFO
+
+    graylog:
+      enabled: *graylog_enabled
+      image: *graylog_image
+      imagePullPolicy: *pull_policy_type
+      server: *graylog_server
+      port: *graylog_port
+      serviceToken: 
+     
+    #monitor
+    newrelic:
+      enabled: *newrelic_enabled
+      configurationFile: newrelic.yml
+      addNodeNamePrefix: false
+      proxy_host: *newrelic_proxy_host
+      proxy_port: *newrelic_proxy_port
+      proxy_protocol: *newrelic_proxy_protocol
+      app_name: DOCUMENTUM-CORE-REST-SERVICES-<sname>
+
+    livenessProbe:
+      enabled: *liveness_enabled
+      scheme: HTTP
+      initialDelaySeconds: 40
+      periodSeconds: 5
+    
+    fluentd_service:
+      enable: &drestfluentd_enabled false
+      image: *fluentd_image
+      imagePullPolicy: *pull_policy_type
+      restartPolicy: Always
+      TCPPort: *fluentd_tcp_port
+      RESTPort: *fluentd_rest_port
+      UDPPort: *fluentd_udp_port
+      servicedataPVCName: fluentd-data-pvc
+      readiness:
+        enable: false
+
+    fluentdConf:
+      enable: *drestfluentd_enabled
+      TCPPort: *fluentd_tcp_port
+      RESTPort: *fluentd_rest_port
+      UDPPort: *fluentd_udp_port
+      kafkaTopic: <KAFKA TOPIC NAME>
+      kafkaUser: <kfkuser>
+      kafkaUsrPasswd: <password>
+      compressionMode: gzip
+      bufferingMode: FILEBUFFER
+      flushInterval: 3s
+      flushThreadCount: 4
+      kafkaBrokerList: *brokerList
+    
+    acsService:
+      serviceName: <sname>dcs-pg-jms-service 
+      servicePort: 9080
+    
+    otds:
+      enable: true
+    #the otds service should be in the format https://<OTDS server url>:<port>/otdsws
+      url: <otds-service-url>
+      clientID:
+    
+    single_helm:
+      enable: false
+      
+    custom:
+      useInitContainers: false
+      scriptPVCname: custom-script-pvc
+      PVCSubPath: dctm-rest-custom
+      pvcSize: 1Gi
+      pvcAccessModes: ReadWriteMany
+      storageClass: *rwm_storage_class
+      existVolumePv:
+      
+dctm-cmis:
+    enabled: false
+    serviceAccount:
+      createserviceaccount: false
+      serviceAccountName: *dctm_service_account
+    serviceName: <sname>-cmis
+    namespace: *namespace
+    customLabels:
+      app: <sname>-cmis
+    containerName: cmis-container
+    #deployment
+    replicaCount: 1
+    #image
+    image: *image_repository
+    path: *tomcatbaseimage_name
+    imageTag: *tomcatbaseimage_tag
+    imagePullPolicy: *pull_policy_type
+    imagePullSecrets:
+    
+    cmisInitContainers:
+      name: cmis-init-container
+      image: registry.opentext.com/dctm-cmis
+      imageTag: 23.4
+      imagePullPolicy: *pull_policy_type
+
+    cmis:
+      pvcName: <sname>-pvc
+      pvcSize: 2Gi
+      pvcAccessModes: ReadWriteMany
+      storageClass: *rwm_storage_class
+      existVolumePv:
+      useCommonPVC: *tomcatbase_usecommonpvc
+      # The common pvc name
+      commonPVCname: *tomcatbase_commonpvcname
+      
+    #service
+    httpPort: 8080
+    httpsPort: 8443
+
+    #configmap
+    existingConfigMap: *dbr_configmap_name
+
+    configurationFiles:
+
+    extraConfigMountPath: /home/dmadmin/ext-conf
+    
+    #Customers can add their own java options below
+    java:
+      #adding dev/./urandom parameter by deafult to improve the application performace wrt to random number generation
+      javaOptions: -Djava.security.egd=file:/dev/./urandom
+
+    content_server:
+      secretName: *cs_secret_name
+    
+    #certificate
+    docbroker:
+      useCertificate: *use_certificates
+      dbrServiceName:
+      pvcCertSubPath: certificate/certdbr-data-pvc
+
+    #logging
+    log4j:
+      rootLogLevel: INFO
+      cmisLogLevel: INFO
+      dfcLogLevel: INFO
+      formatMsgNoLookups: true
+
+    graylog:
+      enabled: *graylog_enabled
+      image: *graylog_image
+      imagePullPolicy: *pull_policy_type
+      server: *graylog_server
+      port: *graylog_port
+      serviceToken: 
+     
+    #monitor
+    newrelic:
+      enabled: *newrelic_enabled
+      configurationFile: newrelic.yml
+      addNodeNamePrefix: false
+      proxy_host: *newrelic_proxy_host
+      proxy_port: *newrelic_proxy_port
+      proxy_protocol: *newrelic_proxy_protocol
+      app_name: DOCUMENTUM-CMIS-SERVICES-<sname>
+
+    livenessProbe:
+      enabled: *liveness_enabled
+      scheme: HTTP
+      initialDelaySeconds: 40
+      periodSeconds: 5
+ 
+    acsService:
+      serviceName: <sname>dcs-pg-jms-service 
+      servicePort: 9080
+    
+    single_helm:
+      enable: false
+        
+dctm-workflow-designer:
+    enabled: false
+    
+    #Prefix
+    prefix: <sname>-dctm-workflow-designer
+    serviceAccount:
+      createserviceaccount: false
+      serviceAccountName: *dctm_service_account
+
+    #Init Docker image
+    initImage:
+        repository: *xcp_repository
+        name: dctm-xcp-apphost 
+        tag: 22.4
+        pullPolicy: *pull_policy_type 
+  
+    #Docker image
+    image:
+        repository: *xcp_repository
+        name: dctm-workflow-designer
+        tag: 22.4
+        pullPolicy: *pull_policy_type
+
+    # Specifies the context path of the Documentum Workflow Designer application
+    contextPath: DocumentumWorkflowDesigner
+
+    #persistentVolume details
+    persistentVolume:
+        # storage class for the persistent volume Ex : azurefile
+        storageClassReadWriteOnce: *rwo_storage_class
+        # The size specified must accomodate all the log files 
+        size: 200Mi  
+
+    #Docbase Connection Info
+    docbaseConnection:
+        use_certificate: false
+        truststorePassword: password
+        docbroker: <dbr>
+        port: *dbrport
+        jmshttpport: 9080
+        #Name of the JMS Service. Refer JMS service name of type ClusterIP from CS Service Yaml
+        jmsservicename: <sname>dcs-pg-jms-service    
+        docbase: *docbase_name
+        superUser: *installOwner
+        superUserPassword: *installOwnerPassword
+        globalRegistryRepository: *docbase_name
+        globalRegistryUsername: *globalUsername
+        globalRegistryPassword: *globalRegistryPassword
+
+    #Volume used by CS and Broker to store CS and Broker certificates. Should match the persistentVolume name given in Broker values.yaml
+    dbrpersistentVolume:
+        dbrdataPVCName: certdbr-data-pvc
+  
+    #Tomcat Admin credentials:
+    tomcat:
+        javaOptions: '' 
+
+    #CS Secret. Used to fetch TrustStore Password and Newrelic License Value
+    secret:
+        name: *cs_secret_name
+        
+    otds:
+        enable: *otds_enabled
+        url:
+        reverseproxy_url:
+        client_id:
+        client_secret:
+        logon_appname:
+  
+    #Newrelic agent configuration
+    newrelic:
+        enable: *newrelic_enabled
+        #Key Name of Newrelic License Key in CS Secrets. This value is referenced from yaml file of CS Secrets, needs to be changed accordingly.
+        licenseKeyName: newrelicLicensekey
+        app_name: DCTM_WFD-PROD-OT2_CFCR_LI3-EIM-<sname>
+        proxy_host: *newrelic_proxy_host
+        proxy_port: *newrelic_proxy_port
+    liveness:
+        initialDelay: 60
+        timeout: 60
+        period: 300
+        failure: 2
+    readiness:
+        initialDelay: 60
+        timeout: 60
+        period: 300
+        failure: 2
+ 
+contentconnect:
+    enabled: false
+    serviceAccount:
+      createserviceaccount: false
+      serviceAccountName: *dctm_service_account
+    secret:
+       DB_PASSWORD: <DB-PASSWORD>
+    namespace: *namespace
+    #Configmap
+    configmap:
+      extension: *ccExtension
+      DB_IP: <DB-IP>
+      DB_PORT: <DB-PORT>
+      DB_USERNAME: <DB-USERNAME>
+      DB_DB: cc_db
+      DB_TYPE: postgres
+      DB_TABLESPACE_NAME: 
+      authType: otds
+      otdsUrl:
+      otdsClientID:
+      clientId:
+      clientSecret:
+      tenantId:
+      protocol: IPV6
+    #newrelic
+    newrelic:
+      new_relic_enabled: *newrelic_enabled
+      new_relic_app_name: <NEWRELIC-APPNAME>
+      new_relic_license_key: <NEWRELIC-LICENSEKEY>
+      new_relic_proxy_protocol: *newrelic_proxy_protocol
+      new_relic_proxy_host: *newrelic_proxy_host
+      new_relic_proxy_port: *newrelic_proxy_port
+      
+      
+    #Ingress
+    ingress:
+      enabled: true
+      #No need to configure hosts: and host: if configureHost is false.
+      configureHost: true
+      annotations:
+      tls:
+        enable: false
+        hosts: <namespace>.cfcr-lab.bp-paas.otxlab.net
+      rules:
+        host:  cccshost
+    #graylog
+    graylog:
+      enable: *graylog_enabled
+    images:
+      cc:
+        repository: *image_repository
+        name: dctm-content-connect
+        tag: 23.4
+        pullPolicy: *pull_policy_type
+      ccdb:
+        repository: *image_repository
+        name: dctm-content-connect-dbinit
+        tag: 23.4
+        pullPolicy: *pull_policy_type
+        
+      pullSecrets: *pull_secret_name
+    ### Set value to true if Database creation is needed else false ###
+    contentconnectdb:
+      value: true
+    certificatesecret:
+      crt:
+        MIIGUTCCBDmgAwIBAgIJAM2smVnvBlQ9MA0GCSqGSIb3DQEBBQUAMHgxCzAJBgNVBAYTAklOMQswCQYDVQQIEwJLQTESMBAGA1UEBxMJYmFuZ2Fsb3JlMQswCQYDVQQKEwJPVDEMMAoGA1UECxMDRUNEMQwwCgYDVQQDEwNta3MxHzAdBgkqhkiG9w0BCQEWEG1rc0BvcGVudGV4dC5jb20wHhcNMTgwMjIyMDM1MDU5WhcNMjAxMjEyMDM1MDU5WjB4MQswCQYDVQQGEwJJTjELMAkGA1UECBMCS0ExEjAQBgNVBAcTCWJhbmdhbG9yZTELMAkGA1UEChMCT1QxDDAKBgNVBAsTA0VDRDEMMAoGA1UEAxMDbWtzMR8wHQYJKoZIhvcNAQkBFhBta3NAb3BlbnRleHQuY29tMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAsgzaKj2H+yZOUKccknQPhWoYcKeLIDbokMJ2/i3erCAoyerSJo8K9iZi7q1TE3R/LTZ7Yu5LuRNytTbgQD2wFX5l58VykRC9dBigRuHwd+MbjeSZntTlYS08Ra9wpGyq8eKxRH2rAL/xVSAekLAVX2pFpGWA7cH+qiM9GIKxMZTfv2asQpssRHpp2t18wmGY+KYleBOAbyn1kOQOnolpnfqh96RdmTNsk+gPlIIZ8oJIyG9EeO51zy4jURaS2FmSF8O1GLIYwO8HCZaHQjJNRNqbYjJcKwAOrdzFV2+WbLi/5KvK8URkP/3JhKm4lLClqHvtQiPPQy2oMPqTEVJEfE7hkWAsmyaZBKep1PiynwBfhQyr1spcdUprTj0J7lZY8oEL6p5l335cnTcj9DwqpgT9ygNsp6KM3GjVKRsc6sdxwa1mYUJZ2ncYZCTLYweejGGIT23kY7Ayzx3zFTL89x7sR0ALImU8ZSEj138DVvJHmXP7wkht517zj3mxYJpHsYTLIqTCYqW7mhYc3k0gsNQAoQLz+s4MniqZ52jXHZ2+JpYrP5wqbQjyQhtWYQ55CwTabdKKwWSr6v4sH3U7xvnViOu/zEDRMY/deWgahHhvM3HLCWyCaJBNlUv0UwzcuJuHPV3Cp+V8XZ8Lblrg1O7Vdu7Y/00r6RBr4aiktq8CAwEAAaOB3TCB2jAdBgNVHQ4EFgQUgvRPrUFqfULugtXoi3+imLbige4wgaoGA1UdIwSBojCBn4AUgvRPrUFqfULugtXoi3+imLbige6hfKR6MHgxCzAJBgNVBAYTAklOMQswCQYDVQQIEwJLQTESMBAGA1UEBxMJYmFuZ2Fsb3JlMQswCQYDVQQKEwJPVDEMMAoGA1UECxMDRUNEMQwwCgYDVQQDEwNta3MxHzAdBgkqhkiG9w0BCQEWEG1rc0BvcGVudGV4dC5jb22CCQDNrJlZ7wZUPTAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBBQUAA4ICAQBCz6Z9JQMMW+XK6ptYJM774F6nqwel4O02GyrqprbYJLhONtdhvMyiP5scYh17vAUI8HYRj+59fzyhY5vq0bdvHHJmrhFRLwjve46OGHGx8z7vaJsp2QHaXf7XaEL4gi5w5oCcppP/q5s4sv4VYyOfyUrCOAUE2fYxyKN1MZxukYBq49PWIGQTvzeZ2h7t9biGyNDYISwX0yPn5rwjPV3BVc6K9CM2+P9cMZKBtyDiehH6STHbPy0jJ4uednZzcf4YQMmkqTxG1HmiwjmnDls5z7A24GCVT6/1jLS8OuOLxjZWepWE0BjydjrjOOd2A9OwMzJ+okSw7EcPnW3E6p70wo6TcCBwl5PeHHsBWygJyVHAZsvrerDp/asEts4ACXUPuz8LKgCdFkgo14+QUzVoSLM0bHz8kLmvn32tEydJB16sPgd37zOGHyqKLTaXL4UkooGWY88B7Z7SoGm/RhqCRNyBhcXKfzQcdKCgj0srBY9I0kmVF3yQ6zz+o2MEazIuQuNHp/ml/M69g+bDkFnIzuJYrg0hw4zV/VBSRS+YrId9rjLsYfwM+/84c0CVQJ6ZMVjwLLH5ZTMf2xG52u106qwb/s5NSLW/iE0nzQqmbh2HGS/4D8h0uZI/QEcPDZBjegaqBMK9LMRYE1S1Cc3PuSvYkOWbF6xjwnaZt68IgA==
+      key: 
+        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
+
+dtrbase:
+  enabled: false
+   
+  serviceAccount:
+    createserviceaccount: false
+    serviceAccountName: *dctm_service_account
+
+  service:
+    name: &dtrbase dtrbase
+
+  persistentVolumeClaim:
+    pvcName: dtr-pvc
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    storageClass: *rwo_storage_class
+    PVCSubPath: dtr-customscript
+
+    
+  ingress:
+    name: dtr-ingress
+  # If common ingress created in the cluster/namespace then ensure this is false.
+    enable: false
+    ingressHostName: dtr-ingress-host
+    clusterDomainName: ids.ids.cfcr-lab.bp-paas.otxlab.net
+    annotations: 
+      nginx.ingress.kubernetes.io/proxy-body-size: 5g
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: 30m
+
+  cs:  
+    useCSDfcConfigMap: true            
+    configMapName: dbr.configmap
+    csSecretConfigName: *cs_secret_name
+    allowTrustedLogin: false  
+
+  docbroker:
+    port: *dbrport
+    replicaCount: *docbroker_replica_count
+    serviceName: *dbr_service_name  
+
+  env:
+    domain: *env_domain
+
+  methodsvr:
+    containerName: dcs-pg
+      
+  deployment:  
+    name: *dtrbase
+    appName: *dtrbase
+    replicaCount: 1
+
+  images:
+    dtrbase:
+      repository: *image_repository
+      name: dctm-reports-base
+      tag: 22.4.1
+      pullPolicy: *pull_policy_type
+    graylog:
+      enable: *graylog_enabled
+      image: *graylog_image
+      pullPolicy: *pull_policy_type
+      server: *graylog_server
+      port: *graylog_port
+   
+  containers:
+    dtrbase:
+      name: *dtrbase
+      darInstallRepo: *docbase_name
+      drServiceUserEmailID: dctmreports@ot.com
+      ingressHost: dctm-ingress.ids.ids.cfcr-lab.bp-paas.otxlab.net  
+      drCoreServerTimeout: 00:30:00
+      drCoreSmtpPort: 25
+      drCoreSmtpAuthRequired: true
+      drCoreMailSubject: test eMail from DR Job
+      drCoreMaxAttachmentSize: 0
+      drCoreAttachAsZip: false
+      drCoreSmtpUser: username
+      drCoreUrlTimeout: 500000
+      drCoreSmtpStarttlsEnable: true
+      drCoreSmtpHost: smtp.org.net 
+      drCoreFromAddress: user@opentext.com
+      drCoreSmtpPassword: pwd
+      drCoreReportServlet: http://localhost:8080/DCTM-Reports       
+      drCoreReportCacheTimeout: 00:30:00    
+
+# log4j2 logging config details.
+  logging:  
+     rootLoggerLevel: WARN
+     consoleThresholdLevel: WARN
+     logFileSize: 100MB
+     maxLogFiles: 5
+  
+  newrelic:
+    enable: *newrelic_enabled
+    appName: DOCUMENTUM_DTR-PROD-OT2_CFCR_BP2-ECD
+    proxyHost: *newrelic_proxy_host
+    proxyPort: *newrelic_proxy_port
+    proxyScheme: *newrelic_proxy_protocol
+
+  certificate:
+    useCertificate: *use_certificates
+    dbrServiceName: *dbr_service_name
+    dbrDataPVCName: certdbr-data-pvc 
+ 
+da:
+  enabled: false
+
+  serviceAccount:
+    createserviceaccount: false
+    serviceAccountName: *dctm_service_account
+  
+  persistentVolumeClaim:
+    storageClass: *rwo_storage_class
+    awsEFSCSIDriver: efs.csi.aws.com
+    awsEFSCSIHandle:
+    
+  service:
+    name: da-svc
+    port: 8080
+  
+  ingress:  
+    enable: true
+    clusterDomainName: <namespace>.cfcr-lab.bp-paas.otxlab.net
+  
+  cs:  
+    useCSDfcConfigMap: true
+    configMapName: *dbr_configmap_name
+    csSecretConfigName: *cs_secret_name 
+  
+  certificate:
+    useCertificate: *use_certificates
+    dbrServiceName: *dbr_service_name
+  
+  deployment:  
+    name: da<sname>
+    appName: da<sname>
+    replicaCount: 1
+  
+  images:
+    da:
+      repository: *image_repository
+      name: dctm-admin
+      tag: 22.4
+      pullPolicy: *pull_policy_type
+      imagePullSecrets:
+      
+    graylog:
+      enable: *graylog_enabled
+      image: *graylog_image
+      pullPolicy: *pull_policy_type
+      name: graylog-sidecar
+      server: *graylog_server
+      port: *graylog_port
+    
+  containers:
+    da:
+      docbaseName: *docbase_name
+      probing:
+        failureThreshold: 2
+        successThreshold: 1
+        timeoutSeconds: 150
+        readinessProbe:
+          initialDelaySeconds: 150
+          periodSeconds: 150
+        livenessProbe:
+          initialDelaySeconds: 150
+          periodSeconds: 150
+        
+  otds:
+    enable: *otds_enabled 
+    url: http://otdsapi-highland.dev.bp-paas.otxlab.net/otdsws
+    clientID: daclientid
+    
+  lmsgcustomLog:
+    enable: false
+    loglocation: /opt/tomcat/logs
+    
+  dctmreports:
+    enable: false
+    url: https://<fully qualified ingress host>/dtr
+  
+  wdkAppXmlConfig:
+    tagsnvalues:
+    # Syntax for specifying both English and Japanese language pack 
+    # application.language.supported_locales.locale=[en_US, ja_JP]
+    - application.language.supported_locales.locale=[en_US]
+    - application.language.default_locale=en_US
+      
+  # log4j2 logging config details.
+  logging:
+    rootLoggerLevel: WARN
+    consoleThresholdLevel: WARN
+    filename: documentum.log
+    logFileSize: 10MB
+    maxLogFiles: 5
+  
+  newrelic:
+    enable: *newrelic_enabled
+    appName: DOCUMENTUM_DA-PROD-OT2_CFCR_BP2-ECD
+    proxyHost: *newrelic_proxy_host
+    proxyPort: *newrelic_proxy_port
+    proxyScheme: *newrelic_proxy_protocol
+
+dfs:
+  enabled: false
+  serviceName: <sname>dfs-server
+  replicaCount: 1
+  installOwner: *installOwner
+  secretsChange: *secrets_Change
+  imagePullSecrets: *pull_secret_name
+  serviceAccount:
+    createserviceaccount: false
+    serviceAccountName: *dctm_service_account
+    
+  cs:
+    useCSDfcConfigMap: true
+    configMapName: *dbr_configmap_name
+    csSecretConfigName: *cs_secret_name
+
+  containers:
+    initcontainer:
+      name: dfsinit
+      image:
+        repository: *image_repository
+        path: dctm-dfs
+        tag: 23.4
+        pullPolicy: *pull_policy_type
+    dfs:
+      name: dfs
+      kubernetes: true
+      #DFS Docker image
+      image:
+        repository: *image_repository
+        path: *tomcatbaseimage_name
+        tag: *tomcatbaseimage_tag
+        pullPolicy: *pull_policy_type
+      containerHttpPort: 8080
+      containerSslPort: 8443
+      probing:
+        url: /dfs/services/core/QueryService?wsdl
+        port: 8080
+        failureThreshold: 2
+        successThreshold: 1
+        timeoutSeconds: 120
+        readinessProbe:
+          enable: true
+          initialDelaySeconds: 60
+          periodSeconds: 60        
+        livenessProbe:
+          enable: true
+          initialDelaySeconds: 180
+          periodSeconds: 120
+
+    ### Fluentd container ### 
+    fluentd:
+      enable: *fluentd_enabled
+      TCPPort: *fluentd_tcp_port
+      RESTPort: *fluentd_rest_port
+      compressionMode: gzip
+      bufferingMode: FILEBUFFER
+      flushInterval: 3s   
+
+    # Name and tag of fluentd image
+      name: fluentd
+      pullPolicy: Always
+      restartPolicy: Always
+      fluentdLogFolder: fluentd-logging
+      fluentdConfigFolder: fluentd-config-map
+      servicedataPVCName: fluentd-data-pvc
+      kafkaBrokerList: *brokerList
+
+      image: *fluentd_image
+      readiness:
+        enable: false
+      
+      #Kafka topic name. This name should be same as the topic name which is given while setting up the kafka. 
+      kafkaTopic: *kafka_topic
+      #Kafka user name/password. This is the user to connect to kafka. This is provided while setting up the kafka. 
+      kafkaUser: *kafka_admin_username
+      kafkaUsrPasswd: *kafka_admin_password
+    ### Graylog container ### 
+    graylog:
+      enabled: *graylog_enabled
+      name: graylog
+      image: *graylog_image
+      imagePullPolicy: *pull_policy_type
+      server: *graylog_server
+      port: *graylog_port
+      serviceToken:
+
+  #Tomcat Admin credentials:
+  tomcat:
+    # Tomcat manager username
+    username: admin
+    # Tomcat manager password
+    password: password 
+
+  certificate:
+    use_certificate: *use_certificates
+    dbrserviceName: *dbr_service_name
+    dfcTrustStorePassword: password
+  
+  dbrpersistentVolume:
+    dbrdataPVCName: certdbr-data-pvc
+
+##########################################################################################
+# dfc.properties configurations in the case of Content Server config map not used.       #
+# In the case of useCSDfcConfigMap=false The below values will be used to populate       #
+# dfc.properties file. Update or uncomment the below listed parameters with appropriate  # 
+# values of dfc.properties and ensure to toggle the flag useCSDfcConfigMap to false.     #
+# The values mentioned in addtionalProperties parameter will be added into dfc.properties# 
+# file as it is.                                                                         #
+##########################################################################################
+  
+  dfc:
+    docbroker: *dbr_service_name
+    port: *dbrport
+    globalRegistryRepository: *docbase_name
+    globalRegistryUsername: *globalUsername
+    globalRegistryPassword: *globalRegistryPassword
+    connectionMode: try_native_first
+    cryptoRepository: *docbase_name
+    ### DFC data directory. Need not be changed
+    dataDir: /var/documentum
+    ### End User details
+    client:
+      should_use_enduserinfo: false
+      should_use_eventhub: false
+      eventhub:
+        ### Event Log level values 0 - 5 , 
+        ### 0 - NO LOG, 1 - ERROR, 2 - WARN, 3 - INFO, 4 - DEBUG, 5 - TRACE
+        log_level: 4
+        ### The size of the events buffered at DFC layer. 
+        queue_size: 1000
+
+    #UNCOMMENT THE BELOW OR ADD ANY ADDITIONAL dfc properties to use in dfc.properties file
+    additionalProperties:
+    #- dfc.security.ssl.truststore=/opt/dctm/certificate/dfc.keystore
+    #- dfc.tokenstorage.enable=false
+    #- dfc.security.ssl.use_anonymous_cipher=true
+    #- dfc.security.ssl.use_existing_truststore=false
+    
+  log4j:
+    ### Log Level for DFS packages
+    rootLogLevel: WARN
+    rtLogLevel: WARN
+    datamodelLogLevel: WARN
+    servicesLogLevel: WARN
+    toolsLogLevel: WARN
+    traceLogLevel: WARN
+  
+  service:
+    ports:
+      httpPort: 8080
+      sslPort: 8443
+  
+  ### resources ###
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 100m
+      memory: 400Mi
+
+  newrelic:
+    enable: *newrelic_enabled
+    licenseKeyName: newrelicLicensekey
+    dfs_application_name: <sname>DFS-PROD-OT2_CFCR_LI3-EIM-TenantName_SubscriptionID
+    proxy_host: *newrelic_proxy_host
+    proxy_port: *newrelic_proxy_port
+
+  ### ConfigMap metadata ###
+  configMap:
+    fluentd_configMap_name: <sname>dfsfluentd-configmap
+  
+  ### Volume Claim Template###
+  volumeClaimTemplate:
+    logVctAccessModes: ReadWriteOnce
+    size: 1Gi
+    # storage class for the volumeClaimTemplates Ex : azurefile
+    logVctStorageClass: *rwo_storage_class
+    logVctSize: 2Gi
+    
+  extensionPVC:
+    createPVC: true
+    PVCAccessMode: ReadWriteOnce
+    PVCStorageClass: *rwm_storage_class
+    PVCSize: 2Gi
+    useCommonPVC: *tomcatbase_usecommonpvc
+    commonPVCName: *tomcatbase_commonpvcname
+    
+records:
+    enabled: false
+    namespace: *namespace
+    userName: *installOwner
+    serviceAccount:
+      createserviceaccount: false
+      serviceAccountName: *dctm_service_account
+    records:
+      replicaCount: 2
+    custom:      
+      scriptinPVC: false
+      scriptPVCname: <sname>dcs-pg-pvc
+      PVCSubPath: initcontainercustomscripts/<sname>dcs-pg 
+    persistentVolumeClaim:  
+      pvcName: records1pvc 
+      accessMode: ReadWriteMany
+      size: 1Gi
+      storageClass: *rwo_storage_class
+      awsEFSCSIDriver: efs.csi.aws.com
+      awsEFSCSIHandle: 
+    service:
+      name: records-svc
+      port: 8080 
+    ingress:
+        name: records-ingress
+        enable: false
+        ingressHostName: records-ingress
+        clusterDomainName: <namespace>.cfcr-lab.bp-paas.otxlab.net      
+        annotations: 
+          nginx.ingress.kubernetes.io/proxy-body-size: 5g
+          nginx.ingress.kubernetes.io/proxy-connect-timeout: 30m 
+    docbroker:
+        replicaCount: *docbroker_replica_count
+        serviceName: *dbr_service_name
+        port: *dbrport
+    env:
+        domain: *env_domain
+    cs:   
+      useCSDfcConfigMap: true             
+      configMapName: *dbr_configmap_name
+      csSecretConfigName: *cs_secret_name
+      allowTrustedLogin: false
+    certificate:
+      useCertificate: *use_certificates
+      dbrServiceName: *dbr_service_name
+      dbrDataPVCName: certdbr-data-pvc
+    deployment:  
+      name: <sname>records
+    images:
+      records:
+        repository: *image_repository  
+        name: dctm-records
+        tag: 23.4
+        pullPolicy: *pull_policy_type
+        pullSecrets: 
+      graylog:
+        enable: *graylog_enabled 
+        image: *graylog_image
+        server: *graylog_server
+        port: *graylog_port   
+    containers:
+      records:    
+        name: records
+        recordsSingleHelm: true
+        docbaseName: *docbase_name
+        containerPort: 8080    
+        probing:
+          healthPort: 8080
+          failureThreshold: 5
+          successThreshold: 1
+          timeoutSeconds: 120
+          readinessProbe:      
+            initialDelaySeconds: 120
+            periodSeconds: 30        
+          livenessProbe:
+            initialDelaySeconds: 120
+            periodSeconds: 30
+    otds: 
+      enable: *otds_enabled 
+      url: http://otdsapi-highland.dev.bp-paas.otxlab.net/otdsws
+      clientID: records
+      scheme: https
+      authentication:
+        useDefaultDocbase: true
+        repoSelectionPageRequired: true
+        loginTicketTimeout: 250
+        renewtokenafterlogout: true
+    wdkAppXmlConfig:  
+      tagsnvalues:
+      - application.language.supported_locales.locale=[en_US]
+      - application.language.default_locale=en_US
+    logging:  
+      rootLoggerLevel: WARN
+      consoleThresholdLevel: WARN
+      filename: documentum.log
+      logFileSize: 10MB
+      maxLogFiles: 5    
+    userProvidedServices:
+      newrelic:
+        enable: *newrelic_enabled    
+        appName: DOCUMENTUM_RECORDS-PROD-OT2_CFCR_BP2-ECD
+        proxyHost: *newrelic_proxy_host
+        proxyPort: *newrelic_proxy_port
+        proxyScheme: *newrelic_proxy_protocol
+      
+      
+    dfcTracing:
+      enable: false
+      configMapName: records-dfcTracing-configMap
+      filePrefix: dfcTrace
+      logLevel: DEBUG  
+    replicaCount: 1
+  
+rqm:
+    enabled: false
+    namespace: *namespace
+    serviceName: &rqmName rqm
+    userName: *installOwner
+    serviceAccount:
+      createserviceaccount: false
+      serviceAccountName: *dctm_service_account
+    custom:
+      scriptinPVC: false
+      scriptPVCname: <sname>dcs-pg-pvc
+      PVCSubPath: initcontainercustomscripts/<sname>dcs-pg
+    persistentVolumeClaim:
+      pvcName: rqmpvc
+      accessMode: ReadWriteMany
+      size: 1Gi
+      storageClass: *rwm_storage_class
+      awsEFSCSIDriver: efs.csi.aws.com
+      awsEFSCSIHandle:
+    cs:   
+      useCSDfcConfigMap: true             
+      configMapName: *dbr_configmap_name
+      csSecretConfigName: *cs_secret_name
+      allowTrustedLogin: false
+    certificate:
+      useCertificate: *use_certificates
+      dbrServiceName: *dbr_service_name
+      dbrDataPVCName: certdbr-data-pvc           
+    images:
+      repository : *image_repository  
+      rqm :
+        name : dctm-rqm
+        tag : 23.4
+        pullPolicy : *pull_policy_type
+        pullSecrets:
+      graylog:
+        enable: *graylog_enabled 
+        image: *graylog_image
+        server: *graylog_server
+        port: *graylog_port 
+
+    containers:
+      rqm:    
+        name: *rqmName
+        containerName: RQMContainer
+        rqmSingleHelm: true 
+        kubernetes: true        
+        replicaCount: 1                 
+        installFiles: false
+        docbaseName: *docbase_name     
+        rqmDocbaseUser: dmadmin    
+        rqmSysAdminName: recordsadmin
+        rqmSysAdminPass: password   
+        globalRegistryRepository: *docbase_name  
+        bofRegistryUser: *globalUsername       
+        rqmadminport: 9095
+        rqmjettyport: 9096
+        docbrokerport: *dbrport
+        recordsaws: false        
+    docbroker:
+        replicaCount: *docbroker_replica_count
+        serviceName: *dbr_service_name
+        port: *dbrport
+    env:
+        domain: *env_domain
+    userProvidedServices:
+      newrelic:
+        enable: *newrelic_enabled    
+        appName: DOCUMENTUM_RQM-PROD-OT2_CFCR_BP2-ECD
+        proxyHost: *newrelic_proxy_host
+        proxyPort: *newrelic_proxy_port
+        proxyScheme: *newrelic_proxy_protocol
+     
+  
+otds:
+    enabled: false
+    ########################################################################
+    # Default values for Helm Chart otds (OpenText Directory Services).
+    # This is a YAML-formatted file.
+    # Declare variables to be passed into your templates.
+    #
+    # This Helm Chart for OpenText Directory Services includes one subchart:
+    # - otdsws - OpenText Directory Services frontend
+    #
+    # This chart has its own values.yaml but you should just change
+    # this one - it overwrites the defaults in the subchart.
+    #
+    ########################################################################
+    global:
+      ## otdsUseReleaseName controls whether the release name is used in
+      ## the names of the objects.
+      ## This value should not be changed as part of an upgrade!
+      otdsUseReleaseName: false
+      ## namespace can be used to deploy to a namespace other than the
+      ## default namespace.
+      namespace: *namespace
+      ## Below are global default values that should apply to all subcharts
+      ## when provided as globals by a parent chart. 
+      ## These global defaults are overwritten by values provided in the
+      ## otdsws section below.
+      imageSource: registry.opentext.com
+      imageSourcePublic:
+      imagePullSecret:
+      imagePullPolicy: IfNotPresent
+      serviceAccountName: default
+      serviceType:
+      otdsServiceName: otdsws
+      resourceRequirements: true
+      existingSecret:
+      timeZone: Etc/UTC
+
+    ## ingress.* settings allow you to connect to the deployment with HTTPS
+    ## and a Fully Qualified Domain Name (FQDN) (DNS entry).
+    ## - enabled defines if a Kubernetes Ingress is used.
+    ## - secret is the name of the TLS / SSL Kubernetes secret for HTTPS
+    ##   connections. If no secret is given, SSL is not activated in the
+    ##   Ingress definition.
+    ##   Create a secrete in Kubernetes with the following kubectl command:
+    ##   kubectl create secret tls <secret name> --cert fullchain.pem --key privkey.pem
+    ## - class is the Ingress class - used for annotations on the different
+    ##   cloud platforms
+    ## - annotations are platform specific annotations of the ingress object
+    ingress:
+      enabled: &otds_ingress_enabled true
+      secret:
+      class:
+      annotations: {}
+      ## exposeIndividualEndpoints enables to expose the list of 5 endpoints
+      ## "/otds-admin/", "/otdstenant/", "/otdsws/", "/ot-authws/", "/otds-v2/"
+      ## currently supported in OTDS. Otherwise, only root '/' is exposed by default
+      exposeIndividualEndpoints: false
+      ## paths provide list of endpoints that are associated with OTDS backend.
+      ## Both the host and path should match to route the traffic to the desired
+      ## service properly. The paths are only exposed if exposeIndividualEndpoints is true
+      paths:
+        - "/otds-admin/"
+        - "/otdstenant/"
+        - "/otdsws/"
+        - "/ot-authws/"
+        - "/otds-v2/"
+
+    ########################################################################
+    # Directory Services server subchart:
+    # Don't remove the YAML &anchors - only change the parameters behind!
+    # (they are used for cross-referencing to avoid repetitive settings)
+    ########################################################################
+    otdsws:
+      ## Pod Security Context
+      ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+      ##
+      ## For deploying in OpenShift, fsGroup, runAsUser and runAsGroup need to be set to allowed values,
+      ## eg. fsGroup=1000620000, runAsUser=1000620000 and runAsGroup=0.
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsUser: 1000
+      ## podLabels list additional pod labels to apply
+      ## eg:
+      ## podLabels:
+      ##   app.kubernetes.io/app_name: otdsws
+      ##   app.kubernetes.io/app_version: yy.q
+      podLabels: {}
+      ## podAnnotations list additional pod annotations to apply
+      podAnnotations: {}
+      ## enabled controls if the OTDS server gets deployed as a container in
+      ## Kubernetes. If you have OTDS deployed somewhere else you can set
+      ## it to false.
+      enabled: true
+      ## serviceAccountName defines the name of the service account the
+      ## pods are running under.
+      serviceAccountName:
+      ## statefulSet controls if the OTDS server gets deployed as a statefulSet
+      ## Kubernetes resource. If OTDS needs to have static pod name which is needed
+      ## especially in some on-prem scenarios e.g. sync master host.
+      statefulSet: false
+      ## ingress.* define Ingress specific settings for OTDS
+      ingress:
+        enabled: *otds_ingress_enabled
+        secret:
+        ## prependPath can be used to prepend a value to the standard OTDS server
+        ## path when multiple services share a hostname.  Adding a value of "otds"
+        ## would result in the login URL being <publicHostname>/otds/otdsws/login.
+        prependPath:
+      ## serviceName defines the name of the Kubernetes service for OTDS server:
+      serviceName:
+      ## serviceType can be used to override the spec type for the otdsws
+      ## service.  If this value is not set the value is defined
+      ## based on the value of ingress.enabled.  The type is set to ClusterIP
+      ## if ingress is enabled and LoadBalancer if it is disabled.
+      serviceType:
+      ## serviceAnnotations define custom annotations that need to be assigned to OTDS service.
+      ## For example:
+      ##  cloud.google.com/backend-config: '{"ports": {"80": "abcd-otds-backend"}}'
+      ##  cloud.google.com/neg: '{"ingress": true}'
+      serviceAnnotations: {}
+      ## deprecated - this is always true now
+      carrierGradeNAT: true
+      ## customSecretName defines the name of an already existing secret object.
+      ## This is useful when OTDS charts work as subcharts and parent chart create
+      ## a single secret.
+      customSecretName:
+      ## replicas for OTDS server:
+      replicas: 1
+      ## port defines the external port for the OTDS Kubernetes service:
+      port: 80
+      ## publicHostname defines the FQDN or IP address of the
+      ## Kubernetes Services of OTDS. If empty ("") the hostname
+      ## will dynamically be determined via the Kubernetes API.
+      publicHostname:
+      ## timeZone defines the time zone of the Linux OS within the container. The default value for
+      ## the timeZone is Etc/UTC.
+      timeZone:
+      ## allowDuplicateUsers controls whether OTDS should allow the same user accounts to be created in multiple partitions
+      ## This applies to users synchronized through eDirSync or SCIM
+      allowDuplicateUsers: true
+      ## cryptKey is the encryption key for encrypting secrets and passwords to other systems in the OTDS DB
+      ## The value is a 16 character ASCII string that has been base64 encoded
+      ## For example, "MTIzNDU2Nzg5YWNiZGVmZw==" is the base64 encoded value of "123456789acbdefg"
+      cryptKey:
+      ## additionalJavaOpts defines additional Java parameters (space-separated) for OTDS.
+      additionalJavaOpts:
+      ## enableBootstrapConfig enables the use of the config.yml file in the
+      ## otdsws chart directory to apply a specific set of configuration options
+      ## on the initial run when the DB is populated.
+      ## A sample config.yml file is in the otdsws chart directory
+      enableBootstrapConfig: false
+      ## existingBootstrapConfig can be used to specify the content of the OTDS bootstrap configuration file.
+      ## This overrides the configuration files in the chart directory
+      existingBootstrapConfig: |
+
+      ## otadminPassword is the password of the otadmin@otds.admin user for OTDS
+      ## Note that this password is only used when initially creating the user in a new database.
+      otadminPassword:
+      ## enableCustomizedTruststore enables the import of custom certificates into the JVM truststore.
+      ## Used to import self-signed or private CA certificates.
+      ## Certificates to import must be placed in /certificates directory of the Helm chart or specified
+      ## with set-file option.
+      enableCustomizedTruststore: false
+      ## singleCaCert can be used to provide a single certificate file using --set-file
+      ## This method can be used in lieu of placing certificates in the /certificates directory of the Helm chart
+      singleCaCert: |
+
+      ## migration.* defines if migration from OpenDJ should be attempted and
+      ## defines how the migration should take place.
+      ## There are three different ways migration can take place.
+      ## 1. From a legacy OTDS deployment (eg. otds:21.3.0 images), which requires
+      ##    usingLegacyImage=true and that legacyImagePVC is specified.
+      ##    For this option the minimum memory requirements are increased
+      ##    resource.requests.memory=2Gi and resource.limits.memory=3Gi
+      ## 2. From an existing OTDS deployment in the same cluster, which requires
+      ##    the existing opendj serviceName servicePort and password be specified.
+      ##    deploymentName is used to specify the current OTDS deployment which
+      ##    should be stopped. This is only needed if the value of
+      ##    global.otdsUseReleaseName is being changed during the upgrade.
+      ## 3. From an external OpenDJ such as a VM deployment, which requires
+      ##    the opendjUri (eg. ldap://otds.domain.local:1389) and password
+      ##    be specified.
+      ## Note that if usingLegacyImage=true other non-relevant values will
+      ## be ignored and if opendjUri is specified serviceName and servicePort
+      ## will be ignored.
+      ## If enabled=true the default values will migrate from the previous
+      ## default configuration.
+      migration:
+        enabled: false
+        usingLegacyImage: false
+        legacyImagePVC:
+        serviceName: opendj
+        servicePort: 1389
+        deploymentName:
+        opendjUri:
+        password:
+        ## preUpgradeJob.* enables the one-step migration/deployment via pre-upgrade jobs
+        ## image.* defines the image parameters (i.e. the kubectl) used for pre-upgrade job
+        preUpgradeJob:
+          enabled: false
+          ## timeout defines the timeout value for migrate job to complete
+          ## e.g. 5000s, 30m, 100h
+          timeout: 100h
+          ## resources.* defines image parameters for data migrate job, for OpenDJ migrate
+          ## the pod's memory should have at minimum 3Gi momory
+          resources:
+            requests:
+              cpu: 0.5
+              memory: 3Gi
+            limits:
+              cpu: 2
+              memory: 3Gi
+            ## jvmMemory sets the maximum amount of memory used by the OpenDJ migrate JVM
+            ## If this value is not set, the JVM memory will be set to 75% of preUgrateJob
+            ## resources.limits.memory. Memory amounts in M, Mi, G or Gi are supported
+            ## The JVM memory should be set to at least 2Gi as it will be split between OpenDJ and Tomcat.
+            ## For JVM memory <= 4Gi, OpenDJ will take 1.5Gi.
+            ## For 8Gi >= JVM memory > 4Gi, OpenDJ will take 2Gi.
+            ## For JVM memory > 8Gi, OpenDJ will take 3Gi.
+            jvmMemory:
+          ## image.* defines image parameters for pre-upgrade job
+          image:
+            source:
+            name: bitnami/kubectl
+            tag: latest
+      ## otdsdb.* defines the connection information for the DB
+      otdsdb:
+        ## url is the JDBC connection string
+        ## The following is a list of sample values:
+        ## jdbc:postgresql://postgres.domain.local:5432/otdsdb
+        ## jdbc:sqlserver://ms-sql.domain.local:1433;databaseName=otdsdb
+        ## jdbc:oracle:thin:@oracle.domain.local:1521:otdsdb
+        ## jdbc:sap://hana.domain.local:30015/?databaseName=otdsdb
+        ## The following is a list of samples values for encrypted connection:
+        ## jdbc:postgresql://postgres.domain.local:5432/otdsdb?ssl=true&sslmode=verify-ca&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory
+        ## jdbc:sqlserver://ms-sql.domain.local:1433;databaseName=otdsdb;integratedSecurity=true;encrypt=true;trustServerCertificate=true;sslProtocol=TLSv1.2
+        ## jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=tcps)(HOST=oracle.domain.local)(PORT=2484))(CONNECT_DATA=(SERVICE_NAME=linux11g)))
+        ## jdbc:sap://hana.domain.local:30015/?databaseName=otdsdb&encrypt=true
+        ##??For servers that use a self-signed certificate, you must set enableCustomizedTruststore to true and provide the certificate
+        url:
+        ## username specifies the account for the DB connection
+        username:
+        ## password specifies the password for the DB account
+        password:
+        ## By default, OTDS uses a database schema named 'otds'
+        ## Set this option to true to use the default schema assigned to the database user account instead.
+        ## Often required on a shared Oracle database.
+        useDefaultSchema: false
+        ## automaticDatabaseCreation allows to create required Database/User and grant privileges automatically without manual intervention.
+        ## Currently only the initialization of Postgres Database is supported.
+        automaticDatabaseCreation:
+          enabled: false
+          ## dbType defines the database type. Currently only the initialization of Postgres Database is supported.      
+          dbType: postgres
+          ## dbHost defines the host of database server. If not provided, it will be extracted from url automatically.
+          dbHost:
+          ## dbPort defines the port of database server.
+          dbPort: 5432
+          ## dbAdmin defines admin account (which by default is 'postgres' for Postgres database).
+          dbAdmin: postgres
+          ## dbAdminPassword defines password for admin account e.g. 'postgres' for Postgres database.
+          dbAdminPassword:
+          ## dbName defines the database to be created for otds.
+          ## the otdsdb.username and otdsdb.password will be used for automatic database user and password
+          dbName: otdsdb
+          ## dbExtensions defines the extensions to be created for otds database e.g. otdsdb and otds schema e.g. 'otds'.
+          ## for OTDS, extension of pg_trgm is needed
+          dbExtensions:
+            - pg_trgm
+          ## dbImage.* defines database image to run the psql client for the automatic database creation. Specific version/tag should be used in production.
+          dbImage:
+            source:
+            name: bitnami/postgresql
+            tag: latest
+            pullPolicy:
+      ## image.* defines Docker image location, tags and pull parameters for
+      ## OTDS server - you need to adjust this:
+      image:
+        source:
+        name: otds-server
+        tag: 23.3.0
+        pullPolicy:
+        pullSecret:
+      ## resource.* define the resource requirements for OTDS:
+      resources:
+        enabled:
+        requests:
+          cpu: 0.5
+          memory: 1Gi
+        limits:
+          cpu: 2
+          memory: 1.5Gi
+      ## newrelic.* define NewRelic APM integration settings
+      newrelic:
+        NEW_RELIC_LICENSE_KEY:
+        NEW_RELIC_APP_NAME:
+        NEW_RELIC_LOG_FILE_NAME: STDOUT
+        NEW_RELIC_LOG_LEVEL: info
+        NEW_RELIC_BROWSER_MONITORING_AUTO_INSTRUMENT: false
+        JAVA_OPTS: -javaagent:/opt/newrelic/newrelic.jar
+      ## vault.* define HashiCorp Vault integration settings
+      ## OTDS will read secrets from Vault rather than using k8s secrets
+      vault:
+        enabled: false
+        ## Vault Agent Injector - set to true to use the Vault Agent Sidecar Injector rather than having OTDS connect directly to Vault
+        agentInjector: false
+        ## the URL to the vault server
+        url:
+        ## if using Vault namespaces, provide the namespace
+        namespace:
+        ## auth path for k8s auth
+        authpath: auth/kubernetes
+        ## the name of the Vault role for OTDS to use
+        role:
+        ## the path in Vault to the following secrets:
+        ## - CryptKey (with key 'CryptKey'). See description for 'cryptKey'.
+        ## - AdminPassword (with key 'AdminPassword'). See description for 'otadminPassword'.
+        ## - JDBCCreds (with keys 'username' and 'password'). See description for 'otdsdb.username' and 'otdsdb.password'.
+        ## - OpenDJPassword (with key 'OpenDJPassword') **ONLY REQUIRED IF MIGRATING FROM OPENDJ. See description for 'migration'. **
+        secretsPath:
+      ## initContainers defines additional init containers to run on startup to customize the OTDS image contents.
+      ## Customization files must be placed into the /otdsws directory of the init container image
+      initContainers:
+      # - name: DESIRED_NAME_FOR_INIT_CONTAINER
+      #   image:
+      #     source: IMAGE_SOURCE
+      #     name: IMAGE_NAME
+      #     tag: IMAGE_TAG
+
+dctm-dcc:
+    enabled: false
+    # Default values for DCC.
+    # This is a YAML-formatted file.
+    # Declare variables to be passed into your templates.
+
+    #Prefix
+    prefix: *dccPrefix
+
+    # Kubernetes Namespace in which this Helm chart is deployed
+    namespace: <Namespace>
+
+    #Consul 
+    consul:
+      prefix: consul
+      image:
+        path: registry.opentext.com/dctm-dcc-consul
+        tag: 22.4
+        pullPolicy: Always
+      containerPort: 8500
+      replicaCount: 1
+      service:
+        servicePort: 8500
+        targetPort: 8500
+      resources:
+        limits:
+          cpu: 2000m
+          memory: 4Gi
+        requests:
+          cpu: 500m
+          memory: 1Gi
+
+    ## Database configuration ##
+    database:
+      dbSchemaName: postgres
+      driverClassName: org.postgresql.Driver
+      quartzdbDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+      username: <DB_USERNAME>
+      password: <DB_ENCRYPTED_PASSWORD>
+      dbunencryptedpassword: <DB_UNENCRYPTED_PASSWORD>
+      db_host: <DB_HOST>
+      db_port: <DB_PORT>
+      dbSchemaInit:
+        image:
+          pullPolicy: IfNotPresent
+          path: registry.opentext.com/dctm-dcc-dbschema
+          tag: 22.4
+     
+    ## New Relic Common Configuration ## 
+    newrelic:  
+      license_key: <New Relic License Key>
+      proxy_enable: false
+      proxy_host: 
+      proxy_port: 
+
+    ## meta data service ##
+    metadata:
+      prefix: metadata
+      enabled: true
+      dbSchemaInit:
+        enabled: false
+        dbname: <DB_NAME>
+      configMap:
+        database:
+          ## url specified the url used to connect to the DB for metadata service.      
+          url: jdbc:postgresql://<DB_HOST>:<DB_PORT>/<DB_NAME>?escapeSyntaxCallMode=callIfNoReturn
+      replicaCount: 1
+      image:
+        path: registry.opentext.com/dctm-dcc-metadataservice
+        tag: 22.4
+        pullPolicy: Always
+      service:
+        servicePort: 8080
+        targetPort: 8080
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 2Gi
+        requests:
+          cpu: 400m
+          memory: 500Mi
+      newrelic:    
+        enabled: false
+        app_name: DCC_METADATA-PROD-OT2_CFCR-LI3-EIM-<app_name>
+      
+    ## Syncagent ##
+    syncagent:
+      prefix: syncagent
+      enabled: true
+      dbSchemaInit:
+        enabled: false
+        dbname: <DB_NAME>
+      configMap:
+        database:
+          ## url specified the url used to connect to the DB for syncagent service.     
+          url: jdbc:postgresql://<DB_HOST>:<DB_PORT>/<DB_NAME>?escapeSyntaxCallMode=callIfNoReturn
+        mail:
+          fromEmailId: <sender email id>
+          toEmailId: <recipient email ids separated by comma>
+          bccEmailId: <Bcc recipient list separated by comma>
+          ccEmailId: <CC recipient list separated by comma>
+          subject: <Subject line for the email to be sent for Failed items>
+        serviceRegistry:
+          serverPort: 8080
+        proxy:
+          enabled: false
+          proxyHost: 
+          proxyPort: 
+          noProxyHosts: 
+      replicaCount: 1
+      image:
+        path: registry.opentext.com/dctm-dcc-syncagent
+        tag: 22.4
+        pullPolicy: Always
+      containerPort: 8080
+      service:
+        servicePort: 8080
+        targetPort: 8080
+      resources:
+        limits:
+          cpu: 4000m
+          memory: 8Gi
+        requests:
+          cpu: 1000m
+          memory: 2Gi
+      newrelic:    
+        enabled: false
+        app_name: DCC_SYNCAGENT-PROD-OT2_CFCR-LI3-EIM-<app_name>
+        
+    ## Syncnshare manaual ##
+    syncnshareManual:
+      prefix: syncagent-manaual
+      enabled: false
+      dbSchemaInit:
+        enabled: false
+        dbname: <DB_NAME>
+      configMap:
+        database:
+          ## url specified the url used to connect to the DB for syncshare manual service.
+          url: jdbc:postgresql://<DB_HOST>:<DB_PORT>/<DB_NAME>?escapeSyntaxCallMode=callIfNoReturn
+        serviceRegistry:
+          serverPort: 8080
+        setup:
+          sourceRepoName: <Provide the Documentum repository name. For E.g. testenv>
+          sourceRepoUser: <Provide the Documentum super user repository user name. For E.g. Administrator>
+          sourceRepoPassword: <Provide the Documentum super user repository encrypted password>
+          sourceRepoUrl: <Provide the Documentum D2 Rest URL. For E.g. https://<hostname>:<port>/d2rest>
+          targetRepoUrl: <Provide the Core Share Endpoint URL. For E.g. https://core.opentext.com>
+          targetRepoClientId: <Provide the Client Id created by the Core Share Admin>
+          targetRepoClientSecret: <Provide the Core Share encrypted Client Secret>
+        proxy:
+          enabled: false
+          proxyHost: 
+          proxyPort: 
+          noProxyHosts: 
+      replicaCount: 1
+      image:
+        path: registry.opentext.com/dctm-dcc-syncnshare-manual
+        tag: 22.4
+        pullPolicy: Always
+      containerPort: 8080
+      javaConfigModify: false
+      service:
+        servicePort: 8080
+        targetPort: 8080
+      resources:
+        limits:
+          cpu: 4000m
+          memory: 8Gi
+        requests:
+          cpu: 1000m
+          memory: 2Gi
+      newrelic:    
+        enabled: false
+        app_name: DCC_SYNCMANUAL-PROD-OT2_CFCR-LI3-EIM-<app_name>
+        
+    ## Core Notification ##
+    coreNotification:
+      prefix: core-notification
+      enabled: true
+      dbSchemaInit:
+        enabled: false
+        dbname: <DB_NAME>
+      configMap:
+        database:
+          ## url specified the url used to connect to the DB for core notification service.
+          url: jdbc:postgresql://<DB_HOST>:<DB_PORT>/<DB_NAME>?escapeSyntaxCallMode=callIfNoReturn
+        extApiconfig:      
+          dccroboticFQDN: syncagent
+          dccmanualFQDN: syncnshare-manual
+          dccapiuser: 
+          dccapipassword: 
+      replicaCount: 1
+      image:
+        path: registry.opentext.com/dctm-dcc-corenotificationservice
+        tag: 22.4
+        pullPolicy: Always
+      proxy:
+          enabled: false
+          proxyHost: 
+          proxyPort: 
+          noProxyHosts: 
+      service:
+        servicePort: 8080
+        targetPort: 8080
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 2Gi
+        requests:
+          cpu: 400m
+          memory: 500Mi
+      newrelic:    
+        enabled: false
+        app_name: DCC_CN-PROD-OT2_CFCR-LI3-EIM-<app_name>
+      
+    ## Mail Service ##
+    mailService:
+      prefix: mail
+      enabled: true
+      configMap:
+        mailconfig:
+          smtpmailhost: <SMTP_RELAY_HOST>
+          smtpmailport: <SMTP_PORT>
+          usermail: <SMTP_RELAY_USERNAME>
+          mailpassword: <SMTP_RELAY_PASSWORD>
+          starttls: false
+      replicaCount: 1
+      image:
+        path: registry.opentext.com/dctm-dcc-mailservice
+        tag: 22.4
+        pullPolicy: Always
+      service:
+        servicePort: 8080
+        targetPort: 8080
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 2Gi
+        requests:
+          cpu: 400m
+          memory: 500Mi
+      newrelic:    
+        enabled: false
+        app_name: DCC_MAIL-PROD-OT2_CFCR-LI3-EIM-<app_name>
+
+    ## Persistent volume claim ##
+    pvc:
+      ## enable if logs needs to be stored in persistent volume
+      enablePV: true
+      storageClass: <Persistent_Volume_Storage_class, E.g. trident-nfs>
+      size: 200Mi
+      createPV: true
+      awsEFSCSIDriver: <AWS EFS Driver>
+      awsEFSCSIHandle: <AWS EFS CSI Handle>
+
+    ## graylog-sidecar for logs ##
+    graylog:
+      enable: false
+      image:
+        path: registry.opentext.com/graylog-sidecar@sha256
+        tag: d8ed2bf68399e34bafc68f883d8f4fb14feb9575e78d63722e544c1529f37db9
+      pullPolicy: IfNotPresent
+      name: graylog-sidecar
+      server: <Graylog Server host>
+      port: <Graylog port>
+      tags: "[\"linux\",\"apache\"]"

@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2config-logback-xml
+  {{- template "configMap.labels" . }}
+data:
+  logback.xml: |-
+    <?xml version="1.0" encoding="UTF-8"?>
+    
+    <configuration scan="true" scanPeriod="60 seconds">
+    
+    	<appender class="ch.qos.logback.core.rolling.RollingFileAppender" name="RootFileAppender">
+    		<file>{{ .Values.logback.file | toString | replace "[" "" | replace "]" "" | replace "/ " "/" | replace " /" "/" }}</file>
+    		<append>true</append>
+    		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+    			<level>{{ .Values.logback.logLevel }}</level>
+    		</filter>
+    
+    		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+    			<fileNamePattern>{{ .Values.logback.fileNamePattern | toString | replace "[" "" | replace "]" "" | replace "/ " "/" | replace " /" "/" }}</fileNamePattern>
+    			<MaxHistory>5</MaxHistory>
+    		</rollingPolicy>
+    
+    		<layout class="ch.qos.logback.classic.PatternLayout">
+    			<pattern>%-31(%date{yyyy-MM-dd HH:mm:ss.SSS} [%-5level]) [%thread] - %-40(%C{18}[%-20(%mdc{methodName})]) : %message%n</pattern>
+    		</layout>
+    	</appender>
+    
+    	<appender class="ch.qos.logback.core.ConsoleAppender" name="RootConsoleAppender">
+    		<layout>
+    			<pattern>%-31(%date{yyyy-MM-dd HH:mm:ss.SSS} [%-5level]) [%thread] - %-40(%C{39}): %message%n</pattern>
+    		</layout>
+    	</appender>
+    	
+    	<logger additivity="false" name="com.documentum">
+    		<level value="{{ .Values.logback.logLevel }}"/>
+    		<appender-ref ref="RootConsoleAppender"/>
+    	</logger>
+    
+    	<logger additivity="false" name="net">
+    		<level value="warn"/>
+    		<appender-ref ref="RootConsoleAppender"/>
+    	</logger>
+    
+    	<logger additivity="false" name="org">
+    		<level value="warn"/>
+    		<appender-ref ref="RootConsoleAppender"/>
+    	</logger>
+    	
+    	<logger additivity="false" name="org.apache.fop">
+    		<level value="off"/>
+    	</logger>
+    	
+    	<root>
+    		<level value="${logLevel:-{{ .Values.logback.logLevel }}}"/>
+    		<appender-ref ref="RootFileAppender"/>
+    		<appender-ref ref="RootConsoleAppender"/>
+    	</root>
+    
+    </configuration>

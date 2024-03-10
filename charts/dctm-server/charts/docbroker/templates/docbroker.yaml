@@ -1,0 +1,263 @@
+#StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+   name: {{ .Values.serviceName }}
+spec:
+  serviceName: {{ .Values.serviceName }}
+  replicas: {{ .Values.docbroker.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.serviceName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.serviceName }}
+    spec:
+{{- if .Values.images.pullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.images.pullSecrets }}
+{{ end }}
+      serviceAccountName: {{ .Values.serviceAccount.serviceAccountName }}
+      containers:
+{{ if eq .Values.graylog.enable true }}
+      - name: graylog-sidecar-{{ .Values.serviceName }}
+        image: {{ .Values.graylog.image | quote }}
+        imagePullPolicy: Always
+        env:
+        - name: GRAYLOG_SERVER
+          value: {{ .Values.graylog.server | quote }}
+        - name: GRAYLOG_PORT
+          value: {{ .Values.graylog.port | quote }}
+{{ if eq .Values.graylog.isnewGraylog false }}
+        - name: TAGS
+          value: "[\"linux\",\"apache\"]"
+{{ end }}
+{{ if eq .Values.graylog.isnewGraylog true }}
+        - name: GRAYLOG_SERVICE_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: graylogtoken
+{{ end }}
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NAMESPACE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        volumeMounts:
+          - name: shared-logs
+            mountPath: /pod-data
+{{ end }}
+      - name: {{ .Values.serviceName }}
+{{ if eq .Values.oracle.isoracleimage true }}
+        image: {{ .Values.images.repository }}/{{ .Values.images.contentserver.name }}/csorcldbimage:{{ .Values.images.contentserver.tag }}
+{{ else }}
+        image: {{ .Values.images.repository }}/{{ .Values.images.contentserver.name }}:{{ .Values.images.contentserver.tag }}
+{{ end }}
+        imagePullPolicy: {{ .Values.images.pullPolicy }}
+        readinessProbe:
+          exec: {
+            command: [
+              bash,
+              -c,
+              /opt/dctm_docker/scripts/docbroker_readiness.sh
+            ]            
+          }
+          initialDelaySeconds: 120
+          periodSeconds: 120
+          failureThreshold: 2
+          successThreshold: 1
+          timeoutSeconds: 60
+{{- if .Values.docbroker.liveness.enable }}
+        livenessProbe:
+          exec: {
+            command: [
+              bash,
+              -c,
+              /opt/dctm_docker/scripts/docbroker_liveness.sh
+            ]            
+          }
+          initialDelaySeconds: {{ .Values.docbroker.liveness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.docbroker.liveness.periodSeconds }}
+          failureThreshold: {{ .Values.docbroker.liveness.failureThreshold }}
+          timeoutSeconds: 60
+{{ end }}
+        env:
+        - name: KUBERNETES
+          value: "true"
+        - name: EXT_DOCBROKER_ENABLE_LIVENESS
+          value: {{ .Values.ExtDocbroker.enableLiveness | quote }}
+{{ if eq .Values.oracle.isoracleimage true }}
+        - name: DB_TYPE
+          value: "oracle"
+{{ end }}
+        - name: OPENSHIFT
+          value: {{ .Values.openshift.enable | quote  }}            
+{{- if .Values.newrelic.enable }}
+        - name: NEWRELICDBR_ENABLE
+          value: "true"
+        - name: NEWRELIC_ENABLE
+          value: {{ .Values.newrelic.enable | quote  }}        
+        - name: NEWRELIC_PROXY_HOST
+          value: {{ .Values.newrelic.proxy_host }}
+        - name: NEWRELIC_C_APP_NAME
+          value: {{ .Values.newrelic.c_app_name }}
+        - name: NEWRELIC_PROXY_PROTOCOL
+          value: {{ .Values.newrelic.proxy_protocol }}
+        - name: NEWRELIC_PROXY_PORT
+          value: {{ .Values.newrelic.proxy_port | quote  }}
+        - name: NEWRELIC_LICENSE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: newrelicLicensekey
+{{- end }}
+        - name: onlyDocbroker
+          value: "true"
+        - name: ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: rootPassword
+        - name: INSTALL_OWNER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: installOwner
+        - name: INSTALL_OWNER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: installOwnerPassword
+        - name: INSTALLER_UI
+          value: {{ .Values.docbroker.installerUI}}
+        - name: KEEP_TEMP_FILE
+          value: "true"
+        - name: INSTALLER_DEBUG_LOG
+          value: "true"
+        - name: AEK_ALGORITHM
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: aekAlgorithm
+        - name: DM_SECRETLIB_PATH
+          value: "/opt/dctm/secret-library"
+{{ if eq .Values.certificate.use_certificate true }}
+        - name: DOCBROKER_USE_CERTIFICATES
+          value: {{ .Values.certificate.use_certificate | quote }}
+        - name: DOCBROKER_CERT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: dbrCertpassword
+        - name: DOCBROKER_AEK_NAME
+          value: {{ .Values.certificate.aekname }}
+        - name: AEK_LOCATION
+          value: {{ .Values.certificate.aeklocation }}
+        - name: KMS_URL
+          value: {{ .Values.kms.url }}
+        - name: KMS_MASTER_KEY_ID
+          value: {{ .Values.kms.masterkey_id }}
+        - name: KMS_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: kmsApiKey
+        - name: DOCBROKER_AEK_PASSPHRASE
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: dbrCertAekPassphrase
+        - name: DOCBROKER_TRUST_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: dbrCertTrustPassword
+        - name: DOCBROKER_PEM_CERT_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: dbrCertPemCertPrivKey
+        - name: DOCBROKER_PEM_CERTIFICATE
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secret.name }}
+              key: dbrCertPemCertificate
+{{ end }}
+        - name: DOCBROKER_PORT
+          value: {{ .Values.ports.docbrokerPort | quote }}        
+        - name: ExtDocbrokerPort
+          value: {{ .Values.ports.extNativePort | quote }}
+        - name: EXT_DOCBROKER_ENABLE
+          value: {{ .Values.ExtDocbroker.enable | quote }}
+        - name: DOCBROKER_CONNECT_MODE
+          value: {{ .Values.docbroker.connectMode | quote }}
+        - name: SECRETS_CHANGE
+          value: {{ .Values.docbroker.secretsChange | quote}}
+        ports:
+        - containerPort: {{ .Values.ports.docbrokerPort }}
+          name: docbrokerport
+        - containerPort: {{ .Values.ports.docbrokrSSLport }}
+          name: docbrokrsslport
+        volumeMounts:
+        - mountPath: /opt/dctm/kube
+          name: {{ .Values.persistentVolume.vctName }}
+          subPath: kube
+        - mountPath: /opt/dctm/dba/log
+          name: shared-logs
+          subPath: dba
+        - mountPath: /opt/dctm/dba/secure
+          name: {{ .Values.persistentVolume.vctName }}
+          subPath: secure
+{{ if eq .Values.certificate.use_certificate true }}
+        - mountPath: /opt/dctm/certificate
+          name: {{ .Values.persistentVolume.dbrdataPVCName }}
+          subPath: certificate/{{ .Values.persistentVolume.dbrdataPVCName }}
+{{ end }}
+        resources:
+          requests:
+            memory: {{ .Values.resources.requests.memory | quote  }}
+            cpu: {{ .Values.resources.requests.cpu | quote  }}
+          limits:
+            memory: {{ .Values.resources.limits.memory | quote  }}
+            cpu: {{ .Values.resources.limits.cpu | quote  }}
+      volumes:
+{{ if eq .Values.graylog.enable true }}
+      - name: shared-logs
+        emptyDir: {}
+{{ end }}
+{{ if eq .Values.certificate.use_certificate true }}
+      - name: {{ .Values.persistentVolume.dbrdataPVCName }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.serviceName }}-pvc
+{{ end }}
+      restartPolicy: Always
+  volumeClaimTemplates:
+  - metadata:
+      name: {{ .Values.persistentVolume.vctName }}
+    spec:
+      accessModes:
+        - {{ .Values.persistentVolume.accessModes }}
+      resources:
+         requests:
+            storage: {{ .Values.persistentVolume.size }}
+      storageClassName: {{ .Values.persistentVolume.storageClass }}
+{{ if eq .Values.graylog.enable false }}
+  - metadata:
+      name: shared-logs
+    spec:
+      accessModes:
+        - {{ .Values.persistentVolume.logVctAccessModes }}
+      resources:
+         requests:
+            storage: {{ .Values.persistentVolume.logVctSize }}
+      storageClassName: {{ .Values.persistentVolume.logVctStorageClass }}
+{{ end }}

@@ -1,0 +1,327 @@
+########################################################################
+# Default values for Helm Chart otds (OpenText Directory Services).
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+#
+# This Helm Chart for OpenText Directory Services includes one subchart:
+# - otdsws - OpenText Directory Services frontend
+#
+# This chart has its own values.yaml but you should just change
+# this one - it overwrites the defaults in the subchart.
+#
+########################################################################
+global:
+  ## otdsUseReleaseName controls whether the release name is used in
+  ## the names of the objects.
+  ## This value should not be changed as part of an upgrade!
+  otdsUseReleaseName: false
+  ## namespace can be used to deploy to a namespace other than the
+  ## default namespace.
+  namespace:
+  ## Below are global default values that should apply to all subcharts
+  ## when provided as globals by a parent chart. 
+  ## These global defaults are overwritten by values provided in the
+  ## otdsws section below.
+  imageSource: registry.opentext.com
+  imageSourcePublic:
+  imagePullSecret:
+  imagePullPolicy: IfNotPresent
+  serviceAccountName: default
+  serviceType:
+  otdsServiceName: otdsws
+  resourceRequirements: true
+  existingSecret:
+  timeZone: Etc/UTC
+
+## ingress.* settings allow you to connect to the deployment with HTTPS
+## and a Fully Qualified Domain Name (FQDN) (DNS entry).
+## - enabled defines if a Kubernetes Ingress is used.
+## - secret is the name of the TLS / SSL Kubernetes secret for HTTPS
+##   connections. If no secret is given, SSL is not activated in the
+##   Ingress definition.
+##   Create a secrete in Kubernetes with the following kubectl command:
+##   kubectl create secret tls <secret name> --cert fullchain.pem --key privkey.pem
+## - class is the Ingress class - used for annotations on the different
+##   cloud platforms
+## - annotations are platform specific annotations of the ingress object
+ingress:
+  enabled: &otds_ingress_enabled true
+  secret:
+  class:
+  annotations: {}
+  ## exposeIndividualEndpoints enables to expose the list of 5 endpoints
+  ## "/otds-admin/", "/otdstenant/", "/otdsws/", "/ot-authws/", "/otds-v2/"
+  ## currently supported in OTDS. Otherwise, only root '/' is exposed by default
+  exposeIndividualEndpoints: false
+  ## paths provide list of endpoints that are associated with OTDS backend.
+  ## Both the host and path should match to route the traffic to the desired
+  ## service properly. The paths are only exposed if exposeIndividualEndpoints is true
+  paths:
+    - "/otds-admin/"
+    - "/otdstenant/"
+    - "/otdsws/"
+    - "/ot-authws/"
+    - "/otds-v2/"
+
+########################################################################
+# Directory Services server subchart:
+# Don't remove the YAML &anchors - only change the parameters behind!
+# (they are used for cross-referencing to avoid repetitive settings)
+########################################################################
+otdsws:
+  ## Pod Security Context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  ##
+  ## For deploying in OpenShift, fsGroup, runAsUser and runAsGroup need to be set to allowed values,
+  ## eg. fsGroup=1000620000, runAsUser=1000620000 and runAsGroup=0.
+  securityContext:
+    fsGroup: 1000
+    runAsGroup: 1000
+    runAsUser: 1000
+  ## podLabels list additional pod labels to apply
+  ## eg:
+  ## podLabels:
+  ##   app.kubernetes.io/app_name: otdsws
+  ##   app.kubernetes.io/app_version: yy.q
+  podLabels: {}
+  ## podAnnotations list additional pod annotations to apply
+  podAnnotations: {}
+  ## enabled controls if the OTDS server gets deployed as a container in
+  ## Kubernetes. If you have OTDS deployed somewhere else you can set
+  ## it to false.
+  enabled: true
+  ## serviceAccountName defines the name of the service account the
+  ## pods are running under.
+  serviceAccountName:
+  ## statefulSet controls if the OTDS server gets deployed as a statefulSet
+  ## Kubernetes resource. If OTDS needs to have static pod name which is needed
+  ## especially in some on-prem scenarios e.g. sync master host.
+  statefulSet: false
+  ## ingress.* define Ingress specific settings for OTDS
+  ingress:
+    enabled: *otds_ingress_enabled
+    secret:
+    ## prependPath can be used to prepend a value to the standard OTDS server
+    ## path when multiple services share a hostname.  Adding a value of "otds"
+    ## would result in the login URL being <publicHostname>/otds/otdsws/login.
+    prependPath:
+  ## serviceName defines the name of the Kubernetes service for OTDS server:
+  serviceName:
+  ## serviceType can be used to override the spec type for the otdsws
+  ## service.  If this value is not set the value is defined
+  ## based on the value of ingress.enabled.  The type is set to ClusterIP
+  ## if ingress is enabled and LoadBalancer if it is disabled.
+  serviceType:
+  ## serviceAnnotations define custom annotations that need to be assigned to OTDS service.
+  ## For example:
+  ##  cloud.google.com/backend-config: '{"ports": {"80": "abcd-otds-backend"}}'
+  ##  cloud.google.com/neg: '{"ingress": true}'
+  serviceAnnotations: {}
+  ## deprecated - this is always true now
+  carrierGradeNAT: true
+  ## customSecretName defines the name of an already existing secret object.
+  ## This is useful when OTDS charts work as subcharts and parent chart create
+  ## a single secret.
+  customSecretName:
+  ## replicas for OTDS server:
+  replicas: 1
+  ## port defines the external port for the OTDS Kubernetes service:
+  port: 80
+  ## publicHostname defines the FQDN or IP address of the
+  ## Kubernetes Services of OTDS. If empty ("") the hostname
+  ## will dynamically be determined via the Kubernetes API.
+  publicHostname:
+  ## timeZone defines the time zone of the Linux OS within the container. The default value for
+  ## the timeZone is Etc/UTC.
+  timeZone:
+  ## allowDuplicateUsers controls whether OTDS should allow the same user accounts to be created in multiple partitions
+  ## This applies to users synchronized through eDirSync or SCIM
+  allowDuplicateUsers: true
+  ## cryptKey is the encryption key for encrypting secrets and passwords to other systems in the OTDS DB
+  ## The value is a 16 character ASCII string that has been base64 encoded
+  ## For example, "MTIzNDU2Nzg5YWNiZGVmZw==" is the base64 encoded value of "123456789acbdefg"
+  cryptKey:
+  ## additionalJavaOpts defines additional Java parameters (space-separated) for OTDS.
+  additionalJavaOpts:
+  ## enableBootstrapConfig enables the use of the config.yml file in the
+  ## otdsws chart directory to apply a specific set of configuration options
+  ## on the initial run when the DB is populated.
+  ## A sample config.yml file is in the otdsws chart directory
+  enableBootstrapConfig: false
+  ## existingBootstrapConfig can be used to specify the content of the OTDS bootstrap configuration file.
+  ## This overrides the configuration files in the chart directory
+  existingBootstrapConfig: |
+
+  ## otadminPassword is the password of the otadmin@otds.admin user for OTDS
+  ## Note that this password is only used when initially creating the user in a new database.
+  otadminPassword:
+  ## enableCustomizedTruststore enables the import of custom certificates into the JVM truststore.
+  ## Used to import self-signed or private CA certificates.
+  ## Certificates to import must be placed in /certificates directory of the Helm chart or specified
+  ## with set-file option.
+  enableCustomizedTruststore: false
+  ## singleCaCert can be used to provide a single certificate file using --set-file
+  ## This method can be used in lieu of placing certificates in the /certificates directory of the Helm chart
+  singleCaCert: |
+
+  ## migration.* defines if migration from OpenDJ should be attempted and
+  ## defines how the migration should take place.
+  ## There are three different ways migration can take place.
+  ## 1. From a legacy OTDS deployment (eg. otds:21.3.0 images), which requires
+  ##    usingLegacyImage=true and that legacyImagePVC is specified.
+  ##    For this option the minimum memory requirements are increased
+  ##    resource.requests.memory=2Gi and resource.limits.memory=3Gi
+  ## 2. From an existing OTDS deployment in the same cluster, which requires
+  ##    the existing opendj serviceName servicePort and password be specified.
+  ##    deploymentName is used to specify the current OTDS deployment which
+  ##    should be stopped. This is only needed if the value of
+  ##    global.otdsUseReleaseName is being changed during the upgrade.
+  ## 3. From an external OpenDJ such as a VM deployment, which requires
+  ##    the opendjUri (eg. ldap://otds.domain.local:1389) and password
+  ##    be specified.
+  ## Note that if usingLegacyImage=true other non-relevant values will
+  ## be ignored and if opendjUri is specified serviceName and servicePort
+  ## will be ignored.
+  ## If enabled=true the default values will migrate from the previous
+  ## default configuration.
+  migration:
+    enabled: false
+    usingLegacyImage: false
+    legacyImagePVC:
+    serviceName: opendj
+    servicePort: 1389
+    deploymentName:
+    opendjUri:
+    password:
+    ## preUpgradeJob.* enables the one-step migration/deployment via pre-upgrade jobs
+    ## image.* defines the image parameters (i.e. the kubectl) used for pre-upgrade job
+    preUpgradeJob:
+      enabled: false
+      ## timeout defines the timeout value for migrate job to complete
+      ## e.g. 5000s, 30m, 100h
+      timeout: 100h
+      ## resources.* defines image parameters for data migrate job, for OpenDJ migrate
+      ## the pod's memory should have at minimum 3Gi momory
+      resources:
+        requests:
+          cpu: 0.5
+          memory: 3Gi
+        limits:
+          cpu: 2
+          memory: 3Gi
+        ## jvmMemory sets the maximum amount of memory used by the OpenDJ migrate JVM
+        ## If this value is not set, the JVM memory will be set to 75% of preUgrateJob
+        ## resources.limits.memory. Memory amounts in M, Mi, G or Gi are supported
+        ## The JVM memory should be set to at least 2Gi as it will be split between OpenDJ and Tomcat.
+        ## For JVM memory <= 4Gi, OpenDJ will take 1.5Gi.
+        ## For 8Gi >= JVM memory > 4Gi, OpenDJ will take 2Gi.
+        ## For JVM memory > 8Gi, OpenDJ will take 3Gi.
+        jvmMemory:
+      ## image.* defines image parameters for pre-upgrade job
+      image:
+        source:
+        name: bitnami/kubectl
+        tag: latest
+  ## otdsdb.* defines the connection information for the DB
+  otdsdb:
+    ## url is the JDBC connection string
+    ## The following is a list of sample values:
+    ## jdbc:postgresql://postgres.domain.local:5432/otdsdb
+    ## jdbc:sqlserver://ms-sql.domain.local:1433;databaseName=otdsdb
+    ## jdbc:oracle:thin:@oracle.domain.local:1521:otdsdb
+    ## jdbc:sap://hana.domain.local:30015/?databaseName=otdsdb
+    ## The following is a list of samples values for encrypted connection:
+    ## jdbc:postgresql://postgres.domain.local:5432/otdsdb?ssl=true&sslmode=verify-ca&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory
+    ## jdbc:sqlserver://ms-sql.domain.local:1433;databaseName=otdsdb;integratedSecurity=true;encrypt=true;trustServerCertificate=true;sslProtocol=TLSv1.2
+    ## jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=tcps)(HOST=oracle.domain.local)(PORT=2484))(CONNECT_DATA=(SERVICE_NAME=linux11g)))
+    ## jdbc:sap://hana.domain.local:30015/?databaseName=otdsdb&encrypt=true
+    ## For servers that use a self-signed certificate, you must set enableCustomizedTruststore to true and provide the certificate
+    url:
+    ## username specifies the account for the DB connection
+    username:
+    ## password specifies the password for the DB account
+    password:
+    ## By default, OTDS uses a database schema named 'otds'
+    ## Set this option to true to use the default schema assigned to the database user account instead.
+    ## Often required on a shared Oracle database.
+    useDefaultSchema: false
+    ## automaticDatabaseCreation allows to create required Database/User and grant privileges automatically without manual intervention.
+    ## Currently only the initialization of Postgres Database is supported.
+    automaticDatabaseCreation:
+      enabled: false
+      ## dbType defines the database type. Currently only the initialization of Postgres Database is supported.      
+      dbType: postgres
+      ## dbHost defines the host of database server. If not provided, it will be extracted from url automatically.
+      dbHost:
+      ## dbPort defines the port of database server.
+      dbPort: 5432
+      ## dbAdmin defines admin account (which by default is 'postgres' for Postgres database).
+      dbAdmin: postgres
+      ## dbAdminPassword defines password for admin account e.g. 'postgres' for Postgres database.
+      dbAdminPassword:
+      ## dbName defines the database to be created for otds.
+      ## the otdsdb.username and otdsdb.password will be used for automatic database user and password
+      dbName: otdsdb
+      ## dbExtensions defines the extensions to be created for otds database e.g. otdsdb and otds schema e.g. 'otds'.
+      ## for OTDS, extension of pg_trgm is needed
+      dbExtensions:
+        - pg_trgm
+      ## dbImage.* defines database image to run the psql client for the automatic database creation. Specific version/tag should be used in production.
+      dbImage:
+        source:
+        name: bitnami/postgresql
+        tag: latest
+        pullPolicy:
+  ## image.* defines Docker image location, tags and pull parameters for
+  ## OTDS server - you need to adjust this:
+  image:
+    source:
+    name: otds-server
+    tag: 23.3.0
+    pullPolicy:
+    pullSecret:
+  ## resource.* define the resource requirements for OTDS:
+  resources:
+    enabled:
+    requests:
+      cpu: 0.5
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 1.5Gi
+  ## newrelic.* define NewRelic APM integration settings
+  newrelic:
+    NEW_RELIC_LICENSE_KEY:
+    NEW_RELIC_APP_NAME:
+    NEW_RELIC_LOG_FILE_NAME: STDOUT
+    NEW_RELIC_LOG_LEVEL: info
+    NEW_RELIC_BROWSER_MONITORING_AUTO_INSTRUMENT: false
+    JAVA_OPTS: -javaagent:/opt/newrelic/newrelic.jar
+  ## vault.* define HashiCorp Vault integration settings
+  ## OTDS will read secrets from Vault rather than using k8s secrets
+  vault:
+    enabled: false
+    ## Vault Agent Injector - set to true to use the Vault Agent Sidecar Injector rather than having OTDS connect directly to Vault
+    agentInjector: false
+    ## the URL to the vault server
+    url:
+    ## if using Vault namespaces, provide the namespace
+    namespace:
+    ## auth path for k8s auth
+    authpath: auth/kubernetes
+    ## the name of the Vault role for OTDS to use
+    role:
+    ## the path in Vault to the following secrets:
+    ## - CryptKey (with key 'CryptKey'). See description for 'cryptKey'.
+    ## - AdminPassword (with key 'AdminPassword'). See description for 'otadminPassword'.
+    ## - JDBCCreds (with keys 'username' and 'password'). See description for 'otdsdb.username' and 'otdsdb.password'.
+    ## - OpenDJPassword (with key 'OpenDJPassword') **ONLY REQUIRED IF MIGRATING FROM OPENDJ. See description for 'migration'. **
+    secretsPath:
+  ## initContainers defines additional init containers to run on startup to customize the OTDS image contents.
+  ## Customization files must be placed into the /otdsws directory of the init container image
+  initContainers:
+  # - name: DESIRED_NAME_FOR_INIT_CONTAINER
+  #   image:
+  #     source: IMAGE_SOURCE
+  #     name: IMAGE_NAME
+  #     tag: IMAGE_TAG

@@ -1,0 +1,16 @@
+# Headless Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.indexagent.name }}
+spec:
+  clusterIP: None
+  ports:
+  - name: ia-port
+    port: {{ .Values.service.indexagent.port }}
+    targetPort: {{ .Values.service.indexagent.targetPort }}
+    protocol: TCP  
+  selector:
+    xplore/app: {{ .Values.service.indexagent.name }}
+    xplore/name: {{ .Chart.Name }}
+    xplore/release: {{ .Release.Name }}  

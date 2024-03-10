@@ -1,0 +1,17 @@
+##Ingress
+#apiVersion: extensions/v1beta1
+#kind: Ingress
+#metadata:
+#  name: {{ .Values.prefix }}-ingress
+#  annotations:
+#    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+#    kubernetes.io/ingress.class: nginx
+#spec:
+#  rules:
+#  - host: <ingress-host>
+#    http:
+#      paths:
+#        - path: /xda
+#          backend:
+#            serviceName: {{ .Values.prefix }}
+#            servicePort: {{ default "7000" .Values.adminConsoleServicePort }}

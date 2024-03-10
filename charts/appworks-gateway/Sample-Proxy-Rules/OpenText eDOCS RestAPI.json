@@ -1,0 +1,1 @@
+{"rules":[{"id":"1717","name":"Sample OpenText eDOCS RestAPI","whitelist":["(?i)^(edocsapi)(/.*|$)"],"blacklist":[],"urlRules":[{"match":"(?i)^(edocsapi)(/.*|$)","replace":"http://host:port/edocsapi$2","sort":0,"continue":false}],"outgoingRules":[],"enabled":false,"sort":15,"enableOAuth":true}]}

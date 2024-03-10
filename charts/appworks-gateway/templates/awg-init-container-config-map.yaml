@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: awg-init-container-config-map
+  labels: {{ include "appworks-gateway.labels" . | nindent 4 }}
+data:
+  {{- if hasKey .Values "database" }}
+  AWG_DB_USER: {{.Values.database.appworksdb.user}}
+  AWG_DB_VENDOR: {{ .Values.database.vendor }}
+  AWG_DB_USESSL: {{ .Values.database.useSSL | quote }}
+  AWG_DB_TRUST_DB_CERTS: {{ .Values.database.trustDbCerts | quote }}
+  {{- if eq .Values.database.vendor "PostgreSql" }}
+  AWG_DB_URL: "jdbc:postgresql://{{ .Values.database.server.host }}:{{ .Values.database.server.port }}/{{ .Values.database.appworksdb.database }}"
+  AWG_DB_DRIVER: "org.postgresql.Driver"
+  {{- else if  eq .Values.database.vendor "MsSqlServer" }}
+  AWG_DB_URL: "jdbc:sqlserver://{{ .Values.database.server.host }}:{{ .Values.database.server.port }};databaseName={{ .Values.database.appworksdb.database }}"
+  AWG_DB_DRIVER: "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+  {{- else if  eq .Values.database.vendor "Oracle"}}
+  AWG_DB_URL: "jdbc:oracle:thin:@{{ .Values.database.server.host }}:{{ .Values.database.server.port }}:{{ .Values.database.appworksdb.service }}"
+  AWG_DB_DRIVER: "oracle.jdbc.OracleDriver"
+  {{- end }}
+  {{- else }}
+  AWG_DB_URL: "jdbc:postgresql://{{ .Values.postgres.server.host }}:{{ .Values.postgres.server.port }}/{{ .Values.postgres.appworksdb.database }}"
+  AWG_DB_USER: {{ .Values.postgres.appworksdb.user }}
+  AWG_DB_USESSL: {{ .Values.postgres.useSSL | quote }}
+  AWG_DB_TRUST_DB_CERTS: {{ .Values.postgres.trustDbCerts | quote }}
+  AWG_DB_DRIVER: "org.postgresql.Driver"
+  {{- end }}
+  AWG_GATEWAY_URL: {{ .Values.awg.externalurl }}
+  AWG_GATEWAY_NEW_ADMIN_USER: {{ .Values.awg.admin.newadminuser }}
+  AWG_GATEWAY_NEW_RESOURCE_NAME: {{ .Values.otds.resource.new }}
+  AWG_GATEWAY_NEW_PARTITION_NAME: {{ .Values.otds.partition.new }}
+  AWG_GATEWAY_CUSTOM_PARTITION_NAME: {{ default "" .Values.otds.partition.customPartition | quote }}
+
+  AWG_OTDS_URL: {{ default .Values.global.otdsPublicUrl .Values.otds.server.url }}
+  {{- if hasKey .Values.otds.server "externalurl" }}
+  AWG_OTDS_EXTERNAL_URL: {{ .Values.otds.server.externalurl }}
+  {{- end }}
+  AWG_OTDS_ADMIN_USER: {{ .Values.otds.admin.user }}
+
+  AWG_SIMPLE_LOGGER_LEVEL: {{ .Values.awg.logging.level }}
+  TZ: {{ default .Values.global.timezone .Values.timezone }}
+  AWG_PUSH_TO_CONSOLE: {{ .Values.awg.settings.pushToConsole | quote }}

@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configMap.dmotdsrest_configMap_name }}  
+data:
+  log4j: |
+    rootLogger.level={{ .Values.dmotdsrest.log4j.rootLogLevel }}
+    property.logfolderpath=/opt/dctm/{{ .Values.jmsVersion }}/logs
+    monitorInterval=30
+    
+    #------------------- DM_OTDS_TRACE --------------------------
+    appender.DM_OTDS_TRACE.type=RollingFile
+    appender.DM_OTDS_TRACE.name=dmotdsrest
+    appender.DM_OTDS_TRACE.filePattern=${logfolderpath}/dmotdsrest.log.%i.%d{yyyy-MM-dd}
+    appender.DM_OTDS_TRACE.layout.type=PatternLayout
+    appender.DM_OTDS_TRACE.filter.threshold.type=ThresholdFilter
+    appender.DM_OTDS_TRACE.filter.threshold.level=DEBUG
+    appender.DM_OTDS_TRACE.fileName=${logfolderpath}/dmotdsrest.log
+    appender.DM_OTDS_TRACE.layout.pattern=%d{ABSOLUTE} %5p [%t] %c - %m%n
+    appender.DM_OTDS_TRACE.policies.type=Policies
+    appender.DM_OTDS_TRACE.policies.time.type=TimeBasedTriggeringPolicy
+    appender.DM_OTDS_TRACE.policies.time.interval=1
+    appender.DM_OTDS_TRACE.policies.time.modulate=true
+    appender.DM_OTDS_TRACE.policies.size.type=SizeBasedTriggeringPolicy
+    appender.DM_OTDS_TRACE.policies.size.size=10MB
+    appender.DM_OTDS_TRACE.strategy.type=DefaultRolloverStrategy
+    appender.DM_OTDS_TRACE.strategy.max=5
+    logger.DM_OTDS_TRACE.name=com.documentum.cs.otds
+    logger.DM_OTDS_TRACE.level={{ .Values.dmotdsrest.log4j.dmotdsrestLogLevel }}
+    logger.DM_OTDS_TRACE.additivity=false
+    logger.DM_OTDS_TRACE.appenderRef.rolling.ref=dmotdsrest

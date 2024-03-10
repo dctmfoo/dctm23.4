@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.serviceName }}-rest-api-runtime-properties
+data:
+  rest-api-runtime.properties: |-
+    #
+    # Copyright (c) 2020. Open Text Corporation. All Rights Reserved.
+    #
+
+    # Sets user defined runtime properties below. Settings in this file override the default ones defined in specific
+    # libraries. Please refer to file 'rest-api-runtime.properties.template' for available runtime configurations.
+
+    {{- if not .Values.otds.enable }}
+    rest.security.auth.mode=basic-ct
+    {{- else }}
+    rest.security.auth.mode=ct-otds_token
+    rest.security.realm.name=com.documentum.rest
+    rest.security.otds.login.url={{ .Values.otds.url }}/login?response_type=token&client_id={{ .Values.otds.clientID }}
+    {{- end }}
+    rest.api.unauthorized.response.scheme.suffix=Customized

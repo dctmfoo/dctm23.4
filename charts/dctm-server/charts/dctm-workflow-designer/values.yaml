@@ -1,0 +1,111 @@
+# Default values for dctm-workflow-designer.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+#Prefix
+prefix: <prefix>-dctm-workflow-designer
+
+#Init Docker image
+initImage:
+  repository: <repository>
+  name: <dctm-workflow-designer_image_path OR any image with wget tool like busybox>
+  tag: 23.4
+  pullPolicy: IfNotPresent
+  pullSecrets:
+  
+#Docker image
+image:
+  repository: <repository>
+  name: <dctm-workflow-designer_image_path>
+  tag: 23.4
+  pullPolicy: IfNotPresent
+  pullSecrets:
+
+# Kubernetes Namespace in which this Helm chart is deployed
+contextPath: DocumentumWorkflowDesigner
+  
+#persistentVolume details
+persistentVolume:
+  # storage class for the persistent volume Ex : azurefile
+  storageClassReadWriteOnce: <storageClassName>
+  # The size specified must accomodate all the log files 
+  size: 200Mi  
+
+#Docbase Connection Info
+docbaseConnection:
+  use_certificate: false
+  truststorePassword: <truststore_password>
+  docbroker: <dbr>
+  port: 1489
+  jmshttpport: 9080
+  #Name of the JMS Service. Refer JMS service name of type ClusterIP from CS Service Yaml
+  jmsservicename: <jms_clusterip_service_name>    
+  docbase: <docbase>
+  superUser: <superuser>
+  superUserPassword: <password>
+  globalRegistryRepository: <repository_name>
+  globalRegistryUsername: <dm_bof_registry>
+  globalRegistryPassword: <password>
+
+#Volume used by CS and Broker to store CS and Broker certificates. Should match the persistentVolume name given in Broker values.yaml
+dbrpersistentVolume:
+  dbrdataPVCName: certdbr-data-pvc
+  
+#Tomcat Admin credentials:
+tomcat:
+  javaOptions: <javaOptions>  
+
+#CS Secret. Used to fetch TrustStore Password and Newrelic License Value
+secret:
+  name: <cs_secret_name>
+
+otds:
+  enable: false
+  url:
+  reverseproxy_url:
+  client_id:
+  client_secret:
+  logon_appname:
+
+#Newrelic agent configuration
+newrelic:
+  enable: false
+  #Key Name of Newrelic License Key in CS Secrets. This value is referenced from yaml file of CS Secrets, needs to be changed accordingly.
+  licenseKeyName: newrelicLicensekey
+  app_name: <newrelic_app_name>
+  proxy_host: <newrelic_proxy_host>
+  proxy_port: <newrelic_proxy_port>
+  
+resources: {}
+# We usually recommend not to specify default resources and to leave this as a conscious
+# choice for the user. This also increases chances charts run on environments with little
+# resources, such as Minikube. If you do want to specify resources, uncomment the following
+# lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  #limits:
+    #cpu: 1000m
+    #memory: 4Gi
+  #requests:
+    #cpu: 500m
+    #memory: 3Gi
+
+liveness:
+    initialDelay: 60
+    timeout: 60
+    period: 300
+    failure: 2
+readiness:
+    initialDelay: 60
+    timeout: 60
+    period: 300
+    failure: 2
+    
+#DFC properties:
+#Below path should always be /home/xcpuser/<any_folder_name>
+dfc:
+  dataDir: /home/xcpuser/documentum
+
+fsGroup:  
+
+#Service Account
+serviceAccount:
+  createserviceaccount: true
+  serviceAccountName: documentum-sa

@@ -1,0 +1,115 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2smartview-rest-api-runtime-properties
+  {{- template "configMap.labels" . }}
+data:
+  rest-api-runtime.properties: |-
+    #
+    # Copyright 2021 Open Text. All Rights Reserved
+    #
+    # Sets user defined runtime properties below. Settings in this file override the default ones defined in specific
+    # libraries. Please refer to file 'rest-api-runtime.properties.template' for available runtime configurations.
+    
+    
+    # Custom config location to initialize D2 rest java configuration
+    rest.context.config.location=com.emc.d2.rest.context.jc,com.opentext.d2.rest.context.jc
+    
+    # Url patterns of anonymous resources.
+    rest.security.anonymous.url.patterns=/static/**, /ui*/**, /docs, /docs/, /d2-configurations/**
+    
+    # Authentication scheme.
+    {{- if not .Values.restApiRuntime.OTDS.enable }}
+    rest.security.auth.mode=basic-ct
+    {{- else }} 
+    rest.security.auth.mode=ct-otds_token
+    rest.security.realm.name=com.documentum.rest
+    rest.security.otds.login.appName={{ .Values.restApiRuntime.OTDS.appName }}
+    rest.security.otds.login.url={{ .Values.restApiRuntime.OTDS.authSvcProtocol }}://{{ .Values.restApiRuntime.OTDS.authSvc }}/login?response_type=token&client_id={{ .Values.restApiRuntime.OTDS.clientId }}
+    rest.security.otds.logout.url={{ .Values.restApiRuntime.OTDS.authSvcProtocol }}://{{ .Values.restApiRuntime.OTDS.authSvc }}/logout?client_id={{ .Values.restApiRuntime.OTDS.clientId }}
+    rest.security.otds.esignoff.url={{ .Values.restApiRuntime.OTDS.authSvcProtocol }}://{{ .Values.restApiRuntime.OTDS.authSvc }}/login?response_type=id_token&client_id={{ .Values.restApiRuntime.OTDS.clientId }}&prompt=login&authcontext=sign&scope=openid
+    {{- end }}
+    
+    # Empty logout success URL so that server returns no content. UI takes care of honoring D2 Config for the same and not controlled via REST
+    rest.security.logout.success.url=
+    {{- if .Values.restApiRuntime.CookieConfiguration.enable }}
+    rest.security.client.token.cookie.samesite=none
+    rest.security.client.token.session.cookie=true
+    {{- end }}
+    
+    # Ensure that client token cookie is scoped at each repository level
+    rest.security.client.token.cookie.scoped=true
+    {{- if and .Values.customConfigurations.custom .Values.customConfigurations.locale }}
+    rest.error.message.supported.locales=en,{{ .Values.customConfigurations.locale }}
+    {{- else }}
+    rest.error.message.supported.locales=en
+    {{- end }}
+    rest.security.sso.fallback.auth.mode= 
+    
+    # Ensure that client token cookie is a session cookie which gets destroyed when browser is closed
+    rest.security.client.token.session.cookie=true
+    
+    # Specifies whether to disable the X-Frame-Options header. Setting this to true to allow Brava Viewer to be loaded in iframe.
+    rest.security.headers.x_frame_options.disabled=true
+    
+    # Specifies the X-Frames-Options policy. Setting this to SAMEORIGIN to allow Brava Viewer to be loaded in iframe.
+    rest.security.headers.x_frame_options.policy=SAMEORIGIN
+    
+    # Controls the frame-ancestors directive of Content-Security-Policy header which is added when rest.security.headers.x_frame_options.disabled=true
+    # Setting this to 'self', allows embedding static resources from D2-Smartview to any application on the current origin.
+    # 'self' is also required to allow loading Brava Viewer in UI.
+    # Additional comma separated <host-srouce> and/or <scheme-source> values could be added, to extend support to foreign origins.
+    {{- if .Values.restApiRuntime.ContentConnect.restAllowedOrigins }}
+    rest.security.headers.csp.allowed_frame_ancestors=self {{ .Values.restApiRuntime.ContentConnect.restAllowedOrigins }}
+    {{- else }}
+    rest.security.headers.csp.allowed_frame_ancestors=self
+    {{- end }}
+    
+    # Size, in bytes, of the smallest response that will be compressed.
+    rest.compression.threshold=1024
+    
+    # Enables relative URIs in response links.
+    rest.use.relative.url=true
+    
+    # Callback handler URL after Core auth is complete
+    rest.d2.core.oauth2.callback.uri=/ui/core-login-cb
+    
+    # Provides a facility to disallow dql execution on the configured documentum type objects.
+    # It is recommended to use this property to avoid DQL related security concerns on either documentum config
+    # objects (such as docbase config, serve config, bocs config etc) or the types on which an acl can not be defined.
+    # This property disallows DQL execution on the configured types only for the users who are neither having admin
+    # nor super user privileges.
+    
+    dql.disallowed.types=dmr_content,dm_relation,dm_acs_config,dm_cont_transfer_config,dm_network_location_map,\
+                         dm_cache_config,dmc_mq_config,dm_bocs_config,dm_dms_config,dm_docbase_config,dm_server_config,\
+                         dm_user,dm_acl,dm_role,dm_group,dmr_containment,dm_assembly,dm_tasks_all,dmi_package,\
+                         dmi_queue_item,dm_format,dm_mount_point,dm_store,dm_type,dm_process,dm_workflow,dmi_audit_attrs,\
+                         dm_java,dm_basic,dm_public_key_certificate,dmi_type_info,dmc_java_library,dmi_change_record,\
+                         dm_func_expr,dm_location,dmi_dd_attr_info,dm_relation_ssa_policy,dm_aggr_domain,dmi_change_record,\
+                         dm_validation_descriptor,dm_client_registration,dm_replica_catalog,dmi_wf_attachment,dmi_registry,\
+                         dmc_aspect_type,dm_fulltext_index,dm_lifecycle,dmc_java_library
+    
+    
+    # Callback handler URL after digital signature authentication is complete
+    rest.d2.digital.sign.callback.uri=/ui/oauth2-login-cb
+    
+    # Crypto salt for client token encryption and decryption
+    # For a multi-node deployment of REST servers, this property MUST be consistently set across all REST servers. For a
+    # single-node deployment of REST servers, this property is optional. The value CAN be any ascII characters. We recommend
+    # that you specify a text no less than 8 characters.
+    #
+    {{- if .Values.restApiRuntime.cryptoKeySalt }}
+    rest.security.crypto.key.salt={{ .Values.restApiRuntime.cryptoKeySalt }}
+    {{- else }}
+    rest.security.crypto.key.salt=
+    {{- end }}
+
+{{- $configFileOverridesFile := printf "%s/%s" .Values.configFileOverrideFilesDir "rest-api-runtime.properties" }}
+{{- $configFileMsg0 := printf "\n\n##### Begin lines added from %s\n" $configFileOverridesFile }}
+{{- $configFileMsg1 := printf "##### End lines added from %s" $configFileOverridesFile }}
+{{- $configFileLinesToAppend := .Files.Get $configFileOverridesFile }}
+{{- if $configFileLinesToAppend }}
+{{ $configFileMsg0 | indent 4 }}
+{{ $configFileLinesToAppend | indent 4 }}
+{{ $configFileMsg1 | indent 4 }}
+{{- end }}

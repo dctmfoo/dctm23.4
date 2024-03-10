@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}-launcher-json
+  {{- template "configMap.labels" . }}
+data:
+   launcher.json: |-
+    {
+        "version": "23.4.0",
+        "app_server_url": "{{.Values.ccsv.d2rest_url}}",
+        "log": {
+                "level": "{{.Values.ccsv.loglevel}}",
+                "window": {{.Values.ccsv.window}},
+                "consoleRe":{{.Values.ccsv.consoleRe}},
+                "performanceTimeStamp":{{.Values.ccsv.performancetimestamp}},
+                "timing":{{.Values.ccsv.timing}}
+        }, 
+        "teamsrootpath": "{{.Values.ccsv.teamsrootpath}}",
+        "packages": {
+          "d2": {
+                "order": 1,
+                "initScript": "d2-init.js"
+           },
+          "cc": {
+            "order": 2,
+            "initScript": "cc-init.js"
+           }
+        }  
+    }
+

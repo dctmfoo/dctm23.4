@@ -1,0 +1,10 @@
+content-server:
+     extraInitContainers:
+     - name: dcc-dar-installer
+       image: artifactory.otxlab.net/bpdockerhub/dctm-dcc-darinitcontainer:22.4
+       imagePullPolicy: Always
+       command: ['/bin/sh', '-c', 'yes |sudo cp -rf /opt/customscripts/* /opt/dctm_docker/custom_script_pvc/']
+       volumeMounts:
+       - name: dcs-data-pvc
+         mountPath: /opt/dctm_docker/custom_script_pvc 
+         subPath: initcontainercustomscripts/<sname>dcs-pg

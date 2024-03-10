@@ -1,0 +1,4238 @@
+### Update the anchor tags below and any other values can be customized/updated using the template provided in config/configuration.yaml###
+
+rwoStorage: &rwo_storage_class managed-premium
+rwmStorage: &rwm_storage_class azurefile
+env: &env_domain mcbudev.svc.cluster.local
+namespace: &namespace mcbudev
+docbase: &docbase_name mcbudev
+csSecrets: &cs_secret_name cs-secret-config
+installOwnerUsername: &installOwner_username dmadmin
+installOwnerPassword: &installOwner_password password
+globalRegistryUsername: &global_registry_username dm_bof_registry
+globalRegistryPassword: &global_registry_password Password@1234567890
+trustStorePassword: &trust_store_password password
+otdsEnabled: &otds_enabled false
+otdsadminPassword: &otds_admin_password otds
+otdsUserName: &otds_db_username postgres
+otdsUserPassword: &otds_db_password password
+d2classicWebappName: &d2classic_webapp_name D2
+d2configWebappName: &d2config_webapp_name D2-Config
+d2restWebappName: &d2rest_webapp_name d2-rest
+d2smartviewWebappName: &d2smartview_webapp_name D2-Smartview
+documentumserviceaccount: &documentum_service_account default
+tomcatbase_usecommonpvc: &tomcatbase_usecommonpvc true
+tomcatbase_commonpvcname: &tomcatbase_commonpvcname d2-extension-pvc
+# Provide the Ingress url used for D2,D2-Smartview and d2-rest
+ingressUrl: &ingressUrl dctm-ingress.mcbu-dev.chevron.com/
+aekLocation: &aek_location Local
+kmsUrl: &kms_url https://kmsurl:port
+connectMode: &connect_mode dual
+# Only need to update the below three anchor values if otds is enabled above
+oauthClient: &otds_oauth_client d2_oauth_client
+otdsAuthSvcProtocol: &otds_auth_svc_protocol https
+otdsAuthSvc: &otds_auth_svc dctm-ingress.mcbu-dev.chevron.com/otdsws
+ingressDomain: &ingress_domain mcbu-dev.chevron.com
+ingressProtocol: &ingress_protocol https
+webappServiceType: &webapp_service_type ClusterIP
+#Gray log server details
+grayLogEnable: &graylog_enable false
+graylogServer: &graylog_server 10.9.57.15
+graylogPort: &graylog_port 9000
+ ## Required to set to true when Gray log is disabled for xplore
+persistLogs: &persist_logs false
+###--Newrelic section--###
+newrelic: &newrelic_enabled false
+newrelicProxyHost: &newrelic_proxy_host bp2-prox01-l001.otxlab.net
+newrelicProxyPort: &newrelic_proxy_port 3128
+newrelicProxyProtocol: &newrelic_proxy_protocol http
+licenseKey: &newrelic_license_key <newrelic_license_key>
+#As a security best practice, DFC trusted login for D2 applications in a production environment should be disabled
+sessionAllowTrustedLogin: &allow_trusted_login false
+###--Certificate based SSL Communication section--###
+useCertificate: &use_certificate false
+dbrServiceName: &dbr_service_name dbr
+dbrConfigmapName: &dbr_configmap_name dbr.configmap
+###------####
+###--Open Shift section--###
+openshiftEnable: &openshift_enable false
+openshiftTls: &openshifttls_enable false
+###--Open Shift section--###
+externalAccessEnabled: &external_access_enable true
+
+kafka_admin_user_name: &kafka_admin_username kafka-user
+kafka_admin_user_password: &kafka_admin_password kafka-password
+kafka_topic_name: &kafka_topic Cs-Audit-Topic
+kafkaBrokerList: &brokerList localhost:9092
+
+### Global variables for fluentd side car ###
+fluentd: &fluentd_enabled false
+fluentdTcpPort: &fluentd_tcp_port 24224
+fluentdRestPort: &fluentd_rest_port 88886
+fluentdUdpPort: &fluentd_udp_port 20001
+eventLogLevel: &event_log_level 0
+dfcRPCTracing: &dfc_rpc_log_enable false
+
+###OTIV section for anchor tags ###
+otivServiceAccountName: &ot_service_account otiv
+
+markupPort: &markup_port 80
+publicationPort: &publication_port 80
+## messaging host and user by the publication and publisher services
+msgHost: &msg_host otiv-amqp
+msgUser: &msg_user user
+
+ccExtension: &ccExtension cc
+dccPrefix: &dccPrefix dcc
+cslogrotate: &cslogrotate false
+jmsServiceName: &jmsServiceName dcs-pg-jms-service
+#Change value of this parameter to a different numeric value than previous value, if there are changes only in cs-secrets so that pod gets recreated during upgrade
+secrets_Change: &secrets_Change 1
+
+#if set to true, Swagger documentation will be disabled for d2rest/d2smartview
+removeDocumentation: &remove_documentation true
+
+msClientId: &msClientId ""
+
+###Anchor tag section ends here###
+
+otds:
+  global:
+    otdsUseReleaseName: false
+    ## namespace can be used to deploy to a namespace other than the
+    ## default namespace.
+    namespace:
+## OTDS ingress is enabled to false as D2ingress is used to generate OTDS url
+  ingress:
+    enabled: &otds_ingress_enabled false
+    secret:
+    class:
+    annotations: {}
+    ## exposeIndividualEndpoints enables to expose the list of 5 endpoints
+    ## "/otds-admin/", "/otdstenant/", "/otdsws/", "/ot-authws/", "/otds-v2/"
+    ## currently supported in OTDS. Otherwise, only root '/' is exposed by default
+    exposeIndividualEndpoints: false
+    ## paths provide list of endpoints that are associated with OTDS backend.
+    ## Both the host and path should match to route the traffic to the desired
+    ## service properly. The paths are only exposed if exposeIndividualEndpoints is true
+    paths:
+      - "/otds-admin/"
+      - "/otdstenant/"
+      - "/otdsws/"
+      - "/ot-authws/"
+      - "/otds-v2/"
+
+########################################################################
+# Directory Services frontend subchart:
+# Don't remove the YAML &anchors - only change the parameters behind!
+# (they are used for cross-referencing to avoid repetitive settings)
+########################################################################
+  otdsws:
+  ## Pod Security Context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  ##
+  ## For deploying in OpenShift, fsGroup, runAsUser and runAsGroup need to be set to allowed values,
+  ## eg. fsGroup=1000620000, runAsUser=1000620000 and runAsGroup=0.
+    securityContext:
+      fsGroup: 1000
+      runAsGroup: 1000
+      runAsUser: 1000
+  ## podLabels list additional pod labels to apply
+  ## eg:
+  ## podLabels:
+  ##   app.kubernetes.io/app_name: otdsws
+  ##   app.kubernetes.io/app_version: yy.q
+    podLabels: {}
+  ## podAnnotations list additional pod annotations to apply
+    podAnnotations: {}
+  ## serviceAccountName defines the name of the service account the
+  ## pods are running under.                         
+    serviceAccountName:
+  ## enabled controls if the OTDS frontend gets deployed as a container in
+  ## Kubernetes. If you have OTDS deployed somewhere else you can set
+  ## it to false.
+    enabled: *otds_enabled
+  ## statefulSet controls if the OTDS server gets deployed as a statefulSet
+  ## Kubernetes resource. If OTDS needs to have static pod name which is needed
+  ## especially in some on-prem scenarios e.g. sync master host.
+    statefulSet: false
+  ## serviceName defines the name of the Kubernetes service for OTDS:
+    serviceName: otdsws
+  ## serviceType can be used to override the spec type for the otdsws
+  ## service.  If this value is not set the value is defined
+  ## based on the value of ingress.enabled.  The type is set to ClusterIP
+  ## if ingress is enabled and LoadBalancer if it is disabled.
+    serviceType:
+  ## serviceAnnotations define custom annotations that need to be assigned to OTDS service.
+  ## For example:
+  ##  cloud.google.com/backend-config: '{"ports": {"80": "abcd-otds-backend"}}'
+  ##  cloud.google.com/neg: '{"ingress": true}'
+    serviceAnnotations: {}
+  ## deprecated - this is always true now                           
+    carrierGradeNAT: true
+  ## customSecretName defines the name of an already existing secret object. 
+  ## This is useful when OTDS charts work as subcharts and parent chart create
+  ## a single secret.
+    customSecretName: 
+  ## replicas for OTDS should always be 1:
+    replicas: 1
+  ## port defines the external port for the OTDS Kubernetes service:
+    port: 80
+  ## publicHostname defines the FQDN or IP address of the
+  ## Kubernetes Services of OTDS. The Hostname should be in the format of
+  ## <value specified for 'ingress.hostShortName' in ingress helm chart's value.yaml >.<value specified for 'ingress.hostDomainName' in ingress helm chart's value.yaml>
+    publicHostname: dctm-ingress.mcbu-dev.chevron.com
+  ## timeZone defines the time zone of the Linux OS within the container. The default value for
+  ## the timeZone is Etc/UTC.
+    timeZone: Etc/UTC
+  ## allowDuplicateUsers controls whether OTDS should allow the same user accounts to be created in multiple partitions
+  ## This applies to users synchronized through eDirSync or SCIM
+    allowDuplicateUsers: true
+  ## cryptKey is the encryption key for encrypting secrets and passwords to other systems in the OTDS DB
+  ## The value is a 16 character ASCII string that has been base64 encoded
+  ## For example, "MTIzNDU2Nzg5YWNiZGVmZw==" is the base64 encoded value of "123456789acbdefg"
+    cryptKey: Z2hkN2hyNDBkbWNGcVQ0TA==
+  ## additionalJavaOpts defines additional Java parameters (space-separated) for OTDS.
+    additionalJavaOpts:
+  ## enableBootstrapConfig enables the use of the config.yml file in the
+  ## otdsws chart directory to apply a specific set of configuration options
+  ## on startup.
+  ## A sample config.yml file is in the otdsws chart directory
+    enableBootstrapConfig: false
+  ## existingBootstrapConfig can be used to specify the content of the OTDS bootstrap configuration file.
+  ## This overrides the configuration files in the chart directory
+    existingBootstrapConfig: |
+
+  ## migration.* defines if migration from OpenDJ should be attempted and
+  ## defines how the migration should take place.
+  ## There are three different ways migration can take place.
+  ## 1. From a legacy OTDS deployment (eg. otds:21.3.0 images), which requires
+  ##    usingLegacyImage=true and that legacyImagePVC is specified.
+  ##    For this option the minimum memory requirements are increased
+  ##    resource.requests.memory=2Gi and resource.limits.memory=3Gi
+  ## 2. From an existing OTDS deployment in the same cluster, which requires
+  ##    the existing opendj serviceName servicePort and password be specified.
+  ##    deploymentName is used to specify the current OTDS deployment which
+  ##    should be stopped. This is only needed if the value of
+  ##    global.otdsUseReleaseName is being changed during the upgrade.
+  ## 3. From an external OpenDJ such as a VM deployment, which requires
+  ##    the opendjUri (eg. ldap://otds.domain.local:1389) and password
+  ##    be specified.
+  ## Note that if usingLegacyImage=true other non-relevant values will
+  ## be ignored and if opendjUri is specified serviceName and servicePort
+  ## will be ignored.
+  ## If enabled=true the default values will migrate from the previous
+  ## default configuration.
+    migration:
+      enabled: false
+      usingLegacyImage: false
+      legacyImagePVC:
+      serviceName: opendj
+      servicePort: 1389
+      deploymentName:
+      opendjUri:
+      password:
+      ## preUpgradeJob.* enables the one-step migration/deployment via pre-upgrade jobs
+      ## image.* defines the image parameters (i.e. the kubectl) used for pre-upgrade job
+      preUpgradeJob:
+        enabled: false
+        ## timeout defines the timeout value for migrate job to complete
+        ## e.g. 5000s, 30m, 100h
+        timeout: 100h
+  ## otadminPassword is the password of the otadmin@otds.admin user for OTDS
+  ## Note that this password option will only have an impact when initially
+  ## populating the backend DB.
+    otadminPassword: *otds_admin_password
+  ## enableCustomizedTruststore enables the import of custom certificates into the JVM truststore.
+  ## Used to import self-signed or private CA certificates.
+  ## Certificates to import must be placed in /certificates directory of the Helm chart or specified
+  ## with set-file option.
+    enableCustomizedTruststore: false
+  ## singleCaCert can be used to provide a single certificate file using --set-file
+  ## This method can be used in lieu of placing certificates in the /certificates directory of the Helm chart
+    singleCaCert: |
+
+  ## otdsdb.* defines the connection information for the DB which is the
+  ## backend data storage location for OTDS
+    otdsdb:
+      ## username specifies the account for the DB connection
+      username: *otds_db_username
+      ## password specifies the password for the DB account
+      password: *otds_db_password
+      ## url specified the url used to connect to the DB for OTDS
+      ## The following is a list of sample values.
+      ## jdbc:postgresql://postgres.domain.local:5432/otdsdb
+      ## jdbc:sqlserver://ms-sql.domain.local:1433;databaseName=otdsdb
+      ## jdbc:oracle:thin:@oracle.domain.local:1521:otdsdb
+      ## jdbc:sap://hana.domain.local:30015/?databaseName=otdsdb
+      ## For encrypted connection, the list of sample values is as follows
+      ## jdbc:postgresql://postgres.domain.local:5432/otdsdb?ssl=true&sslmode=verify-ca&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory
+      ## jdbc:sqlserver://ms-sql.domain.local:1433;databaseName=otdsdb;integratedSecurity=true;encrypt=true;trustServerCertificate=true;sslProtocol=TLSv1.2
+      ## jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=tcps)(HOST=oracle.domain.local)(PORT=2484))(CONNECT_DATA=(SERVICE_NAME=linux11g)))
+      ## jdbc:sap://hana.domain.local:30015/?databaseName=otdsdb&encrypt=true
+      ## for SSL connection needs to verify server CA certificate via truststore, needs to set enableCustomizedTruststore then 
+      ## the helm chart will import root CA certificate into a user writable copy of default Java truststore
+      ## for the url which includes sslDBRootCert e.g. postgres SSL connection, the location of sslrootcert is /opt/config/certificates/dbRootCA.crt
+      ## jdbc:postgresql://postgres.domain.local:5432/otdsdb?ssl=true&sslmode=verify-ca&sslrootcert=/opt/config/certificates/dbRootCA.crt
+      url: jdbc:postgresql://db-pg-0.db-pg.mcbudev.svc.cluster.local:5432/postgres
+      ## enableCustomizedTruststore allows to use customized truststore e.g. to validate DB server CA certificate for Oracle or MSSQL
+      ## The certificate will be imported into a user writable copy of the truststore which will be used instead of the default Java truststore.  
+      ## Note that this may be a security concern due to the truststore being user writable.
+      ## If it is for a SSL connection with public signed root CA certificate, just let the parameter not set
+      enableCustomizedTruststore: false    
+      ## sslDBRootCert is used to accept the content of the DB server custom root CA certificate by set-file option
+      ## The certificate will be stored in otds-certs secret and mounted into pod, at the mount point there will be 
+      ## The DB root CA certificate file named as "dbRootCA.crt" is located under /opt/config/certificates
+      ## If enableCustomizedTruststore is enabled, the certificate will be 
+      ## imported into truststore which used to validate server for encrypted DB connection.
+      ## If it is for a SSL connection with public signed root CA certificate, just let the parameter not set
+      sslDBRootCert: |
+
+      ## By default, OTDS uses a database schema named 'otds'
+      ## Set this option to true to use the default schema assigned to the database user account instead.
+      ## Often required on a shared Oracle database.
+      useDefaultSchema: false
+    ## newrelic.* define NewRelic APM integration settings
+    newrelic:
+      # uncomment the value for license key if newrelic is enabled
+      NEW_RELIC_LICENSE_KEY: #*newrelic_license_key 
+      NEW_RELIC_APP_NAME: OTDS_documentum-PROD-OT2_CFCR_LI3-EIM_mcbudev
+      NEW_RELIC_LOG_FILE_NAME: STDOUT
+      NEW_RELIC_LOG_LEVEL: info
+      NEW_RELIC_BROWSER_MONITORING_AUTO_INSTRUMENT: "false"
+      JAVA_OPTS: -javaagent:/opt/newrelic/newrelic.jar
+dctm-server:
+  cs-secrets:
+      enabled: true
+      secret:
+          name: *cs_secret_name
+      docbroker:
+        certificate:
+          password:
+          aekpassphrase:
+          trustpassword:
+          pemCertPrivKey:
+          pemCertificate:
+
+      docbase:
+        password: Password@1234567890
+        licenses:
+          recordManager:
+          prm:
+          fedRecdService:
+          rps:
+          snaplockstore:
+          storageaware:
+          trusted:
+          highVolumeServer:
+
+      contentserver:
+        installOwner:
+          userName : *installOwner_username
+          password : *installOwner_password
+        globalRegistry :
+          password: *global_registry_password
+        aek:
+          algorithm: AES_256_CBC
+          oldPassphrase:
+          passphrase: Password@1234567890
+        certificate:
+          password:
+          trustpassword:
+          pemCertPrivKey:
+          pemCertificate:
+        install:
+          appserver:
+            admin:
+              password: Password@1234567890
+          root:
+            password: password
+      kms:
+        apiKey: <KMS_API_KEY>
+      ### Database ###
+      database:
+        userName: postgres
+        password: password
+        certificate: |
+          -----BEGIN CERTIFICATE-----
+          MIIDdzCCAl+gAwIBAgIEAgAAuTANBgkqhkiG9w0BAQUFADBaMQswCQYDVQQGEwJJ
+          RTESMBAGA1UEChMJQmFsdGltb3JlMRMwEQYDVQQLEwpDeWJlclRydXN0MSIwIAYD
+          VQQDExlCYWx0aW1vcmUgQ3liZXJUcnVzdCBSb290MB4XDTAwMDUxMjE4NDYwMFoX
+          DTI1MDUxMjIzNTkwMFowWjELMAkGA1UEBhMCSUUxEjAQBgNVBAoTCUJhbHRpbW9y
+          ZTETMBEGA1UECxMKQ3liZXJUcnVzdDEiMCAGA1UEAxMZQmFsdGltb3JlIEN5YmVy
+          VHJ1c3QgUm9vdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKMEuyKr
+          mD1X6CZymrV51Cni4eiVgLGw41uOKymaZN+hXe2wCQVt2yguzmKiYv60iNoS6zjr
+          IZ3AQSsBUnuId9Mcj8e6uYi1agnnc+gRQKfRzMpijS3ljwumUNKoUMMo6vWrJYeK
+          mpYcqWe4PwzV9/lSEy/CG9VwcPCPwBLKBsua4dnKM3p31vjsufFoREJIE9LAwqSu
+          XmD+tqYF/LTdB1kC1FkYmGP1pWPgkAx9XbIGevOF6uvUA65ehD5f/xXtabz5OTZy
+          dc93Uk3zyZAsuT3lySNTPx8kmCFcB5kpvcY67Oduhjprl3RjM71oGDHweI12v/ye
+          jl0qhqdNkNwnGjkCAwEAAaNFMEMwHQYDVR0OBBYEFOWdWTCCR1jMrPoIVDaGezq1
+          BE3wMBIGA1UdEwEB/wQIMAYBAf8CAQMwDgYDVR0PAQH/BAQDAgEGMA0GCSqGSIb3
+          DQEBBQUAA4IBAQCFDF2O5G9RaEIFoN27TyclhAO992T9Ldcw46QQF+vaKSm2eT92
+          9hkTI7gQCvlYpNRhcL0EYWoSihfVCr3FvDB81ukMJY2GQE/szKN+OMY3EU/t3Wgx
+          jkzSswF07r51XgdIGn9w/xZchMB5hbgF/X++ZRGjD8ACtPhSNzkE1akxehi/oCr0
+          Epn3o0WC4zxe9Z2etciefC7IpJ5OCBRLbf1wbWsaY71k5h+3zvDyny67G7fyUIhz
+          ksLi4xaNmjICq44Y3ekQEe5+NauQrz4wlHrQMz2nZQ/1/I6eYs9HRCwBXbsdtTLS
+          R9I4LtD+gdwyah617jzV/OeBHRnDJELqYzmp
+          -----END CERTIFICATE-----
+      ### Thumbnail Server ###
+      thumbnailServer:
+        appServerPassword: password@123
+        ### Email Server ###
+      email:
+          smtpUser: 
+          smtpPass:
+          smtpSSLCertificate: |
+      
+      ### S3 store enable ###
+      ### S3 Store ###
+      s3Store:
+        s3StoreBaseUrl:
+        s3StoreCredentialID:
+        s3StoreCredentialKEY:
+        ### S3 Store ssl certificate, below value is for (otx-sgws01-l000.otxlab.net) change accordnigly ###
+        certificate: |
+          -----BEGIN CERTIFICATE-----
+          MIICzDCCAbSgAwIBAgIJAOd7/dcwQv9dMA0GCSqGSIb3DQEBCwUAMBcxFTATBgNV
+          BAMMDCoub3R4bGFiLm5ldDAeFw0xODAxMDMxODUyMTdaFw0yODAxMDExODUyMTda
+          MBcxFTATBgNVBAMMDCoub3R4bGFiLm5ldDCCASIwDQYJKoZIhvcNAQEBBQADggEP
+          ADCCAQoCggEBAMbvOwEkeDIgua+tMEQkp7qAr59K9mzFjAlPp4Ng4dYTa5T8JH/A
+          t28K7TGHj2hl2PZEhN177xtBl1U2LAufE5fbItqVQu1JPnYr4wrOdyA6Aiz7yR7w
+          KblDiQdtz3BCLcQy+PURxfR9LQhY2AKxt4DUtpMbLG2FYwbCiOToW/yF1e2f0BaN
+          MAOQxvqqZbCgZv3UagoROX+ZX7F3SZES6bGuPwufo80tGX+3ZgpblRSVf+z8ANIv
+          zuNGL29OIYSBXg+vdH0lNb+XYCFd3tP3/hLRC992WSDibf4phgrD4VC1I9qUN7B1
+          eN2iemVGtSs9jO/IW4zHBMN8UxG8PErqyj8CAwEAAaMbMBkwFwYDVR0RBBAwDoIM
+          Ki5vdHhsYWIubmV0MA0GCSqGSIb3DQEBCwUAA4IBAQAUX6bZDeKKkMXxOV1DgQGq
+          w4QUvtqYkxQhwPPXP9cbVaA6fJ359HzJkrggP63Ko9e+xcI9OiYMlZ6xfnkzMMUs
+          EYw2l62BnxHXYPqN0h5NqDm1BT/UK4prHecRzyjw18RyQf80/1QQlSULCwfloWfh
+          PFC9AyJv/CVpqTswi8+OmVyT7dIUHAoPFGUTyJ2U5jD7QyI1ifqN+QmN0aXH//QP
+          glZkTA57ZvbLRwT8atpRh+a4VsDioTHuJAhc1C6H49kAq2wCd2vGUalvMPk2Q3p2
+          YVui1RhsHuFm2UPApDFvtYvKXdm0Ma+jBoBqu1Ofita6kFLn6M4MGKHkiZ4qY8Gm
+          -----END CERTIFICATE-----
+      ### Rest Store ###
+      restStore:
+          restStoreBaseUrl:
+          restStoreCredentialID:
+          restStoreCredentialKEY:
+          ## rest Store ssl certificate, below value is for (azure blob store) change accordnigly ###
+          azurecertificate: |
+              MIIOMjCCDBqgAwIBAgITfwAdjGo0xiH+OJr8PwAAAB2MajANBgkqhkiG9w0BAQsF
+              ADBPMQswCQYDVQQGEwJVUzEeMBwGA1UEChMVTWljcm9zb2Z0IENvcnBvcmF0aW9u
+              MSAwHgYDVQQDExdNaWNyb3NvZnQgUlNBIFRMUyBDQSAwMjAeFw0yMTExMTcyMzQ1
+              MThaFw0yMjExMTcyMzQ1MThaMCIxIDAeBgNVBAMMFyouYmxvYi5jb3JlLndpbmRv
+              d3MubmV0MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAySI9OmbypJu1
+              pyuEiH6Z1bq8itwTmz7RPWWJBmTzi8KILvb5fguII1Ogwg4lLD3meaToI/5Z32wF
+              qlLPsXRTKLdnV6XW4g3i7qKV2GHMq2fI7Vo5Hf5+odgFRpQKK90SS4wTf/YnpPJ1
+              yeYW49YsojT8D+Bn0rVyZWfEjYdHu1TQvR9a91Ugd7aW5Z2jPYTT5peYx4jPx6yp
+              QFWhPgY/jnIz2cDB7YXkx4mBvp15WR5f2yBjI4vmb3dQQfCQlLK8Gth2G/itNjdk
+              KGCtk9XVMdVV8RGxfsh4DP/8lF3lKabc4xq9eGyHbpC3aNWhwe2zkrboJLBopBDP
+              t8uHRRaypQIDAQABo4IKMjCCCi4wggF+BgorBgEEAdZ5AgQCBIIBbgSCAWoBaAB3
+              ACl5vvCeOTkh8FZzn2Old+W+V32cYAr4+U1dJlwlXceEAAABfTBTlvQAAAQDAEgw
+              RgIhAL8dgxw6b+3eGpEhomxO5Kiroc/eSyVIEPKho7vmKo4vAiEAw9LOsk6ziy9J
+              ATP8RsuEEFUVySZ0Yoy8IeQH8oqcMPoAdQBVgdTCFpA2AUrqC5tXPFPwwOQ4eHAl
+              CBcvo6odBxPTDAAAAX0wU5e5AAAEAwBGMEQCIC8CdVqYwGtp1SnxCLnkv0jFpTnp
+              Np3XHY4yHwC9f5SKAiBc6C54/yO+xTwFCeheYro5iFOTxAAZTYEd+ezLYNPUGAB2
+              AEalVet1+pEgMLWiiWn0830RLEF0vv1JuIWr8vxw/m1HAAABfTBTlsUAAAQDAEcw
+              RQIhAJexaCrWr8sPoaw7fr+esyetrfHx5GgBsT6W7AVY2FPHAiAsBvRSh7v3AEu5
+              ZALXqO63HE2vv5eyUNKctp3t+NFoPjAnBgkrBgEEAYI3FQoEGjAYMAoGCCsGAQUF
+              BwMBMAoGCCsGAQUFBwMCMD4GCSsGAQQBgjcVBwQxMC8GJysGAQQBgjcVCIfahnWD
+              7tkBgsmFG4G1nmGF9OtggV2Fho5Bh8KYUAIBZAIBJzCBhwYIKwYBBQUHAQEEezB5
+              MFMGCCsGAQUFBzAChkdodHRwOi8vd3d3Lm1pY3Jvc29mdC5jb20vcGtpL21zY29y
+              cC9NaWNyb3NvZnQlMjBSU0ElMjBUTFMlMjBDQSUyMDAyLmNydDAiBggrBgEFBQcw
+              AYYWaHR0cDovL29jc3AubXNvY3NwLmNvbTAdBgNVHQ4EFgQUAb72eBs2S4J/rVdj
+              5T8OZAM/hvcwDgYDVR0PAQH/BAQDAgSwMIIGOgYDVR0RBIIGMTCCBi2CFyouYmxv
+              Yi5jb3JlLndpbmRvd3MubmV0giUqLnlxMXByZHN0cjA3YS5zdG9yZS5jb3JlLndp
+              bmRvd3MubmV0ghgqLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCGyouejEuYmxvYi5z
+              dG9yYWdlLmF6dXJlLm5ldIIbKi56Mi5ibG9iLnN0b3JhZ2UuYXp1cmUubmV0ghsq
+              LnozLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCGyouejQuYmxvYi5zdG9yYWdlLmF6
+              dXJlLm5ldIIbKi56NS5ibG9iLnN0b3JhZ2UuYXp1cmUubmV0ghsqLno2LmJsb2Iu
+              c3RvcmFnZS5henVyZS5uZXSCGyouejcuYmxvYi5zdG9yYWdlLmF6dXJlLm5ldIIb
+              Ki56OC5ibG9iLnN0b3JhZ2UuYXp1cmUubmV0ghsqLno5LmJsb2Iuc3RvcmFnZS5h
+              enVyZS5uZXSCHCouejEwLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejExLmJs
+              b2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejEyLmJsb2Iuc3RvcmFnZS5henVyZS5u
+              ZXSCHCouejEzLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejE0LmJsb2Iuc3Rv
+              cmFnZS5henVyZS5uZXSCHCouejE1LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCou
+              ejE2LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejE3LmJsb2Iuc3RvcmFnZS5h
+              enVyZS5uZXSCHCouejE4LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejE5LmJs
+              b2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejIwLmJsb2Iuc3RvcmFnZS5henVyZS5u
+              ZXSCHCouejIxLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejIyLmJsb2Iuc3Rv
+              cmFnZS5henVyZS5uZXSCHCouejIzLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCou
+              ejI0LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejI1LmJsb2Iuc3RvcmFnZS5h
+              enVyZS5uZXSCHCouejI2LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejI3LmJs
+              b2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejI4LmJsb2Iuc3RvcmFnZS5henVyZS5u
+              ZXSCHCouejI5LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejMwLmJsb2Iuc3Rv
+              cmFnZS5henVyZS5uZXSCHCouejMxLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCou
+              ejMyLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejMzLmJsb2Iuc3RvcmFnZS5h
+              enVyZS5uZXSCHCouejM0LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejM1LmJs
+              b2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejM2LmJsb2Iuc3RvcmFnZS5henVyZS5u
+              ZXSCHCouejM3LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejM4LmJsb2Iuc3Rv
+              cmFnZS5henVyZS5uZXSCHCouejM5LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCou
+              ejQwLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejQxLmJsb2Iuc3RvcmFnZS5h
+              enVyZS5uZXSCHCouejQyLmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejQzLmJs
+              b2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejQ0LmJsb2Iuc3RvcmFnZS5henVyZS5u
+              ZXSCHCouejQ1LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejQ2LmJsb2Iuc3Rv
+              cmFnZS5henVyZS5uZXSCHCouejQ3LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCou
+              ejQ4LmJsb2Iuc3RvcmFnZS5henVyZS5uZXSCHCouejQ5LmJsb2Iuc3RvcmFnZS5h
+              enVyZS5uZXSCHCouejUwLmJsb2Iuc3RvcmFnZS5henVyZS5uZXQwgbAGA1UdHwSB
+              qDCBpTCBoqCBn6CBnIZNaHR0cDovL21zY3JsLm1pY3Jvc29mdC5jb20vcGtpL21z
+              Y29ycC9jcmwvTWljcm9zb2Z0JTIwUlNBJTIwVExTJTIwQ0ElMjAwMi5jcmyGS2h0
+              dHA6Ly9jcmwubWljcm9zb2Z0LmNvbS9wa2kvbXNjb3JwL2NybC9NaWNyb3NvZnQl
+              MjBSU0ElMjBUTFMlMjBDQSUyMDAyLmNybDBXBgNVHSAEUDBOMEIGCSsGAQQBgjcq
+              ATA1MDMGCCsGAQUFBwIBFidodHRwOi8vd3d3Lm1pY3Jvc29mdC5jb20vcGtpL21z
+              Y29ycC9jcHMwCAYGZ4EMAQIBMB8GA1UdIwQYMBaAFP8vf+EG9DjzLe0ljZjC/g72
+              bPz6MB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEFBQcDAjANBgkqhkiG9w0BAQsF
+              AAOCAgEAuspBwhhs6/QFJF1DcIklY6g4aNditwzyMTKj9WCf+Mer/ZuEFXRh7hVU
+              ysiOUqaUevsXUwYPztRawHMpaing0IolxZGfndo3/QtuYSjNnLKGkdaUYlaVYsS3
+              tj5/IRvx9ZZHZeTFNbXjKQ5QhiKaQ18dOzGPqTUihGDPKrMMMKjrbG+iijG4EoO0
+              eI+BoIEo1tOaX4C1dTLUruul+jpIy6/IAzYNi7bdKnb3yMp9Qaprz2+dZHFJb/ng
+              1EJTekYVZ2yXTkabRLYaCcj5Slp9ZzvrL23hZ276oTCcoQIGJahCr2VyUxGJ3mof
+              iXkJwgGIYQLtDDZgRMtjqwllw7ck0bZ/ohEwOEKIri2LGIrzttdgi4TTn/u8NMfO
+              PhDAw5ZevYGvXp1t3WUCrfHKBIK0ffU3eJLApdfrlcryOWSGXhgo15UKV9IDiYBz
+              /704oYUPWIZzB5qeIGi/80G8qGZBXjaphm5ahlbjTGg8q5ZXgmzvRqD2x0rYpdrK
+              yTk0a3wiMVCpLRbSjSUUNCE5f2r7cdnlf6lQYGmhtnQSK7XHM0Bh6Pz07RTxAmSz
+              Q44w1yZyD3SlEn9SNipsbOgZ2dfXAMndlFABuRXa9qiW4lP+or8UktGMn9DoLzS1
+              tTCLgzP88155Ed7xP/wcEHZ0wa1/cva2Lp9EPjNs7FIC6/Kn+wM=
+              -----END CERTIFICATE-----
+              -----BEGIN CERTIFICATE-----
+              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
+              -----END CERTIFICATE-----
+          ## rest Store ssl certificate, below value is for (gcp blob store) change accordnigly ###
+          gcpcertificate: |
+              -----BEGIN CERTIFICATE-----
+              MIIGMzCCBRugAwIBAgIRAJd3etXbkJKwCgAAAAEZUxowDQYJKoZIhvcNAQELBQAw
+              RjELMAkGA1UEBhMCVVMxIjAgBgNVBAoTGUdvb2dsZSBUcnVzdCBTZXJ2aWNlcyBM
+              TEMxEzARBgNVBAMTCkdUUyBDQSAxQzMwHhcNMjExMTAxMDI1MTQ2WhcNMjIwMTI0
+              MDI1MTQ1WjAjMSEwHwYDVQQDDBgqLnN0b3JhZ2UuZ29vZ2xlYXBpcy5jb20wWTAT
+              BgcqhkjOPQIBBggqhkjOPQMBBwNCAAQ7+P3BXMNvpJ2v4Kmw0y2JkeAqGkv8GaDY
+              4shOybeVnR6I+MtyouPCraWL51HHyf0Gzca6bTBCEMALArX3pPNJo4IECDCCBAQw
+              DgYDVR0PAQH/BAQDAgeAMBMGA1UdJQQMMAoGCCsGAQUFBwMBMAwGA1UdEwEB/wQC
+              MAAwHQYDVR0OBBYEFEI98U54udbUMuVCUUP1lg06mKCXMB8GA1UdIwQYMBaAFIp0
+              f6+Fze6VzT2c0OJGFPNxNR0nMGoGCCsGAQUFBwEBBF4wXDAnBggrBgEFBQcwAYYb
+              aHR0cDovL29jc3AucGtpLmdvb2cvZ3RzMWMzMDEGCCsGAQUFBzAChiVodHRwOi8v
+              cGtpLmdvb2cvcmVwby9jZXJ0cy9ndHMxYzMuZGVyMIIBuQYDVR0RBIIBsDCCAayC
+              GCouc3RvcmFnZS5nb29nbGVhcGlzLmNvbYIQKi5nb29nbGVhcGlzLmNvbYIgY29t
+              bW9uZGF0YXN0b3JhZ2UuZ29vZ2xlYXBpcy5jb22CIiouY29tbW9uZGF0YXN0b3Jh
+              Z2UuZ29vZ2xlYXBpcy5jb22CFnN0b3JhZ2UuZ29vZ2xlYXBpcy5jb22CG3N0b3Jh
+              Z2UubXRscy5nb29nbGVhcGlzLmNvbYIkKi5hcHBzcG90LmNvbS5zdG9yYWdlLmdv
+              b2dsZWFwaXMuY29tgiAqLmNvbnRlbnQtc3RvcmFnZS5nb29nbGVhcGlzLmNvbYIj
+              Ki5jb250ZW50LXN0b3JhZ2UtcDIuZ29vZ2xlYXBpcy5jb22CJyouY29udGVudC1z
+              dG9yYWdlLXVwbG9hZC5nb29nbGVhcGlzLmNvbYIpKi5jb250ZW50LXN0b3JhZ2Ut
+              ZG93bmxvYWQuZ29vZ2xlYXBpcy5jb22CHyouc3RvcmFnZS11cGxvYWQuZ29vZ2xl
+              YXBpcy5jb22CISouc3RvcmFnZS1kb3dubG9hZC5nb29nbGVhcGlzLmNvbTAhBgNV
+              HSAEGjAYMAgGBmeBDAECATAMBgorBgEEAdZ5AgUDMDwGA1UdHwQ1MDMwMaAvoC2G
+              K2h0dHA6Ly9jcmxzLnBraS5nb29nL2d0czFjMy96ZEFUdDBFeF9Gay5jcmwwggED
+              BgorBgEEAdZ5AgQCBIH0BIHxAO8AdQApeb7wnjk5IfBWc59jpXflvld9nGAK+PlN
+              XSZcJV3HhAAAAXzZn+c4AAAEAwBGMEQCIGO+IZVN97FGP/abVOo9X8caOCeO33Yo
+              snpzT9q3ggzfAiAUuOoEigNnreDRI1HtsBqLNPX6Q6/9owl4t32SOQbL1wB2AEHI
+              yrHfIkZKEMahOglCh15OMYsbA+vrS8do8JBilgb2AAABfNmf58MAAAQDAEcwRQIh
+              AOgoy+PE/ewRAn6ZaQSjEX6DzAiZh/GRr18gVq0g/WsWAiAZwNNkcvsKhaMvzKHk
+              bhAx3DQlmMuBFmkOPMb6JLI4/jANBgkqhkiG9w0BAQsFAAOCAQEAodBh51uJBnc0
+              2gDIxKgC1dQQqfWNSj9DgS1p6V8li28Ew6S3aR04dlF9kwYm4NDgwUKklsEQKUOk
+              2K4ORBXAoqZkSw5tJ+1qzzIiXQULaC3AGWr2GxEzebV4DQ/qO68jER0lyiWU5PWw
+              kRrdmMMpaBmePzKo3OfBFXmW070i0l1+wmYEiJ5xXdU96evXNBP0njanoskSI7Ud
+              F0A7I4zBT6x+lTSPwiT3rvLFy9Ro0rg7PFSHDxrYMN6AcqMccHihkJklas9gC/zz
+              0obtpEh4VmKp4dRvl/h4DWrNlJQ/4BEQXE7rgym9JKO6qxg3t70MZS7neBU+7gIH
+              mdq9LUXTcg==
+              -----END CERTIFICATE-----
+              -----BEGIN CERTIFICATE-----
+              MIIFljCCA36gAwIBAgINAgO8U1lrNMcY9QFQZjANBgkqhkiG9w0BAQsFADBHMQsw
+              CQYDVQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZpY2VzIExMQzEU
+              MBIGA1UEAxMLR1RTIFJvb3QgUjEwHhcNMjAwODEzMDAwMDQyWhcNMjcwOTMwMDAw
+              MDQyWjBGMQswCQYDVQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZp
+              Y2VzIExMQzETMBEGA1UEAxMKR1RTIENBIDFDMzCCASIwDQYJKoZIhvcNAQEBBQAD
+              ggEPADCCAQoCggEBAPWI3+dijB43+DdCkH9sh9D7ZYIl/ejLa6T/belaI+KZ9hzp
+              kgOZE3wJCor6QtZeViSqejOEH9Hpabu5dOxXTGZok3c3VVP+ORBNtzS7XyV3NzsX
+              lOo85Z3VvMO0Q+sup0fvsEQRY9i0QYXdQTBIkxu/t/bgRQIh4JZCF8/ZK2VWNAcm
+              BA2o/X3KLu/qSHw3TT8An4Pf73WELnlXXPxXbhqW//yMmqaZviXZf5YsBvcRKgKA
+              gOtjGDxQSYflispfGStZloEAoPtR28p3CwvJlk/vcEnHXG0g/Zm0tOLKLnf9LdwL
+              tmsTDIwZKxeWmLnwi/agJ7u2441Rj72ux5uxiZ0CAwEAAaOCAYAwggF8MA4GA1Ud
+              DwEB/wQEAwIBhjAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwEgYDVR0T
+              AQH/BAgwBgEB/wIBADAdBgNVHQ4EFgQUinR/r4XN7pXNPZzQ4kYU83E1HScwHwYD
+              VR0jBBgwFoAU5K8rJnEaK0gnhS9SZizv8IkTcT4waAYIKwYBBQUHAQEEXDBaMCYG
+              CCsGAQUFBzABhhpodHRwOi8vb2NzcC5wa2kuZ29vZy9ndHNyMTAwBggrBgEFBQcw
+              AoYkaHR0cDovL3BraS5nb29nL3JlcG8vY2VydHMvZ3RzcjEuZGVyMDQGA1UdHwQt
+              MCswKaAnoCWGI2h0dHA6Ly9jcmwucGtpLmdvb2cvZ3RzcjEvZ3RzcjEuY3JsMFcG
+              A1UdIARQME4wOAYKKwYBBAHWeQIFAzAqMCgGCCsGAQUFBwIBFhxodHRwczovL3Br
+              aS5nb29nL3JlcG9zaXRvcnkvMAgGBmeBDAECATAIBgZngQwBAgIwDQYJKoZIhvcN
+              AQELBQADggIBAIl9rCBcDDy+mqhXlRu0rvqrpXJxtDaV/d9AEQNMwkYUuxQkq/BQ
+              cSLbrcRuf8/xam/IgxvYzolfh2yHuKkMo5uhYpSTld9brmYZCwKWnvy15xBpPnrL
+              RklfRuFBsdeYTWU0AIAaP0+fbH9JAIFTQaSSIYKCGvGjRFsqUBITTcFTNvNCCK9U
+              +o53UxtkOCcXCb1YyRt8OS1b887U7ZfbFAO/CVMkH8IMBHmYJvJh8VNS/UKMG2Yr
+              PxWhu//2m+OBmgEGcYk1KCTd4b3rGS3hSMs9WYNRtHTGnXzGsYZbr8w0xNPM1IER
+              lQCh9BIiAfq0g3GvjLeMcySsN1PCAJA/Ef5c7TaUEDu9Ka7ixzpiO2xj2YC/WXGs
+              Yye5TBeg2vZzFb8q3o/zpWwygTMD0IZRcZk0upONXbVRWPeyk+gB9lm+cZv9TSjO
+              z23HFtz30dZGm6fKa+l3D/2gthsjgx0QGtkJAITgRNOidSOzNIb2ILCkXhAd4FJG
+              AJ2xDx8hcFH1mt0G/FX0Kw4zd8NLQsLxdxP8c4CU6x+7Nz/OAipmsHMdMqUybDKw
+              juDEI/9bfU1lcKwrmz3O2+BtjjKAvpafkmO8l7tdufThcV4q5O8DIrGKZTqPwJNl
+              1IXNDw9bg1kWRxYtnCQ6yICmJhSFm/Y3m6xv+cXDBlHz4n/FsRC6UfTd
+              -----END CERTIFICATE-----
+              -----BEGIN CERTIFICATE-----
+              MIIFYjCCBEqgAwIBAgIQd70NbNs2+RrqIQ/E8FjTDTANBgkqhkiG9w0BAQsFADBX
+              MQswCQYDVQQGEwJCRTEZMBcGA1UEChMQR2xvYmFsU2lnbiBudi1zYTEQMA4GA1UE
+              CxMHUm9vdCBDQTEbMBkGA1UEAxMSR2xvYmFsU2lnbiBSb290IENBMB4XDTIwMDYx
+              OTAwMDA0MloXDTI4MDEyODAwMDA0MlowRzELMAkGA1UEBhMCVVMxIjAgBgNVBAoT
+              GUdvb2dsZSBUcnVzdCBTZXJ2aWNlcyBMTEMxFDASBgNVBAMTC0dUUyBSb290IFIx
+              MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAthECix7joXebO9y/lD63
+              ladAPKH9gvl9MgaCcfb2jH/76Nu8ai6Xl6OMS/kr9rH5zoQdsfnFl97vufKj6bwS
+              iV6nqlKr+CMny6SxnGPb15l+8Ape62im9MZaRw1NEDPjTrETo8gYbEvs/AmQ351k
+              KSUjB6G00j0uYODP0gmHu81I8E3CwnqIiru6z1kZ1q+PsAewnjHxgsHA3y6mbWwZ
+              DrXYfiYaRQM9sHmklCitD38m5agI/pboPGiUU+6DOogrFZYJsuB6jC511pzrp1Zk
+              j5ZPaK49l8KEj8C8QMALXL32h7M1bKwYUH+E4EzNktMg6TO8UpmvMrUpsyUqtEj5
+              cuHKZPfmghCN6J3Cioj6OGaK/GP5Afl4/Xtcd/p2h/rs37EOeZVXtL0m79YB0esW
+              CruOC7XFxYpVq9Os6pFLKcwZpDIlTirxZUTQAs6qzkm06p98g7BAe+dDq6dso499
+              iYH6TKX/1Y7DzkvgtdizjkXPdsDtQCv9Uw+wp9U7DbGKogPeMa3Md+pvez7W35Ei
+              Eua++tgy/BBjFFFy3l3WFpO9KWgz7zpm7AeKJt8T11dleCfeXkkUAKIAf5qoIbap
+              sZWwpbkNFhHax2xIPEDgfg1azVY80ZcFuctL7TlLnMQ/0lUTbiSw1nH69MG6zO0b
+              9f6BQdgAmD06yK56mDcYBZUCAwEAAaOCATgwggE0MA4GA1UdDwEB/wQEAwIBhjAP
+              BgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTkrysmcRorSCeFL1JmLO/wiRNxPjAf
+              BgNVHSMEGDAWgBRge2YaRQ2XyolQL30EzTSo//z9SzBgBggrBgEFBQcBAQRUMFIw
+              JQYIKwYBBQUHMAGGGWh0dHA6Ly9vY3NwLnBraS5nb29nL2dzcjEwKQYIKwYBBQUH
+              MAKGHWh0dHA6Ly9wa2kuZ29vZy9nc3IxL2dzcjEuY3J0MDIGA1UdHwQrMCkwJ6Al
+              oCOGIWh0dHA6Ly9jcmwucGtpLmdvb2cvZ3NyMS9nc3IxLmNybDA7BgNVHSAENDAy
+              MAgGBmeBDAECATAIBgZngQwBAgIwDQYLKwYBBAHWeQIFAwIwDQYLKwYBBAHWeQIF
+              AwMwDQYJKoZIhvcNAQELBQADggEBADSkHrEoo9C0dhemMXoh6dFSPsjbdBZBiLg9
+              NR3t5P+T4Vxfq7vqfM/b5A3Ri1fyJm9bvhdGaJQ3b2t6yMAYN/olUazsaL+yyEn9
+              WprKASOshIArAoyZl+tJaox118fessmXn1hIVw41oeQa1v1vg4Fv74zPl6/AhSrw
+              9U5pCZEt4Wi4wStz6dTZ/CLANx8LZh1J7QJVj2fhMtfTJr9w4z30Z209fOU0iOMy
+              +qduBmpvvYuR7hZL6Dupszfnw0Skfths18dG9ZKb59UhvmaSGZRVbNQpsg3BZlvi
+              d0lIKO2d1xozclOzgjXPYovJJIultzkMu34qQb9Sz/yilrbCgj8=
+              -----END CERTIFICATE-----
+
+      ### newrelic ###
+      newrelic:
+        license_key: *newrelic_license_key
+      ### GCP Store credentials ###
+      # update the gcp store credentials in the below format
+      # gcpStore_credentials: |
+      # {
+      # JSON credential Object of GCP store.
+      # }
+      gcpStore_credentials:
+
+      graylog:
+        token:
+
+
+      # ingress TLS #
+      # tlscrt: <base64-encoded TLS certificate> as one line i.e. without any carriage returns or wrapped lines.
+      # tlscrt: <base64-encoded TLS key> as one line i.e. without any carriage returns or wrapped lines.
+      # use openssl utility or any other mechanism to generate key and certificate.
+      # openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout KEY_FILE.crt -out CERT_FILE.crt -subj "/CN=<domain name>/O=<domain name>"
+      # which generates a private key file "KEY_FILE.crt" and a certificate "CERT_FILE.crt" respectively for a given domain, convert content to base64.
+      # The below command generates a 2048-bit RSA private key (KEY_FILE.crt) and a X509 certificate (CERT_FILE.crt) valid for 365 days for host (cfcr-lab.bp-paas.otxlab.net).
+      # openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout KEY_FILE.crt -out CERT_FILE.crt -subj "/CN=cfcr-lab.bp-paas.otxlab.net/O=cfcr-lab.bp-paas.otxlab.net"
+      # NOTE: If the host(CN name) name specified during the certificate request process, doesn't match the host defined in your ingress route,
+      # your ingress controller displays a Kubernetes Ingress Controller Fake Certificate warning. Make sure your certificate and ingress route host names match.
+      ingress:
+          tlscrt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURlVENDQW1HZ0F3SUJBZ0lVREptV05TMFl3elJTWENsVUZkRUFHdVphdE5Jd0RRWUpLb1pJaHZjTkFRRUwKQlFBd1RERWtNQ0lHQTFVRUF3d2JZMlpqY2kxc1lXSXVZbkF0Y0dGaGN5NXZkSGhzWVdJdWJtVjBNU1F3SWdZRApWUVFLREJ0alptTnlMV3hoWWk1aWNDMXdZV0Z6TG05MGVHeGhZaTV1WlhRd0hoY05NakF3TnpJNE1EZ3lOVFU1CldoY05NakV3TnpJNE1EZ3lOVFU1V2pCTU1TUXdJZ1lEVlFRRERCdGpabU55TFd4aFlpNWljQzF3WVdGekxtOTAKZUd4aFlpNXVaWFF4SkRBaUJnTlZCQW9NRzJObVkzSXRiR0ZpTG1Kd0xYQmhZWE11YjNSNGJHRmlMbTVsZERDQwpBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQ0FRb0NnZ0VCQU1XNXJLS2diekVzck54bXVFbEpBMnBUCmo3cTFKaTBnK1ZKa3JmcnNXc1A4SkpUS2pOUFRvOE1xRkN1cVF6VzQ4WDFwZGVzcDk3Wkt0WmVyaHdVU0VkVHUKM2tpT243SGUyQmlZQ1RzdDJ6dUlhNHFGcE1TVnpzSm5pV29ZRHl0bGxFZDAzNkdxWFdvQlpXVVdCcFNYUmt0dQp6VnQ0eHdzcUV6enM1UWRpYVFXUWdkWm51T2Y5cWRDbmJXejBJa0lPTnl4M3h3dHdPbkIzcGlhTDJzM2dlWStrCks4cnk1eTk0dkVlaWhkWDl6MFRaV1BMNjIwNkwva05EVUNtUWdrY2JONjBYUWtrUkdPaGFuQjlEbEJuL1BsbGkKQ05qYzBZUzFPYjRZZzgyR3NpdEcydVhwNlBLMFdVbHJqczViMjBGTlR0cWh0dGhDV3diOEFzK20wT2JXY2xNQwpBd0VBQWFOVE1GRXdIUVlEVlIwT0JCWUVGT3A3bEZSMVNxbU9RejYvV3hiYjV1bytKMXBzTUI4R0ExVWRJd1FZCk1CYUFGT3A3bEZSMVNxbU9RejYvV3hiYjV1bytKMXBzTUE4R0ExVWRFd0VCL3dRRk1BTUJBZjh3RFFZSktvWkkKaHZjTkFRRUxCUUFEZ2dFQkFGa1dOMnBILytOcytBWkk0V2g5djZrRUFYUmFDa1JueXlqeUgyZEhmRVBZcVFlYwovRU5kMnFGQ05BMUpvWW1BY0VmS3hWSWhFd3JEb1dVTW9KUEMyZGRJeGZRSXZ6TDU2ZVQ2bzFGK2lTQ004bVU3CmVpT0JwdlJEdW1DOFpwTC9yMjFyMHQ4bmFIM3hQOEJPLzNPU1I0RlBCT2hSZGwzMXQ0S1ErVFl3MitXeTNudEUKWXg3aUdKK1ZTVWsxOWYwRUIwbm1tWnJNcGdiMUVUS1ZVZCtRSjlyb2RHMnRhZ1hoSmo4WXg5VUE1RFNwekd3UgpaQWg1UGlaUmUvUWhWYzh3VUw0MnFSOEJQNzd5VWs4eC9jS3ZTeTdpY3NKSlpXMWRtLzNhSDg3TzU5ek0walBvCmZKOVJaSEVMeVJOaXQrSEdnL3pjcGNwV0VXblhOTkh0MTAvMFQyWT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQ==
+          tlskey: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRREZ1YXlpb0c4eExLemMKWnJoSlNRTnFVNCs2dFNZdElQbFNaSzM2N0ZyRC9DU1V5b3pUMDZQREtoUXJxa00xdVBGOWFYWHJLZmUyU3JXWApxNGNGRWhIVTd0NUlqcCt4M3RnWW1BazdMZHM3aUd1S2hhVEVsYzdDWjRscUdBOHJaWlJIZE4raHFsMXFBV1ZsCkZnYVVsMFpMYnMxYmVNY0xLaE04N09VSFlta0ZrSUhXWjdqbi9hblFwMjFzOUNKQ0RqY3NkOGNMY0Rwd2Q2WW0KaTlyTjRIbVBwQ3ZLOHVjdmVMeEhvb1hWL2M5RTJWankrdHRPaS81RFExQXBrSUpIR3pldEYwSkpFUmpvV3B3ZgpRNVFaL3o1WllnalkzTkdFdFRtK0dJUE5ocklyUnRybDZlanl0RmxKYTQ3T1c5dEJUVTdhb2JiWVFsc0cvQUxQCnB0RG0xbkpUQWdNQkFBRUNnZ0VBTUp3bFJSWU1RQnFycE1QY0txZzRucnRNYXFwK2FEbmpFYzZPdDFIRVBzcU8KYzhZWU9UdWUxeXhSS1NzQ3V3SnMzRmhCRlQrTUZ0VG5NQktMYjBPeC9wZDdMbnRoNTJqUjE3b0pDdk9MSW1lMwppS2F5aTJJSkl1SXhkbFBUNXVkaVBPOE95OEFHbHprZ3BHbDExTEljSmc5bmpVVjBLZHArUUV3OVFrTi9iazVaCjduYitlc3FwSkFyMlhRenNkTE9aaU11RXNkZTFZMGVrUUtDbzJiVVBEQjNoYjY0M1ZvRDhJQVBGUmtEQ2ZLdlQKRkdzTUtSb2grNVlEb2lFQ1dqRlY1OUZ0Q01lMmcvOVpMajAxSC8rZDMwUkQyR054NjBSZG9mWlNXRE91MHQvaAp0c1ByZGVwbU5kV3lET2p2d0k5N3JhdjRLQzdTS2dwaUJ5VzZLeExQZ1FLQmdRRG9iYUdVNGNzYnQ3ZTdVLzZHCmpaSExaRnEwTWRMRHltUnVqVEtZRE13NkVudXFzN2EyM2YzMVBpRGFWQXhTTytBOFdjSk1GT0FsWjIwcndSVEQKOHMzNWl5MWpBdUNkWDNidmlRSFNGK1cvK0JuWFRld1habjd4dW5KWFRKVGxUTCtHaFNkNk5XY2pkQWQzZG9ySApNaitlUGRUalQ3eXpNNnE5NFNVeThic3IzUUtCZ1FEWnh4TTMwelZKL0tjVDJGWE9oZlo1a1I4bHRFMUU1ckc3CkoyRSt4clNGb3BQUy9RNVJTcnpWUWZIempBUXBiL1dPZkVVQjBCSGVHME81UUg4N09sQUpuaHhpaTBNTlJXMkIKcVhuakdldkVrQVpORFQxV2UrdG1LbnRsZVBmS09RMDdHc0pscjNzSUVmWGpjTTlhRXAvdEtZUkg1bmtJeS8vNwpMdlNBOXE0TDd3S0JnUURVa0c3VjJpb0dqMTVZMDloUzllWUFQU2MyNU5uOGRYeWtIajNIRU8wMXJ2R3FpL0R1CkROZlZFWnk2RDJPMVVVMGg1SFR0WDZvZWl4Z3NpOGlSNjl5eis3VG1lQnN6MGJyVUZsaXo2MmNTeWJQWVZFczIKbTJZOWJHWmxzSVA3c05UNEVZNnBGVzNkM3A5MWdkUXBtS3JWN1haazdPZUdmQm9LelgxWHVmdVRnUUtCZ0dPVwpEbXE3MGFXSXZKcHRsaWQveVFza1dycnlMVmR4cXhxclVtUFRsOTk0VGVMd3gyaFRKZkRiWEJvRUVDOG12SUt3CnZ4bXFIVkdVNUM1Rm1TanJiSWhKWGkrT0FWYURSaVZCNjdQM09ZSkVYaTFEL2FXYnV6U1gvcCtUWnJSNXpGd1gKeTRlV2JFdHZjeUxUaG01cEQrcnl6a1BXMThnM0NWTEMwUnBjTTVEUEFvR0FYK0JuUGdoRUFwb3ZEZFQvVFNkRQpUdnJJbmpDTzhLZjJzRFc2bXZ6SnFacm5DZWxIWm1QQjZsODV3NFpWczArdDN1Ykc3RWlUTjBkdVdZektzMTZ5CnNQckw5Mk1BNXpBWm84RTFaUmdFRE83aGxLZ0FVcHZGTHFrYVNrMEZNUFBBREMrcG94ZU1nSnlzK2JVeDRnTE0KOFBIVDUwa05mRVFhVngxQWFCUEVuRVk9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0=
+      openshifttls:
+        enable: *openshifttls_enable
+      #Client app secrets are going to add here
+      clients:
+          drServiceAccountUser: dctmreports
+          drServiceAccountPassword: Password@1234567890
+          preferencePassword: webtopUser@12345
+          presetPassword: webtopUser@12345
+  db:
+      enabled: true
+      ###User Name/ID
+      serviceName: db-pg
+      secret:
+          name: *cs_secret_name
+      ### Persistent Volume ###
+      persistentVolume:
+        storageClass: *rwo_storage_class
+
+      configMap:
+        configName: alter
+        volumeName: alter-volume
+      alterParam:
+        max_connections:
+        default_statistics_target:
+        maintenance_work_mem:
+        effective_cache_size:
+        wal_buffers:
+        work_mem:
+
+      rootsquash:
+        enable: false
+        ispg12orgreater: false
+      openshift:
+        enable: *openshift_enable
+
+  docbroker:
+      enabled: true
+      ###User Name/ID
+      serviceName: *dbr_service_name
+      serviceAccount:
+        createserviceaccount: false
+        serviceAccountName: *documentum_service_account
+      openshift:
+        enable: *openshift_enable
+      secret:
+          name: *cs_secret_name
+      docbroker:
+        connectMode: *connect_mode
+        liveness:
+          enable: true
+    #Below parameter will be used for install owner change. When the install owner details are changed, value of this parameter must be changed and it should be different from previous value.
+    #This parameter will take any random numeric value
+        secretsChange: *secrets_Change
+      ### Persistent Volume ###
+      persistentVolume:
+        storageClass: *rwo_storage_class
+        logVctStorageClass: *rwo_storage_class
+        ### Below parameter is used when there are different storage classes for vct and PVC ###
+        pvcStorageClass:
+        ### Below parameter if there is already existing volume to hook up.
+        existVolumePv:
+        awsEFS: false
+        awsEFSCSIDriver: efs.csi.aws.com
+        awsEFSCSIHandle:
+        awsEFSCSIClaimPolicy: Retain
+      graylog:
+          enable: *graylog_enable
+          server: *graylog_server
+          port: *graylog_port
+      #External Docbroker
+      ExtDocbroker:
+        enable: *external_access_enable
+        extNativeNodePort:
+        extSSLNodePort:
+        createExtService: true
+        useELB: false          
+        enableLiveness: false
+        useLBAnnotations: false
+        LBAnnotations:
+
+      certificate:
+        use_certificate: *use_certificate
+        aekname: aek_name
+        aeklocation: *aek_location
+      kms:
+        url: *kms_url
+        masterkey_id: <KMS_MASTERKEY_ID>
+      newrelic:
+        enable: *newrelic_enabled
+        proxy_host: *newrelic_proxy_host
+        proxy_port: *newrelic_proxy_port
+        proxy_protocol: *newrelic_proxy_protocol
+        c_app_name : DBR_documentum-PROD-OT2_CFCR_LI3-EIM
+
+
+  content-server:
+      enabled: true
+      ###User Name/ID
+      serviceName: dcs-pg
+      serviceAccount:
+        createserviceaccount: false
+        serviceAccountName: *documentum_service_account
+      secret:
+          name: *cs_secret_name
+      docbroker:
+        serviceName: *dbr_service_name
+        clusterSpace: *env_domain
+
+      ### Docbase ###
+      docbase:
+        name: *docbase_name
+        id: 123456
+        owner: *docbase_name
+        existing: false
+        index: DM_mcbudev_DOCBASE
+
+      contentserver:
+        connectMode: *connect_mode
+        externalUserEnable: false
+        aek:
+          name: aek_name
+          location: *aek_location
+          #If ShareKey is set to true, new PVC will be created with name <serviceName of the content server>-sharedkey-pvc and AEK will be copied post CS deployment
+          shareKey: false
+        kms:
+          url: *kms_url
+          masterkey_id: <KMS_MASTERKEY_ID>
+        jmsProtocol: http
+        jmsVersion: tomcat10.1.13
+        localeName: en
+        #It will switch from Dsearch query plugin to Solr query plugin in Documentum Server setup if we set it true
+        fulltextEngineSSVCEnable: false
+        #Below parameter can be used to set up the memory setting of JMS. Default value is -Xms1024m -Xmx1024m -Xss256k -XX:+DisableExplicitGC. Give the setting inside double quote
+        jmsMemSetting: ""
+    #Below parameter will be used for install owner change. When the install owner details are changed, value of this parameter must be changed and it should be different from previous value.
+    #This parameter will  random numeric value
+        secretsChange: *secrets_Change
+
+        readiness:
+          considerBPMForReadiness: false
+          periodSeconds: 60
+
+        liveness:
+          enable: true
+          initialDelaySeconds: 600
+          considerJMSForLiveness: true
+          considerBPMForLiveness: false
+      ### Global repository details  ###
+      #   set globalRepositoryName value to global repository name which has to be used as the global repository for the current docbase
+      #       If it is set with some value then that will be used as the global repository for this repository, otherwise the current repository 
+      #       will be configured as the global repository
+      #   set globalRepositoryDocbrokerHost value to appropriate value, if not set it will use the current docbroker's host value
+      #   set globalRepositoryDocbrokerPort value to appropriate value, if not set it will use the current docbroker's port value
+      ###
+      globalRepository:
+        globalRepositoryName: ""
+        globalRepositoryDocbrokerHost: ""
+        globalRepositoryDocbrokerPort: ""
+    
+      ###External CS###
+      ExtCS:
+        enable: *external_access_enable
+        tcp_route: 10.0.0.0
+        nativeExtPort:
+        sslExtPort:
+        extDbrPort: 1491
+        createExtService: true
+        useELB: false
+        useLBAnnotations: false
+        LBAnnotations:
+
+
+      ### Database ###
+      database:
+        host: db-pg-0.db-pg.mcbudev.svc.cluster.local
+        databaseServiceName: MyPostgres
+        port: 5432
+        sslEnabled: false
+        paasEnv: false
+        docbaseOwnerPasswordChange: false
+      ### Thumbnail Server ###
+      thumbnailServer:
+        configure: true
+        userMemArgs:
+        tnsProtocol: http
+
+      otds:
+        configureOTDS: *otds_enabled
+        configNameOption: HOSTNAME
+        otdsAPIsvc: otdsws:80/otdsws
+        ssl: false
+        clientCapability: 0
+        userPrivileges: 0
+        userXPrivileges: 0
+        userRenameEnabled: F
+        userRenameUnlockLockedObject: T
+        groupRenameEnabled: F
+        updateOTDScertonrestart: false
+      ### Use oAuth token for password authentication
+        passauth_use_oauth2_token: false
+        client_id:
+        client_secret:
+        otds_rest_oauth2_url:
+        synced_user_login_name:
+        auto_cert_refresh: true
+        cert_jwks_url: http://otdsws:80/otdsws/oauth2/jwks
+        is_hybrid: false
+
+      ### Custom Script Execution ###
+      custom:
+        scriptExecute: false
+        scriptinPVC: false
+        enableBPMPVC: false
+        scriptPVCname: shared-pvc
+        PVCSubPath: customscripts
+        useInitContainers: true
+
+      graylog:
+        enable: *graylog_enable
+        server: *graylog_server
+        port: *graylog_port
+      ### Persistent Volume ###
+      persistentVolume:
+        storageClass: *rwm_storage_class
+        awsEFS: false
+        awsEFSCSIDriver: efs.csi.aws.com
+        awsEFSCSIHandle:
+        awsEFSCSIClaimPolicy: Retain
+        #Make sure to specify existing PVC name to reuse key from other deployment
+        #Set to empty if each deployment should create its own key
+        shareKeyPVCName: ""
+        createPVC: true 
+        ### Below parameter if there is already existing volume to hook up.
+        existVolumePv:
+      ### Volume Claim Template###
+      volumeClaimTemplate:
+        storageClass: *rwo_storage_class
+        logVctStorageClass: *rwo_storage_class
+      certificate:
+        use_certificate: *use_certificate
+        dbrserviceName: *dbr_service_name
+        #below is used when it is needed to switch to try_native_first before performing SSL certificate based upgrade.
+        customUpgrade:
+          enable: false
+          nativeFirst: true
+      dbrpersistentVolume:
+        dbrdataPVCName: certdbr-data-pvc
+        storageClass: *rwm_storage_class
+      ### email configurations ###
+      email:
+        configure: false
+        smtpServer:
+        smtpPort:
+        smtpAuth: false
+        smtpSSL: false
+        emailAddress:
+        notification: true
+      ### S3 store enable ###
+      s3Store:
+        enable: false
+        default: false
+        name:
+        proxyHost: noproxy
+        proxyPort: noproxy
+        proxyProtocal: http
+        noProxy: localhost,127.0.0.1,*.otxlab.net
+        isworm: false
+        vendor:
+        region:
+        enable_md5: true
+        enable_v4signing: true
+
+        # this section applies if you are upgrading from any cs version prior to 21.4.0000.0134
+        updateExistingStore: false
+        # comma seperated list of existing public s3 stores (e.g store1,store2,store3).
+        storeListUpdate:
+        proxyHostUpdate:
+        proxyPortUpdate:
+        # Flag to enable multi part upload. The default value is false
+        multiPartEnable: false
+        # Thread pool size for multipart upload. The default value is 5
+        numThreads: 5
+
+      ### GCP store enable ###
+      gcpStore:
+        enable: false
+
+      ### Rest store enable ###
+      restStore:
+        enable: false
+        default: false
+        name:
+        restStoreType: 0
+        proxyHost:
+        proxyPort:
+        proxyProtocal: http
+        noProxy: localhost,127.0.0.1,*.otxlab.net
+
+      ### newrelic agent configuration. ###
+      newrelic:
+        enable: *newrelic_enabled
+        app_name: DCS_JMS-PROD-OT2_CFCR_LI3-EIM
+        proxy_host: *newrelic_proxy_host
+        proxy_port: *newrelic_proxy_port
+        proxy_protocol: *newrelic_proxy_protocol
+        c_app_name : DCS_documentum-PROD-OT2_CFCR_LI3-EIM
+
+      fluentd_service:
+        enable: *fluentd_enabled
+        ##Values for TCPPort and RESTPort should be same as give for TCPPort and RESTPort in fluentdConf section
+        TCPPort: *fluentd_tcp_port
+        RESTPort: *fluentd_rest_port
+        UDPPort: *fluentd_udp_port
+        DFCLogLevel: *event_log_level
+        liveness:
+          enable: true
+
+      ingress:
+        #This value should be in the format  <INGRESS-HOSTNAME>.<CLUSTER-DOMAIN-NAME>. The INGRESS-HOSTNAME and CLUSTER-DOMAIN-NAME values has to be same as the one you mentioned in dctm-ingress helm charts#This value should be in the format  <ingressPrefix>.<ingress-host>. The ingress prefix and ingress host  values has to be same as the one you mentioned in dctm-ingress helm charts
+        host: dctm-ingress.mcbu-dev.chevron.com
+        protocol: *ingress_protocol
+        disableUpdateAcsUrl: false
+
+      logrotate:
+        enable: *cslogrotate
+      #the below is configured in minutes
+        interval: 1440
+    #logrotate is used for rotating fixed file names whereas log cleanup is used to clean the files generated with different names like session log
+    #The folder and interval to cleanup the files under the folder are mentioned in extraEnv section with the format LOG_CLEANUP_FOLDER_N and LOG_CLEANUP_FOLDER_PERIOD_$COUNTER
+    #Only the following folders and its subfolders can be mentioned: /opt/dctm/tomcat10.1.13/logs,/opt/dctm/product/23.4/install/logs,/opt/dctm/product/23.4/thumbsrv/container/logs,/opt/dctm/dba/log,/opt/dctm/logs,/opt/dctm_docker/logs
+    #Note this will cleanup files recuresively under sub folders also.
+      logcleanup:
+        enable: true
+    #the below is configured in minutes
+        interval: 1440
+    #the below is configured in minutes and represents the cleanup interval for the path /opt/dctm/dba/log/<hexa_id>/<installowner>
+        sessionlogcleanupinterval: 10080
+      logging:
+        cs:
+          configMap_name: cs-logging-configmap
+        jms:
+          acs_configMap_name: acs-logging-configmap
+          serverApps_configMap_name: serverapps-logging-configmap
+          dmotdsrest_configMap_name: dmotdsrest-logging-configmap
+          oauth_configMap_name: oauth-logging-configmap
+          otdsauth_configMap_name: otdsauth-logging-configmap
+          saml_configMap_name: saml-logging-configmap
+        bpm:
+          enable: true
+          bpm_configMap_name: bpm-logging-configmap
+        fluentdConf:
+          enable: *fluentd_enabled
+          fluentd_configMap_name: fluentd-configmap
+        logrotate_configMap_name: logrotate-configmap
+        d2:
+          logback:
+            enable: true
+            d2_configMap_name: d2-logback-configmap
+
+      extraEnv:
+        - name: LOG4J_FORMAT_MSG_NO_LOOKUPS
+          value: "true"
+        - name: CERTIFICATE_1
+          value: ""
+        - name: OTDS_REST_TICKET_URL
+          value: ""
+        - name: mcbudev_resource_id
+          value: ""
+        - name: mcbudev_secretKey
+          value: ""
+        - name: TOKENTIMEOUT
+          value: "30"
+        - name: INACTIVE_DELETED_USER
+          value: "T"
+        - name: INACTIVE_UNSUBSCRIBED_USER
+          value: "F"
+        - name: LSS_CC_ENABLED
+          value: "T"
+        - name: DA_PRIVILEGE_ENABLED
+          value: "T"
+        - name: ACTIVATE_POSTMEMBER_ENABLED
+          value: "T"
+        - name: MIGRATE_LDAP_USERS
+          value: "F"
+        - name: MIGRATE_LDAP_DOCBASES
+          value: "mcbudev"
+        - name: LDAP_CONFIGS_TOKENIZER
+          value: ","
+        - name: mcbudev_MIGRATE_LDAP_CONFIGS
+          value: ""
+        - name: isCORSAllowed
+          value: "false"
+        - name: DM_CRYPTO_MIN_PASSWORD_LENGTH
+          value: "16"
+        - name: CUSTOM_JOB_ENABLED
+          value: "F"
+        - name: CUSTOM_USER_RENAMEJOB
+          value: ""
+        - name: CUSTOM_USER_RENAME_METHOD
+          value: ""
+        - name: CUSTOM_DAR_INSTALL_ON_RESTART
+          value: "false" #Update this value to true when the custom dars are updated and not the CS/D2 upgrade
+        - name: LOGIN_TICKET_TIMEOUT
+          value: "30"
+        #Uncomment the addWebServerPort name and value below when email configuration is done in Content Server
+        # - name: addWebServerPort
+        #   value: "true"
+
+  cs-logging-configMap:
+      enabled: true
+      ###User Name/ID
+      serviceName: dcs-pg
+
+      configMap:
+          cs_configMap_name: cs-logging-configmap
+          acs_configMap_name: acs-logging-configmap
+          serverApps_configMap_name: serverapps-logging-configmap
+          bpm_configMap_name: bpm-logging-configmap
+          otdsauth_configMap_name: otdsauth-logging-configmap
+          dmotdsrest_configMap_name: dmotdsrest-logging-configmap
+          saml_configMap_name: saml-logging-configmap
+          oauth_configMap_name: oauth-logging-configmap
+          fluentd_configMap_name: fluentd-configmap
+          logrotate_configmap_name: logrotate-configmap
+          d2_configMap_name: d2-logback-configmap
+
+      loggingConfiguration:
+          containerName: dcs-pg
+      
+      ### DFC EventHUb related traces
+      dfcEventHubTracing:
+        enable: *dfc_rpc_log_enable
+        level: *event_log_level
+
+      dfcTraceing:
+        enable: false
+
+      docbaseTrace:
+        enable: false
+        options: rpctrace,trace_authentication
+      serverApps:
+        log4j:
+          # Log Levels for ServerApps application. Valid values are DEBUG, INFO, WARN, ERROR, FATAL
+          rootLogLevel: WARN
+          layout_type: PatternLayout
+          layout_pattern: "%d{ABSOLUTE} %5p [%t] %c - %m%n"
+          monitorInterval: 30
+
+      otdsauth:
+        log4j:
+          rootLogLevel: INFO
+
+      dmotdsrest:
+        log4j:
+          rootLogLevel: INFO
+          dmotdsrestLogLevel: INFO
+
+      saml:
+        log4j:
+          rootLogLevel: INFO
+
+      oauth:
+        log4j:
+          rootLogLevel: INFO
+
+      acs:
+        log4j:
+          # Log Levels for ACS application. Valid values are DEBUG, INFO, WARN, ERROR, FATAL
+          rootLogLevel: WARN
+          acsLogLevel: WARN
+          atmosLogLevel: WARN
+
+      ### BPM ###
+      bpm:
+        log4j:
+          enable: true
+          # Log Levels for BPM application. Valid values are DEBUG, INFO, WARN, ERROR, FATAL
+          rootLogLevel: WARN
+          bpmLogLevel: WARN
+          bpsLogLevel: WARN
+          traceLogLevel: DEBUG
+
+      logrotate:
+        enable: *cslogrotate
+        configmap: |-
+          /opt/dctm/<env>TOMCAT<env>/logs/catalina.out <openbrace>
+          copytruncate
+          dateext dateformat -%Y-%m-%d-%s
+          rotate 7
+          size 10M
+          <closebrace>
+          /opt/dctm/dba/log/<env>SERVER_CONFIG_NAME<env>.log <openbrace>
+          copytruncate
+          dateext dateformat -%Y-%m-%d-%s
+          rotate 7
+          size 10M
+          <closebrace>
+      d2:
+        logback:
+          enable: true
+          file: /tmp/D2-JMS.log
+          fileNamePattern: /tmp/D2-JMS-%d{yyyy-MM-dd}.log.zip
+          logLevel: info
+
+      ### Fluentd config ###
+      fluentdConf:
+        enable: *fluentd_enabled
+        # This value specifies the port on which fluentd is listening for TCP connection.
+        # Make sure the port you specify is not used else where in the helm chart
+        TCPPort: *fluentd_tcp_port
+    # This value specifies the port on which fluentd is listening for REST connection.
+        # Make sure the port you specify is not used else where in the helm chart
+        RESTPort: *fluentd_rest_port
+    # This value specifies the port on which fluentd is listening for UDP connection.
+        # Make sure the port you specify is not used else where in the helm chart
+        UDPPort: *fluentd_udp_port
+    # Here give the topic name that was specified during kafka broker deployment
+        kafkaTopic: *kafka_topic
+        kafkaUser: *kafka_admin_username
+        kafkaUsrPasswd: *kafka_admin_password
+        # In this version only one compression mode is supported gzip.
+        compressionMode: gzip
+        # Two buffering mode are supported file buffer and memory buffer.
+        # If the value FILEBUFFER then file buffer will be used otherwise memmory buffer will be used.
+        bufferingMode: FILEBUFFER
+        # This value will only be considered if file buffer mechanism is used. For memory buffer this value will be ignored.
+        flushInterval: 3s
+        kafkaBrokerList: *brokerList
+
+  cs-dfc-properties:
+      enabled: true
+      ### Environment ###
+      env:
+        domain: *env_domain
+
+      ###User Name/ID
+      serviceName: *dbr_service_name
+
+      ### ConfigMap metadata ###
+      configMap:
+        namespace: *namespace
+
+      ### Globalregistry ###
+      globalregistry:
+        repository: *docbase_name
+        username: *global_registry_username
+
+  dctm-ingress:
+    enabled: true
+    #prefix for the ingress name
+    ingressPrefix: dctm
+    ingress:
+      configureHost: true
+      #Domain name of the ingress controller in the cluster namespace
+      host: dctm-ingress
+      clusterDomainName: *ingress_domain
+      #To accomodate cluster 1.22 
+      class: nginx
+      #annotations for the ingress object
+      annotations: {}
+
+    jmsService:
+      enable: true
+      serviceName: *jmsServiceName
+      servicePort: 9080
+      
+    jmsBase:
+      enable: false
+      serviceName: *jmsServiceName
+      servicePort: 9080
+
+    acsService:
+      enable: true
+      serviceName: *jmsServiceName
+      servicePort: 9080
+
+    tnsService:
+      enable: true
+      serviceName: dcs-pg-tns-service
+      servicePort: 8081
+
+    d2clientService:
+      enable: true
+      serviceName: d2classic
+      servicePort: 8080
+      path: *d2classic_webapp_name
+
+    d2configService:
+      enable: true
+      serviceName: d2config
+      servicePort: 8080
+      path: *d2config_webapp_name
+
+    d2smartview:
+      enable: true
+      serviceName: d2smartview
+      servicePort: 8080
+      path: *d2smartview_webapp_name
+
+    d2rest:
+      enable: true
+      serviceName: d2rest
+      servicePort: 8080
+      path: *d2rest_webapp_name
+
+    otdsadmin:
+      enable: true
+      serviceName: otdsws
+      servicePort: 80
+
+    otdsws:
+      enable: true
+      serviceName: otdsws
+      servicePort: 80
+    otdstenant:
+      enable: false
+      serviceName: otdsws
+      servicePort: 80
+    daService:
+      enable: true
+      serviceName: da-svc
+      servicePort: 8080
+
+    appHostService:
+      enable: false
+      serviceName: apphost-service-name
+      servicePort: 8080
+
+    bamService:
+      enable: false
+      serviceName: bam-service-name
+      servicePort: 8080
+
+    bpsService:
+      enable: true
+      serviceName: bps
+      servicePort: 8080
+
+    xdaService:
+      enable: true
+      serviceName: xda
+      servicePort: 7000
+      
+    dsearchadminService:
+      enable: true
+      serviceName: indexserver
+      servicePort: 9300
+    indexagentService:
+      enable: true
+      serviceName: indexagent
+      servicePort: 9200
+
+    openshifttls:
+      enable: *openshifttls_enable
+    tls:
+      enable: true
+      secretName: *cs_secret_name
+
+    dtrbaseService:
+      enable: true
+      serviceName: dtrbase
+      servicePortCore: 5001
+      servicePortServlet: 8080
+
+    restService:
+      enable: true
+      serviceName: dctm-rest
+      servicePort: 8080
+      
+    cmisService:
+      enable: true
+      serviceName: dctm-cmis
+      servicePort: 8080
+    dmotdsrestService:
+      enable: false
+      serviceName: <dmotdsrest-service-name>
+      servicePort: 9080
+
+    dfsService:
+      enable: true
+      serviceName: dfs-server
+      servicePort: 8080
+
+    workflowDesignerService:
+      enable: true
+      serviceName: dctm-workflow-designer-service
+      servicePort: 8080
+      
+    #extraPaths is used to define additional ingress resources for custom wars
+    #For aws path should be as follows path: /<path>*
+    #extraPaths:
+      #      - backend:
+      #          serviceName: <servicename>
+      #          servicePort: 8080        
+      #        path: /<path> 
+      
+
+    bpm:
+      enable: true
+      #Name of the jms clusterIp service. Refer CS Service Yaml
+      serviceName: *jmsServiceName
+      #bpm clusterIP service port. Default 9080
+      servicePort: 9080
+
+    recordsService:
+      enable: true
+      serviceName: records-svc
+      servicePort: 8080
+      
+    dcc:
+      enable: false
+      prefix: *dccPrefix
+      consul:
+        prefix: consul
+        service:
+          servicePort: 8500
+      syncagent:
+        enabled: false
+        prefix: syncagent
+        service:
+          servicePort: 8080    
+      syncnshareManual:
+        enabled: false
+        prefix: syncagent-manual
+        service:
+          servicePort: 8080
+
+    ccService:
+      enabled: true
+      serviceName: cc
+      servicePort: 8080
+      extension: *ccExtension
+    ccadminService:
+      enabled: true
+      serviceName: cc-admin
+      servicePort: 80
+      extension: *ccExtension
+    smartviewm365:
+      enable: true
+      serviceName: smartviewm365
+      servicePort: 8080  
+
+  dctm-rest:
+      enabled: true
+      serviceName: dctm-rest
+      namespace: *namespace
+      serviceAccount:
+        createServiceAccount: false
+        serviceAccountName: *documentum_service_account
+      customLabels:
+        app: dctm-rest
+      containerName: rest-container
+
+      rest:
+        useCommonPVC: *tomcatbase_usecommonpvc
+        # The common pvc name
+        commonPVCname: *tomcatbase_commonpvcname
+
+      #service
+      serviceType: *webapp_service_type
+      httpPort: 8080
+      httpsPort: 8443
+
+      #configmap
+      existingConfigMap: *dbr_configmap_name
+
+      configurationFiles:
+
+      extraConfigMountPath: /home/dmadmin/ext-conf    #Update dmadmin to installownername here if custom install owner name is used apart from dmadmin
+      
+      #Customers can add their own java options below
+      java:
+        #adding dev/./urandom parameter by deafult to improve the application performace wrt to random number generation
+        javaOptions: -Djava.security.egd=file:/dev/./urandom
+      
+      content_server:
+        secretName: *cs_secret_name
+
+      #certificate
+      docbroker:
+        useCertificate: *use_certificate
+        dbrServiceName: *dbr_service_name
+
+      #logging
+      log4j:
+        rootLogLevel: INFO
+        restLogLevel: INFO
+        dfcLogLevel: INFO
+        formatMsgNoLookups: true
+
+      graylog:
+        enabled: *graylog_enable
+        server: *graylog_server
+        port: *graylog_port
+        serviceToken:
+
+      #monitor
+      newrelic:
+        enabled: *newrelic_enabled
+        configurationFile: newrelic.yml
+        addNodeNamePrefix: false
+        proxy_host: *newrelic_proxy_host
+        proxy_port: *newrelic_proxy_port
+        proxy_protocol: *newrelic_proxy_protocol
+        app_name: DOCUMENTUM-CORE-REST-SERVICES
+
+      livenessProbe:
+        enabled: true
+        scheme: HTTP
+        initialDelaySeconds: 200
+        periodSeconds: 25
+
+      fluentd_service:
+        enable: *fluentd_enabled
+        TCPPort: *fluentd_tcp_port
+        RESTPort: *fluentd_rest_port
+        UDPPort: *fluentd_udp_port
+        servicedataPVCName: fluentd-data-pvc
+        readiness:
+          enable: false
+
+      fluentdConf:
+        enable: *fluentd_enabled
+        TCPPort: *fluentd_tcp_port
+        RESTPort: *fluentd_rest_port
+        UDPPort: *fluentd_udp_port
+        kafkaTopic: <KAFKA TOPIC NAME>
+        kafkaUser: <kfkuser>
+        kafkaUsrPasswd: <password>
+        compressionMode: gzip
+        bufferingMode: FILEBUFFER
+        flushInterval: 3s
+        kafkaBrokerList: *brokerList
+
+      acsService:
+        serviceName: *jmsServiceName
+        servicePort: 9080
+
+      otds:
+        enable: *otds_enabled
+        #the otds service should be in the format https://<OTDS server url>:<port>/otdsws
+        url: https://dctm-ingress.mcbu-dev.chevron.com/otdsws
+        clientID: *otds_oauth_client
+
+      single_helm:
+        enable: true
+      custom:
+        useInitContainers: false
+        scriptPVCname: custom-script-pvc
+        PVCSubPath: dctm-rest-custom
+        pvcSize: 1Gi
+        pvcAccessModes: ReadWriteMany
+        storageClass: *rwm_storage_class
+        existVolumePv:
+      timeZone:
+        enable: false
+        value: Etc/UTC
+        
+  dctm-cmis:
+      enabled: false
+      serviceName: dctm-cmis
+      namespace: *namespace
+      serviceAccount:
+        createServiceAccount: false
+        serviceAccountName: *documentum_service_account
+      customLabels:
+        app: cmis
+      containerName: cmis-container
+
+      cmis:
+        pvcName: cmis-pvc
+        pvcSize: 2Gi
+        pvcAccessModes: ReadWriteMany
+        storageClass: *rwm_storage_class
+        existVolumePv:
+        useCommonPVC: *tomcatbase_usecommonpvc
+    # The common pvc name
+        commonPVCname: *tomcatbase_commonpvcname
+
+      #service
+      httpPort: 8080
+      httpsPort: 8443
+
+      #configmap
+      existingConfigMap: *dbr_configmap_name
+
+      configurationFiles:
+
+      extraConfigMountPath: /home/dmadmin/ext-conf
+      
+      #Customers can add their own java options below
+      java:
+        #adding dev/./urandom parameter by deafult to improve the application performace wrt to random number generation
+        javaOptions: -Djava.security.egd=file:/dev/./urandom
+
+      content_server:
+        secretName: *cs_secret_name
+      
+      #certificate
+      docbroker:
+        useCertificate: *use_certificate
+        dbrServiceName:
+        pvcCertSubPath: certificate/certdbr-data-pvc
+
+      #logging
+      log4j:
+        rootLogLevel: INFO
+        cmisLogLevel: INFO
+        dfcLogLevel: INFO
+        formatMsgNoLookups: true
+
+      graylog:
+        enabled: *graylog_enable
+        server: *graylog_server
+        port: *graylog_port
+        serviceToken: 
+        
+      #monitor
+      newrelic:
+        enabled: *newrelic_enabled
+        configurationFile: newrelic.yml
+        addNodeNamePrefix: false
+        proxy_host: *newrelic_proxy_host
+        proxy_port: *newrelic_proxy_port
+        proxy_protocol: *newrelic_proxy_protocol
+        app_name: DOCUMENTUM-CMIS-SERVICES
+
+      livenessProbe:
+        enabled: true
+        scheme: HTTP
+        initialDelaySeconds: 40
+        periodSeconds: 5
+    
+      acsService:
+        serviceName: *jmsServiceName
+        servicePort: 9080
+      
+
+      
+      single_helm:
+        enable: true
+        
+  dctm-workflow-designer:
+      enabled: true
+      #Prefix
+      prefix: dctm-workflow-designer
+      contextPath: DocumentumWorkflowDesigner
+
+      #persistentVolume details
+      persistentVolume:
+          # storage class for the persistent volume Ex : azurefile
+          storageClassReadWriteOnce: *rwo_storage_class
+      otds:
+        enable: *otds_enabled
+        url: https://dctm-ingress.mcbu-dev.chevron.com
+        reverseproxy_url: https://dctm-ingress.mcbu-dev.chevron.com
+        client_id: *otds_oauth_client
+        client_secret: <CLIENT_SECRET>
+        logon_appname: Documenutm Workflow Designer
+      #Docbase Connection Info
+      docbaseConnection:
+          use_certificate: *use_certificate
+          truststorePassword: password
+          docbroker: *dbr_service_name
+          port: 1489
+          jmshttpport: 9080
+          #Name of the JMS Service. Refer JMS service name of type ClusterIP from CS Service Yaml
+          jmsservicename: *jmsServiceName
+          docbase: *docbase_name
+          superUser: *installOwner_username
+          superUserPassword: *installOwner_password
+          globalRegistryRepository: *docbase_name
+          globalRegistryUsername: *global_registry_username
+          globalRegistryPassword: *global_registry_password
+
+
+      #Volume used by CS and Broker to store CS and Broker certificates. Should match the persistentVolume name given in Broker values.yaml
+      dbrpersistentVolume:
+          dbrdataPVCName: certdbr-data-pvc
+
+      #Tomcat Admin credentials:
+      tomcat:
+          javaOptions: ''
+
+      #CS Secret. Used to fetch TrustStore Password and Newrelic License Value
+      secret:
+          name: *cs_secret_name
+
+      #Newrelic agent configuration
+      newrelic:
+          enable: *newrelic_enabled
+          app_name: DCTM_WFD-PROD-OT2_CFCR_LI3-EIM
+          proxy_host: *newrelic_proxy_host
+          proxy_port: *newrelic_proxy_port
+      #Service Account
+      serviceAccount:
+        createserviceaccount: false
+        serviceAccountName: *documentum_service_account
+
+  contentconnect:
+      enabled: true
+      serviceAccount:
+        createserviceaccount: false
+        serviceAccountName: *documentum_service_account
+      secret:
+        DB_PASSWORD: password
+      namespace: *namespace
+      #Configmap
+      configmap:
+        extension: *ccExtension
+        DB_IP: db-pg-0.db-pg.mcbudev.svc.cluster.local
+        DB_PORT: 5432
+        DB_USERNAME: postgres
+        DB_DB: cc_db
+        DB_TYPE: postgres
+        DB_TABLESPACE_NAME:
+        authType: otds
+        otdsUrl: https://dctm-ingress.mcbu-dev.chevron.com/otdsws
+        otdsClientID: *otds_oauth_client
+        #CC app registration details in azure portal for using Microsoft MS Graph API, This is a Pre-requisite to deploy CC pod
+        clientId: <CLIENT-ID>
+        clientSecret: <CLIENT-SECRET> 
+        tenantId: <TENANT-ID>
+        protocol: IPV6
+      ## newrelic.* define NewRelic APM integration settings
+      newrelic:
+        new_relic_enabled: *newrelic_enabled
+        new_relic_app_name: <NEWRELIC-APPNAME>
+        new_relic_license_key: *newrelic_license_key
+        new_relic_proxy_protocol: *newrelic_proxy_protocol
+        new_relic_proxy_host: *newrelic_proxy_host
+        new_relic_proxy_port: *newrelic_proxy_port
+      
+      #Ingress
+      ingress:
+        enabled: false
+        name: cc-ingress
+        configureHost: true
+        tls:
+          enable: false
+          hosts: *ingress_domain
+          secretName: cctlssecret
+        rules:
+          host:  cccshost
+      #graylog
+      graylog:
+        enable: *graylog_enable
+
+      ### Set value to true if Database creation is needed else false ###
+      contentconnectdb:
+        value: true
+      certificatesecret:
+        crt:
+          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
+        key:
+          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
+
+  dtrbase:
+    enabled: true
+    serviceAccount:
+      createserviceaccount: false
+      serviceAccountName: *documentum_service_account
+    service:
+      type: *webapp_service_type
+      dtrBasePort: 8080
+      dtrCoreport: 5001
+
+    persistentVolumeClaim:
+      pvcName: dtr-pvc
+      storageClass: *rwo_storage_class
+
+    ingress:
+      enable: false
+
+    cs:
+      useCSDfcConfigMap: true
+      configMapName: *dbr_configmap_name
+      csSecretConfigName: *cs_secret_name
+      allowTrustedLogin: false
+
+    docbroker:
+      port: 1489
+      serviceName: *dbr_service_name
+
+    env:
+      domain: *env_domain
+
+    methodsvr:
+      containerName: dcs-pg
+
+    deployment:
+      name: dtrbase
+      appName: dtrbase
+
+    images:
+      graylog:
+        enable: *graylog_enable
+        server: *graylog_server
+        port: *graylog_port
+
+    containers:
+      dtrbase:
+        name: dtrbase
+        darInstallRepo: *docbase_name
+        drServiceUserEmailID: dctmreports@ot.com
+        ingressHost: dctm-ingress.ids.ids.cfcr-lab.bp-paas.otxlab.net
+        drCoreServerTimeout: 00:30:00
+        drCoreSmtpPort: 25
+        drCoreSmtpAuthRequired: true
+        drCoreMailSubject: test eMail from DR Job
+        drCoreMaxAttachmentSize: 0
+        drCoreAttachAsZip: false
+        drCoreSmtpUser: username
+        drCoreUrlTimeout: 30000
+        drCoreSmtpStarttlsEnable: true
+        drCoreSmtpHost: smtp.org.net
+        drCoreFromAddress: user@opentext.com
+        drCoreSmtpPassword: pwd
+        drCoreReportServlet: http://localhost:8080/DCTM-Reports
+        drCoreReportCacheTimeout: 00:30:00
+
+    # log4j2 logging config details.
+    logging:
+        rootLoggerLevel: WARN
+        consoleThresholdLevel: WARN
+        maxLogFiles: 5
+
+    newrelic:
+      enable: *newrelic_enabled
+      appName: DOCUMENTUM_DTR-PROD-OT2_CFCR_BP2-ECD
+      proxyHost: *newrelic_proxy_host
+      proxyPort: *newrelic_proxy_port
+      proxyScheme: *newrelic_proxy_protocol
+
+    certificate:
+      useCertificate: *use_certificate
+      dbrServiceName: *dbr_service_name
+      dbrDataPVCName: certdbr-data-pvc
+
+  da:
+      enabled: true
+      serviceAccount:
+        createserviceaccount: false
+        serviceAccountName: *documentum_service_account
+      persistentVolumeClaim:
+        pvcName: da-pvc
+        storageClass: *rwo_storage_class
+        awsEFSCSIDriver: efs.csi.aws.com
+        awsEFSCSIHandle:
+
+      # Service details
+      service:
+        name: da-svc
+        type: *webapp_service_type
+
+      # Ingress details
+      ingress:
+          enable: false
+      # Content Server deployment details.
+      # These details rely on Content Server Helm deloyment.
+      cs:
+        useCSDfcConfigMap: true
+        configMapName: *dbr_configmap_name
+        csSecretConfigName: *cs_secret_name
+        allowTrustedLogin: false
+
+      certificate:
+        useCertificate: *use_certificate
+        dbrServiceName: *dbr_service_name
+
+      # dfc:
+        # properties:
+          # - dfc.data.dir=/opt/dctm
+          # - dfc.tokenstorage.dir=/opt/dctm/apptoken
+          # - dfc.tokenstorage.enable=false
+          # - dfc.security.ssl.use_anonymous_cipher=true
+          # - dfc.security.ssl.truststore=/opt/dctm/certificate/dfc.keystore
+          # - dfc.security.ssl.use_existing_truststore=false
+          # - dfc.docbroker.host[0]=dbr-0.dbr.mcbudev.svc.cluster.local
+          # - dfc.docbroker.port[0]=1489
+          # - dfc.crypto.repository=*docbase_name
+          # - dfc.globalregistry.repository=*docbase_name
+          # - dfc.session.secure_connect_default=try_secure_first
+          # - dfc.globalregistry.username=dm_bof_registry
+          # - dfc.session.allow_trusted_login=false
+
+
+      # Deployment details
+      deployment:
+        name: da
+        appName: da-app
+
+      images:
+        graylog:
+          enable: *graylog_enable
+          server: *graylog_server
+          port: *graylog_port
+
+      # Containers details
+      containers:
+        da:
+          name: da
+          docbaseName: *docbase_name
+          probing:
+            readinessProbe:
+              initialDelaySeconds: 150
+              periodSeconds: 150
+            livenessProbe:
+              initialDelaySeconds: 150
+              periodSeconds: 150
+
+      otds:
+        enable: false
+        url: https://dctm-ingress.mcbu-dev.chevron.com/otdsws
+        clientID: da_oauth_client
+        authentication:
+          repoSelectionPageRequired: true
+          loginTicketTimeout: 250
+      dctmreports:
+        enable: false
+        url: https://<fully qualified ingress host>/dtr
+
+      wdkAppXmlConfig:
+        tagsnvalues:
+        # Syntax for specifying both English and Japanese language pack
+        # application.language.supported_locales.locale=[en_US, ja_JP]
+        - application.language.supported_locales.locale=[en_US]
+        - application.language.default_locale=en_US
+
+        # log4j2 logging config details.
+      logging:
+        rootLoggerLevel: WARN
+        consoleThresholdLevel: WARN
+        filename: documentum.log
+        logFileSize: 10MB
+        maxLogFiles: 5
+
+      newrelic:
+        enable: *newrelic_enabled
+        appName: DOCUMENTUM_DA-PROD-OT2_CFCR_BP2-ECD
+        proxyHost: *newrelic_proxy_host
+        proxyPort: *newrelic_proxy_port
+        proxyScheme: *newrelic_proxy_protocol
+
+  dfs:
+    enabled: true
+    serviceName: dfs-server
+    installOwner: *installOwner_username
+    secretsChange: *secrets_Change
+    serviceAccount:
+      createServiceAccount: false
+      serviceAccountName: *documentum_service_account    
+    cs:
+      useCSDfcConfigMap: true
+      configMapName: *dbr_configmap_name
+      csSecretConfigName: *cs_secret_name
+
+    containers:
+      dfs:
+        name: dfs
+        containerHttpPort: 8080
+        containerSslPort: 8443
+        probing:
+          url: /dfs/services/core/QueryService?wsdl
+          port: 8080
+          failureThreshold: 2
+          successThreshold: 1
+          timeoutSeconds: 120
+          readinessProbe:
+            initialDelaySeconds: 60
+            periodSeconds: 60
+          livenessProbe:
+            initialDelaySeconds: 180
+            periodSeconds: 120
+            
+          ### Fluentd container ### 
+      fluentd:
+        enable: false
+        TCPPort: *fluentd_tcp_port
+        RESTPort: *fluentd_rest_port
+        compressionMode: gzip
+        bufferingMode: FILEBUFFER
+        flushInterval: 3s   
+
+      # Name and tag of fluentd image
+        name: fluentd
+        pullPolicy: Always
+        restartPolicy: Always
+        fluentdLogFolder: fluentd-logging
+        fluentdConfigFolder: fluentd-config-map
+        servicedataPVCName: fluentd-data-pvc
+        kafkaBrokerList: *brokerList
+
+        readiness:
+          enable: false
+
+          #Kafka topic name. This name should be same as the topic name which is given while setting up the kafka. 
+          kafkaTopic: *kafka_topic
+          #Kafka user name/password. This is the user to connect to kafka. This is provided while setting up the kafka. 
+          kafkaUser: *kafka_admin_username
+          kafkaUsrPasswd: *kafka_admin_password
+      ### Graylog container ### 
+      graylog:
+        enabled: *graylog_enable
+        name: graylog
+        server: *graylog_server
+        port: *graylog_port
+        serviceToken:      
+      
+    #Tomcat Admin credentials:
+    tomcat:
+      # Tomcat manager username
+      username: admin
+      # Tomcat manager password
+      password: password
+      # Enabling Tomcat Clusering in case of multiple DFS pods
+      tomcatClusterEnabled: true
+
+    certificate:
+      use_certificate: *use_certificate
+      dbrserviceName: *dbr_service_name
+      dfcTrustStorePassword: password
+
+    #Docbase Connection Info. 
+    ##########################################################################################
+    # dfc.properties configurations in the case of Content Server config map not used.       #
+    # In the case of useCSDfcConfigMap=false The below values will be used to populate       #
+    # dfc.properties file. Update or uncomment the below listed parameters with appropriate  # 
+    # values of dfc.properties and ensure to toggle the flag useCSDfcConfigMap to false.     #
+    # The values mentioned in addtionalProperties parameter will be added into dfc.properties# 
+    # file as it is.                                                                         #
+    ##########################################################################################
+    dfc:
+      docbroker: *dbr_service_name
+      port: 1489
+      globalRegistryRepository: *docbase_name
+      globalRegistryUsername: *global_registry_username
+      globalRegistryPassword: *global_registry_password
+      connectionMode: try_native_first
+      cryptoRepository: *docbase_name
+      ### DFC data directory. Need not be changed
+      dataDir: /var/documentum
+      ### End User details
+      client:
+        should_use_enduserinfo: false
+        should_use_eventhub: false
+        eventhub:
+        ### Event Log level values 0 - 5 , 
+        ### 0 - NO LOG, 1 - ERROR, 2 - WARN, 3 - INFO, 4 - DEBUG, 5 - TRACE
+          log_level: 4
+          ### The size of the events buffered at DFC layer. 
+          queue_size: 1000
+          
+      #UNCOMMENT THE BELOW OR ADD ANY ADDITIONAL dfc properties to use in dfc.properties file
+      additionalProperties:
+      #- dfc.security.ssl.truststore=/opt/dctm/certificate/dfc.keystore
+      #- dfc.tokenstorage.enable=false
+      #- dfc.security.ssl.use_anonymous_cipher=true
+      #- dfc.security.ssl.use_existing_truststore=false
+
+    log4j:
+      ### Log Level for DFS packages
+      rootLogLevel: WARN
+      rtLogLevel: WARN
+      datamodelLogLevel: WARN
+      servicesLogLevel: WARN
+      toolsLogLevel: WARN
+      traceLogLevel: WARN
+      
+    service:
+      ports:
+        httpPort: 8080
+        sslPort: 8443 
+
+    newrelic:
+      enable: *newrelic_enabled
+      dfs_application_name: DFS-PROD-OT2_CFCR_LI3-EIM-TenantName_SubscriptionID
+      proxy_host: *newrelic_proxy_host
+      proxy_port: *newrelic_proxy_port
+      license_key: *newrelic_license_key
+
+    ### ConfigMap metadata ###
+    configMap:
+      fluentd_configMap_name: dfsfluentd-configmap
+
+    ### Volume Claim Template###
+    volumeClaimTemplate:
+      logVctAccessModes: ReadWriteOnce
+      # storage class for the volumeClaimTemplates Ex : azurefile
+      logVctStorageClass: *rwo_storage_class
+      logVctSize: 2Gi
+    
+    extensionPVC:
+      createPVC: false
+      PVCAccessMode: ReadWriteOnce
+      PVCStorageClass: *rwo_storage_class
+      PVCSize: 2Gi
+      useCommonPVC: *tomcatbase_usecommonpvc
+      commonPVCName: *tomcatbase_commonpvcname
+
+  records:
+      enabled: true
+      namespace: *namespace
+      userName: *installOwner_username
+      serviceAccount:
+        createserviceaccount: false
+        serviceAccountName: *documentum_service_account
+      custom:      
+        scriptinPVC: false
+        scriptPVCname: dcs-pg-pvc
+        PVCSubPath: initcontainercustomscripts/dcs-pg 
+      persistentVolumeClaim:
+        storageClass: *rwo_storage_class
+        awsEFSCSIDriver: efs.csi.aws.com
+        awsEFSCSIHandle:
+      service:
+        name: records-svc
+        port: 8080
+      ingress:
+          name: records-ingress
+          enable: false
+          ingressHostName: records-ingress
+          clusterDomainName: *ingress_domain
+          annotations:
+            nginx.ingress.kubernetes.io/proxy-body-size: 5g
+            nginx.ingress.kubernetes.io/proxy-connect-timeout: 30m
+      docbroker:
+          serviceName: *dbr_service_name
+          port: 1489
+      env:
+          domain: *env_domain
+      cs:
+        useCSDfcConfigMap: true
+        configMapName: *dbr_configmap_name
+        csSecretConfigName: *cs_secret_name
+        allowTrustedLogin: false
+      certificate:
+        useCertificate: *use_certificate
+        dbrServiceName: *dbr_service_name
+        dbrDataPVCName: certdbr-data-pvc
+      deployment:
+        name: records
+      images:
+        graylog:
+          enable: *graylog_enable
+          server: *graylog_server
+          port: *graylog_port
+      containers:
+        records:
+          name: records
+          docbaseName: *docbase_name
+          containerPort: 8080
+          probing:
+            healthPort: 8080
+            failureThreshold: 5
+            successThreshold: 1
+            timeoutSeconds: 120
+            readinessProbe:
+              initialDelaySeconds: 120
+              periodSeconds: 30
+            livenessProbe:
+              initialDelaySeconds: 120
+              periodSeconds: 30
+      otds:
+        enable: *otds_enabled
+        url: https://dctm-ingress.mcbu-dev.chevron.com/otdsws
+        clientID: *otds_oauth_client
+        scheme: *ingress_protocol
+        authentication:
+          repoSelectionPageRequired: true
+          loginTicketTimeout: 250
+          renewtokenafterlogout: true
+      wdkAppXmlConfig:
+        tagsnvalues:
+        - application.language.supported_locales.locale=[en_US]
+        - application.language.default_locale=en_US
+      logging:
+        rootLoggerLevel: WARN
+        consoleThresholdLevel: WARN
+        filename: documentum.log
+        logFileSize: 10MB
+        maxLogFiles: 5
+      userProvidedServices:
+        newrelic:
+          enable: *newrelic_enabled
+          appName: DOCUMENTUM_RECORDS-PROD-OT2_CFCR_BP2-ECD
+          licenseKey: *newrelic_license_key
+          proxyHost: *newrelic_proxy_host
+          proxyPort: *newrelic_proxy_port
+          proxyScheme: *newrelic_proxy_protocol
+      dfcTracing:
+        enable: false
+        configMapName: records-dfcTracing-configMap
+        filePrefix: dfcTrace
+        logLevel: DEBUG
+
+  rqm:
+      enabled: true
+      namespace: *namespace
+      serviceName: rqm
+      userName: *installOwner_username
+      serviceAccount:
+        createserviceaccount: false
+        serviceAccountName: *documentum_service_account
+      custom:
+        scriptinPVC: false
+        scriptPVCname: dcs-pg-pvc
+        PVCSubPath: initcontainercustomscripts/dcs-pg
+      persistentVolumeClaim:
+        pvcName: rqm-pvc
+        storageClass: *rwo_storage_class
+        awsEFSCSIDriver: efs.csi.aws.com
+        awsEFSCSIHandle:
+      cs:
+        useCSDfcConfigMap: true
+        configMapName: *dbr_configmap_name
+        csSecretConfigName: *cs_secret_name
+        allowTrustedLogin: false
+      certificate:
+        useCertificate: *use_certificate
+        dbrServiceName: *dbr_service_name
+      images:
+        graylog:
+          enable: *graylog_enable
+          server: *graylog_server
+          port: *graylog_port
+
+      containers:
+        rqm:
+          name: rqm
+          containerName: RQMContainer
+          rqmSingleHelm: true
+          replicaCount: 1
+          installFiles: false
+          docbaseName: *docbase_name
+          rqmDocbaseUser: *installOwner_username
+          rqmSysAdminName: recordsadmin
+          rqmSysAdminPass: password
+          globalRegistryRepository: *docbase_name
+          bofRegistryUser: *global_registry_username
+          docbrokerhostname: dbr.mcbudev.svc.cluster.local
+          rqmadminport: 9095
+          rqmjettyport: 9096
+          docbrokerport: 1489
+          recordsaws: false
+      docbroker:
+          serviceName: *dbr_service_name
+          port: 1489
+      env:
+          domain: *env_domain
+      userProvidedServices:
+        newrelic:
+          enable: *newrelic_enabled
+          appName: DOCUMENTUM_RQM-PROD-OT2_CFCR_BP2-ECD
+          licenseKey: *newrelic_license_key
+          proxyHost: *newrelic_proxy_host
+          proxyPort: *newrelic_proxy_port
+          proxyScheme: *newrelic_proxy_protocol
+      
+  dctm-dcc:
+      enabled: false
+      # Default values for DCC.
+      # This is a YAML-formatted file.
+      # Declare variables to be passed into your templates.
+      
+      #Prefix
+      prefix: *dccPrefix
+      
+      # Kubernetes Namespace in which this Helm chart is deployed
+      namespace: *namespace
+      
+      #Consul 
+      consul:
+        prefix: consul
+        containerPort: 8500
+        replicaCount: 1
+        service:
+          servicePort: 8500
+          targetPort: 8500
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+    
+      ## Database configuration ##
+      database:
+        dbSchemaName: postgres
+        driverClassName: org.postgresql.Driver
+        quartzdbDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+        username: <DB_USERNAME>
+        password: <DB_ENCRYPTED_PASSWORD> 
+        dbunencryptedpassword: <DB_UNENCRYPTED_PASSWORD>
+        db_host: <DB_HOST>
+        db_port: <DB_PORT>
+      
+          ## New Relic Common Configuration ## 
+      newrelic:  
+        license_key: *newrelic_license_key
+        proxy_enable: false
+        proxy_host: *newrelic_proxy_host
+        proxy_port: *newrelic_proxy_port
+
+                  
+          ## meta data service ##
+      metadata:
+        prefix: metadata
+        enabled: true
+        dbSchemaInit:
+          enabled: false
+          dbname: <DB_NAME>
+        configMap:
+          database:
+            ## url specified the url used to connect to the DB for metadata service.      
+            url: jdbc:postgresql://<DB_HOST>:<DB_PORT>/<DB_NAME>?escapeSyntaxCallMode=callIfNoReturn
+        replicaCount: 1
+        service:
+          servicePort: 8080
+          targetPort: 8080
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+          requests:
+            cpu: 400m
+            memory: 500Mi
+        newrelic:    
+          enabled: *newrelic_enabled
+          app_name: DCC_METADATA-PROD-OT2_CFCR-LI3-EIM-<app_name>
+      ## Syncagent ##
+      syncagent:
+        prefix: syncagent
+        enabled: true
+        dbSchemaInit:
+          enabled: false
+          dbname: <DB_NAME>
+        configMap:
+          database:
+            ## url specified the url used to connect to the DB for syncagent service.     
+            url: jdbc:postgresql://<DB_HOST>:<DB_PORT>/<DB_NAME>?escapeSyntaxCallMode=callIfNoReturn
+          mail:
+            fromEmailId: <sender email id>
+            toEmailId: <recipient email ids separated by comma>
+            bccEmailId: <Bcc recipient list separated by comma>
+            ccEmailId: <CC recipient list separated by comma>
+            subject: <Subject line for the email to be sent for Failed items>
+          serviceRegistry:
+            serverPort: 8080
+          proxy:
+            enabled: false
+            proxyHost: 
+            proxyPort: 
+            noProxyHosts: 
+        replicaCount: 1
+        containerPort: 8080
+        service:
+          servicePort: 8080
+          targetPort: 8080
+        resources:
+          limits:
+            cpu: 4000m
+            memory: 8Gi
+          requests:
+            cpu: 1000m
+            memory: 2Gi
+        newrelic:    
+          enabled: true
+          app_name: DCC_SYNCAGENT-PROD-OT2_CFCR-LI3-EIM-<app_name>
+      
+      ## Syncnshare manaual ##
+      syncnshareManual:
+        prefix: syncagent-manaual
+        enabled: false
+        dbSchemaInit:
+          enabled: false
+          dbname: <DB_NAME>
+        configMap:
+          database:
+            ## url specified the url used to connect to the DB for syncshare manual service.
+            url: jdbc:postgresql://<DB_HOST>:<DB_PORT>/<DB_NAME>?escapeSyntaxCallMode=callIfNoReturn
+          serviceRegistry:
+            serverPort: 8080
+          setup:
+            sourceRepoName: <Provide the Documentum repository name. For E.g. testenv>
+            sourceRepoUser: <Provide the Documentum super user repository user name. For E.g. Administrator>
+            sourceRepoPassword: <Provide the Documentum super user repository encrypted password>
+            sourceRepoUrl: <Provide the Documentum D2 Rest URL. For E.g. https://<hostname>:<port>/d2rest>
+            targetRepoUrl: <Provide the Core Share Endpoint URL. For E.g. https://core.opentext.com>
+            targetRepoClientId: <Provide the Client Id created by the Core Share Admin>
+            targetRepoClientSecret: <Provide the Core Share encrypted Client Secret>
+          proxy:
+            enabled: false
+            proxyHost: 
+            proxyPort: 
+            noProxyHosts: 
+        replicaCount: 1
+        containerPort: 8080
+        javaConfigModify: false
+        service:
+          servicePort: 8080
+          targetPort: 8080
+        resources:
+          limits:
+            cpu: 4000m
+            memory: 8Gi
+          requests:
+            cpu: 1000m
+            memory: 2Gi
+        newrelic:    
+          enabled: true
+          app_name: DCC_SYNCMANUAL-PROD-OT2_CFCR-LI3-EIM-<app_name>
+      
+      ## Core Notification ##
+      coreNotification:
+        prefix: core-notification
+        enabled: true
+        dbSchemaInit:
+          enabled: false
+          dbname: <DB_NAME>
+        configMap:
+          database:
+            ## url specified the url used to connect to the DB for core notification service.
+            url: jdbc:postgresql://<DB_HOST>:<DB_PORT>/<DB_NAME>?escapeSyntaxCallMode=callIfNoReturn
+          extApiconfig:      
+            dccroboticFQDN: syncagent
+            dccmanualFQDN: syncnshare-manual
+            dccapiuser: 
+            dccapipassword: 
+        replicaCount: 1
+        proxy:
+            enabled: false
+            proxyHost: 
+            proxyPort: 
+            noProxyHosts: 
+        service:
+          servicePort: 8080
+          targetPort: 8080    
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+          requests:
+            cpu: 400m
+            memory: 500Mi
+        newrelic:    
+          enabled: *newrelic_enabled
+          app_name: DCC_CN-PROD-OT2_CFCR-LI3-EIM-<app_name>
+    
+      ## Mail Service ##
+      mailService:
+        prefix: mail
+        enabled: true
+        configMap:
+          mailconfig:
+            smtpmailhost: <SMTP_RELAY_HOST>
+            smtpmailport: <SMTP_PORT>
+            usermail: <SMTP_RELAY_USERNAME>
+            mailpassword: <SMTP_RELAY_PASSWORD>
+            starttls: false
+        replicaCount: 1
+        service:
+          servicePort: 8080
+          targetPort: 8080
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+          requests:
+            cpu: 400m
+            memory: 500Mi
+        newrelic:    
+          enabled: *newrelic_enabled
+          app_name: DCC_MAIL-PROD-OT2_CFCR-LI3-EIM-<app_name>
+
+      ## Persistent volume claim ##
+      pvc:
+        ## enable if logs needs to be stored in persistent volume
+        enablePV: true
+        storageClass: *rwo_storage_class
+        size: 200Mi
+        createPV: true
+        awsEFSCSIDriver: efs.csi.aws.com
+        awsEFSCSIHandle: 
+
+      ## graylog-sidecar for logs ##
+      graylog:
+        enable: *graylog_enable
+        name: graylog-sidecar
+        server: *graylog_server
+        port: *graylog_port
+        tags: "[\"linux\",\"apache\"]"
+
+      ingress:
+        ##enable below if we need to use dcc ingress
+        enableDCCIngress: false
+
+d2config:
+    enabled: true
+    ## serviceAnnotations define custom annotations that need to be assigned to d2config service.
+    ## For example:
+    ##  cloud.google.com/backend-config: '{"ports": {"80": "abcd-d2config-backend"}}'
+    ##  cloud.google.com/neg: '{"ingress": true}'
+    serviceAnnotations: {}
+
+    ### Tomcat ###
+    tomcat:
+      logfilerotation: 7  #Log files are rotated "logfilerotation" times before being removed 
+      logfilesize: 5M  #Log files are rotated only if they grow bigger then "logfilesize" bytes
+      logrotateFrequency: 1d  #Log files are rotated every "logrotateFrequency". Ex., 10m, 10h, 10d
+      connectionTimeoutInMilliseconds: 60000
+
+    ### Environment ###
+    env:
+      domain: *env_domain
+      #Below parameter can be used to pass jvm arguments to TOMCAT. Give the setting inside double quote
+      tomcatJVMArgs: ""
+      webappName: *d2config_webapp_name
+      # By Default the appTitle is "D2-Config" that gets displayed on the Browser tab.
+      # Update to a custom appTitle below when required 
+      appTitle: 
+      
+    docbroker:
+      count: 2
+
+    cs:
+      custom:
+        ##In the case of  hybrid installers approach, volumeMountName value should be custom-script-pvc and scriptPVCname value should be shared-pvc
+        volumeMountName: dcs-data-pvc
+        scriptPVCname: dcs-pg-pvc
+        PVCSubPath: initcontainercustomscripts/dcs-pg
+
+    ### Docbase ###
+    docbase:
+      name: *docbase_name
+
+    methodsvr:
+      containerName: dcs-pg
+
+    session:
+      allowTrustedLogin: *allow_trusted_login
+# for k8s version is < 1.19  default initial delay is set to 250 seconds and 60 seconds for k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+    readinessProbe:
+      initialDelaySeconds: 
+# for k8s version is < 1.19  default initial delay is set to 250 seconds and 60 seconds for k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+    livenessProbe:
+      initialDelaySeconds: 
+
+    startupProbe:
+      initialDelaySeconds: 180      
+
+    OTDS:
+      enable: *otds_enabled
+
+    ### Persistent Volume ###
+    persistentVolume:
+      storageClass: *rwo_storage_class
+
+    certificate:
+      use_certificate: *use_certificate
+      dbrserviceName: *dbr_service_name
+
+    ### Graylog Enabled by default, set to false if logs mount to PVC ###
+    graylog:
+      enable: *graylog_enable
+      volumeClaimTemplate:
+        logVctStorageClass: *rwo_storage_class
+
+    serviceType: *webapp_service_type
+    
+    ### D2Config Extension image configuration ###
+    extension:  
+      createPVC: true
+      PVCStorageClass: *rwm_storage_class
+      pvcName: *tomcatbase_commonpvcname
+      #Update the below parameters in case of Static Provisioning in AWS
+      staticPVName:
+      reclaimPolicy:
+      awsEFSCSIDriver: efs.csi.aws.com
+      awsEFSCSIHandle:
+
+    serviceAccount: 
+      createserviceaccount: false
+      serviceAccountName: *documentum_service_account
+     ### Custom Configuration ###
+    customConfigurations:
+       custom: true
+       hook_approach: false
+       createPVC: false
+       scriptPVCname: d2custom-shared-pvc
+       persistentVolume:
+         awsEFS: false
+         awsEFSCSIDriver: efs.csi.aws.com
+         awsEFSCSIHandle:
+         existVolumePv:
+         reclaimPolicy: Retain
+         storageClass: *rwm_storage_class
+         size: 2Gi
+       #In a multi repo deployment when d2configs need to be imported in multirepo, then update the filename as below
+       #filename: docbase1:config1.zip,config2.xml,config3.zip;docbase2:config1.zip,config2.xml,config3.zip
+       #If there is a need for multiple config import in the single repo deployment, then update the filename parameter as below with comma-separated format
+       #filename: docbase1:config1.zip,config2.xml,config3.zip
+       #remove the DCTM-Reports-Application-22.4.0-Export-Config.zip entry given below if DTR(DCTM REPORTS) is disabled
+       filename: mcbudev:DCTM-Reports-Application-22.4.0-Export-Config.zip
+       plugins:
+       # Customer need to pass the plugins as an array and "Plugin" word should be part of file naming.
+       # Array for Customer to pass more than one plugin. Below ex :
+       # - plugin1
+       # - plugin2
+
+       # Customer could pass the custom d2config properties and place under d2config/properties subchart
+       # Customer need to merge with the existing d2config.properties file and place under d2config/properties subchart
+       # Currently have placed a template under d2config/properties for reference
+       settings:
+       locale:
+
+    pluspack: true
+
+    # parameters used to compose d2config-logback-xml config map
+    logback:
+      # d2configWebappName anchor tag is introduced to make webappname configurable by customers. 
+      # Since yaml doesn't allow String concatenation OOTB, the below paramter is made an array parameter and then converted to string.
+      # Below file paramter value is equivalent to /opt/tomcat/webapps/D2-Config/logs/D2-Config.log.
+      # The same goes with fileNamePattern and log4j file parameters
+
+      file: 
+      - /opt/tomcat/webapps/
+      - *d2config_webapp_name
+      - /logs/D2-Config.log
+      fileNamePattern: 
+      - /opt/tomcat/webapps/
+      - *d2config_webapp_name
+      - /logs/D2-Config-%d{yyyy-MM-dd}.log.zip
+      logLevel: info
+
+    # parameters used to compose d2config-log4j-properties config map
+    log4j:
+      file: 
+      - /opt/tomcat/webapps/
+      - *d2config_webapp_name
+      - /logs
+      logLevel: WARN
+
+    newrelic:
+      enable: *newrelic_enabled
+      app_name: DOCUMENTUM_D2CONFIG-PROD-OT2_CFCR_BP2-ECD
+      proxy_host: *newrelic_proxy_host
+      proxy_port: *newrelic_proxy_port
+
+    nodeSelector: {}
+
+d2classic:
+    enabled: true
+    ## serviceAnnotations define custom annotations that need to be assigned to d2classic service.
+    ## For example:
+    ##  cloud.google.com/backend-config: '{"ports": {"80": "abcd-d2classic-backend"}}'
+    ##  cloud.google.com/neg: '{"ingress": true}'
+    serviceAnnotations: {}
+    ### Tomcat ###
+    tomcat:
+     # As per D2 best practice, setting timeout value to 15 minutes
+      connectionTimeoutInMilliseconds: 900000
+      maxHttpHeaderSize: 100000
+      logfilerotation: 7  #Log files are rotated "logfilerotation" times before being removed 
+      logfilesize: 5M  #Log files are rotated only if they grow bigger then "logfilesize" bytes
+      logrotateFrequency: 1d  #Log files are rotated every "logrotateFrequency". Ex., 10m, 10h, 10d
+      
+
+    ### Environment ###
+    env:
+      # Only used in cloud tenant environment to add subscriptionName query string
+      # parameter to the OTDS authentication URL when redirecting the user.
+      #subscriptionName: subscription1
+      dataTransferProtocolUsedOverWeb: *ingress_protocol
+      #Below parameter can be used to pass jvm arguments to TOMCAT. Give the setting inside double quote
+      tomcatJVMArgs: ""
+      webappName: *d2classic_webapp_name
+      # By Default the appTitle is "D2" that gets displayed on the Browser tab.
+      # Update to a custom appTitle below when required 
+      appTitle: 
+      domain: *env_domain
+
+    docbroker:
+      count: 2
+
+    cs:
+      custom:
+        ##In the case of  hybrid installers approach, volumeMountName value should be custom-script-pvc and scriptPVCname value should be shared-pvc
+        volumeMountName: dcs-data-pvc
+        scriptPVCname: dcs-pg-pvc
+        PVCSubPath: initcontainercustomscripts/dcs-pg
+
+    methodsvr:
+      containerName: dcs-pg
+
+    session:
+      allowTrustedLogin: *allow_trusted_login
+
+    ### Docbase ###
+    docbase:
+      name: *docbase_name
+# for k8s version is < 1.19  default initial delay is set to 250 seconds and 60 seconds for k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+    readinessProbe:
+      initialDelaySeconds: 
+# for k8s version is < 1.19  default initial delay is set to 250 seconds and 60 seconds for k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+    livenessProbe:
+      initialDelaySeconds: 
+
+    startupProbe:
+      initialDelaySeconds: 180      
+
+    replicaCount: 2
+
+    ### Persistent Volume ###
+    persistentVolume:
+      storageClass: *rwo_storage_class
+
+    certificate:
+      use_certificate: *use_certificate
+      dbrserviceName: *dbr_service_name
+
+    ### Graylog Enabled by default, set to false if logs mount to PVC ###
+    graylog:
+      enable: *graylog_enable
+      volumeClaimTemplate:
+        logVctStorageClass: *rwo_storage_class
+
+    serviceType: *webapp_service_type
+
+    d2report:
+      enable: true
+      dctm_reports_iis_host: dctm-ingress.mcbu-dev.chevron.com
+      d2_host: dctm-ingress.mcbu-dev.chevron.com
+      dctm_reports_port: "443"
+      d2_port: "443"
+      d2_scheme: "https:"
+      dctm_reports_scheme: "https"
+
+    ### D2Classic Extension image configuration ###
+    extension:  
+      createPVC: false
+      PVCStorageClass: *rwm_storage_class
+      pvcName: *tomcatbase_commonpvcname
+      #Update the below parameters in case of Static Provisioning in AWS
+      staticPVName:
+      reclaimPolicy:
+      awsEFSCSIDriver: efs.csi.aws.com
+      awsEFSCSIHandle:
+
+    serviceAccount: 
+      createserviceaccount: false
+      serviceAccountName: *documentum_service_account
+    
+    ### Custom Configuration ###
+    customConfigurations:
+      custom: false
+      hook_approach: false
+      createPVC: false
+      scriptPVCname: d2custom-shared-pvc
+      persistentVolume:
+        awsEFS: false
+        awsEFSCSIDriver: efs.csi.aws.com
+        awsEFSCSIHandle:
+        existVolumePv:
+        reclaimPolicy: Retain
+        storageClass: *rwm_storage_class
+        size: 2Gi
+      locale:
+
+    # parameters used to compose d2classic-shiro-ini config map
+    shiro:
+       # Set this to false if no SSO will be used
+       enable: *otds_enabled
+       # SSOType may be OTDS or SAML:  provide required values in the relevant section below accordingly
+       SSOType: OTDS
+       OTDS:
+          # Name of the OAuth client created in the OTDS admin web site that's used by D2 client web app
+          clientId: *otds_oauth_client
+          apiSvc: http://otdsws:80/otdsws
+          # The Ingress URL for the OTDS Authentication service: "https://<value specified for 'ingress.hostShortName' in ingress helm chart's value.yaml >.<value specified for 'ingress.hostDomainName' in ingress helm chart's value.yaml>/otdsws"
+          authSvcProtocol: *otds_auth_svc_protocol
+          authSvc: *otds_auth_svc
+          appName: Documentum D2 CE 23.4
+
+    # parameters used to compose d2classic-settings-properties config map
+    settings:
+       # "connection.remote.url" setting in "settings.properties"
+       # When using Ingress to expose webapp service inside the cluster to the outside user,
+       # the ingress is behaving like the reverse proxy. The connectionRemoteUrl should be the
+       # set to the URL of the Ingress resource that the outside user uses to access the
+       # webapp inside the cluster.
+       connectionRemoteUrlProtocol: *ingress_protocol
+       # d2classicWebappName anchor tag is introduced to make webappname configurable by customers. The default value for d2classicWebappName is D2.
+       # Since yaml doesn't allow String concatenation OOTB, the below paramter is made an array parameter and then converted to string.
+       # Below filconnectionRemoteUrl paramter value is equivalent to dctm-ingress.mcbu-dev.chevron.com/D2.
+       connectionRemoteUrl: 
+       - *ingressUrl
+       - *d2classic_webapp_name
+       browserPluginMode: wsctf,thin
+       allowedFrameOrigins:
+
+    # parameters used to compose d2classic-ESAPI-properties config map
+    esapi:
+        forcedSecureCookies:
+
+    # parameters used to compose d2classic-logback-xml config map
+    logback:
+      # d2classicWebappName anchor tag is introduced to make webappname configurable by customers. The default value for d2classicWebappName is D2.
+      # Since yaml doesn't allow String concatenation OOTB, the below paramter is made an array parameter and then converted to string.
+      # Below file paramter value is equivalent to /opt/tomcat/webapps/D2/logs/D2.log.
+      # The same goes with fileNamePattern and log4j file parameters.
+      file: 
+      - /opt/tomcat/webapps/
+      - *d2classic_webapp_name
+      - /logs/D2.log
+      fileNamePattern: 
+      - /opt/tomcat/webapps/
+      - *d2classic_webapp_name
+      - /logs/D2-%d{yyyy-MM-dd}.log.zip
+      logLevel: info
+
+    # parameters used to compose d2classic-log4j-properties config map
+    log4j:
+      file: 
+      - /opt/tomcat/webapps/
+      - *d2classic_webapp_name
+      - /logs
+      logLevel: WARN
+
+    newrelic:
+      enable: *newrelic_enabled
+      app_name: DOCUMENTUM_D2CLIENT-PROD-OT2_CFCR_BP2-ECD
+      proxy_host: *newrelic_proxy_host
+      proxy_port: *newrelic_proxy_port
+
+    smtp:
+      hostname:
+      port: 25
+      from:
+      auth: false
+      starttls:
+        enable: false
+      socketFactory:
+        port:
+        class: javax.net.ssl.SSLSocketFactory
+        fallback: false
+
+    bravatls:
+      enable: false
+      certName:
+ 
+    nodeSelector: {}
+
+
+d2smartview:
+    enabled: true
+    ## serviceAnnotations define custom annotations that need to be assigned to d2smartview service.
+    ## For example:
+    ##  cloud.google.com/backend-config: '{"ports": {"80": "abcd-d2smartview-backend"}}'
+    ##  cloud.google.com/neg: '{"ingress": true}'
+    serviceAnnotations: {}
+    ### Tomcat ###
+    tomcat:
+      logfilerotation: 7  #Log files are rotated "logfilerotation" times before being removed 
+      logfilesize: 5M  #Log files are rotated only if they grow bigger then "logfilesize" bytes
+      logrotateFrequency: 1d  #Log files are rotated every "logrotateFrequency". Ex., 10m, 10h, 10d
+      connectionTimeoutInMilliseconds: 60000
+      maxHttpHeaderSize: 100000
+
+    # Adds entries to the smartview pod's /etc/hosts file.
+    #hostAliases:
+    #- ip: "127.0.0.1"
+    #  hostnames:
+    #  - "foo.local"
+    #  - "bar.local"
+
+    ### Environment ###
+    env:
+      domain: *env_domain
+      #Below parameter can be used to pass jvm arguments to TOMCAT. Give the setting inside double quote
+      tomcatJVMArgs: ""
+      webappName: *d2smartview_webapp_name
+
+    docbroker:
+      count: 2
+
+    cs:
+      custom:
+        ##In the case of  hybrid installers approach, volumeMountName value should be custom-script-pvc and scriptPVCname value should be shared-pvc
+        volumeMountName: dcs-data-pvc
+        scriptPVCname: dcs-pg-pvc
+        PVCSubPath: initcontainercustomscripts/dcs-pg
+
+    methodsvr:
+      containerName: dcs-pg
+
+    session:
+      allowTrustedLogin: *allow_trusted_login
+     
+    removeDocumentation: *remove_documentation     
+
+    ### Docbase ###
+    docbase:
+      name: *docbase_name
+# for k8s version is < 1.19  default initial delay is set to 300 seconds and 60 seconds for k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+    readinessProbe:
+      initialDelaySeconds: 
+# for k8s version is < 1.19  default initial delay is set to 300 seconds and 60 seconds for k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+    livenessProbe:
+      initialDelaySeconds: 
+
+    startupProbe:
+      initialDelaySeconds: 180      
+      
+    replicaCount: 2
+
+    ### Persistent Volume ###
+    persistentVolume:
+      storageClass: *rwo_storage_class
+
+    certificate:
+      use_certificate: *use_certificate
+      dbrserviceName: *dbr_service_name
+
+    ### Graylog Enabled by default, set to false if logs mount to PVC ###
+    graylog:
+      enable: *graylog_enable
+      volumeClaimTemplate:
+        logVctStorageClass: *rwo_storage_class
+
+    serviceType: *webapp_service_type
+
+    extension:  
+      createPVC: false
+      PVCStorageClass: *rwm_storage_class
+      pvcName: *tomcatbase_commonpvcname
+      #Update the below parameters in case of Static Provisioning in AWS
+      staticPVName:
+      reclaimPolicy:
+      awsEFSCSIDriver: efs.csi.aws.com
+      awsEFSCSIHandle:
+
+    serviceAccount: 
+      createserviceaccount: false
+      serviceAccountName: *documentum_service_account
+    ### Custom Configuration ###
+    customConfigurations:
+      custom: false
+      hook_approach: false
+      createPVC: false
+      scriptPVCname: d2custom-shared-pvc
+      persistentVolume:
+        awsEFS: false
+        awsEFSCSIDriver: efs.csi.aws.com
+        awsEFSCSIHandle:
+        existVolumePv:
+        reclaimPolicy: Retain
+        storageClass: *rwm_storage_class
+        size: 2Gi
+      locale:
+
+    # parameters used to compose d2smartview-logback-xml config map
+    logback:
+      # d2smartviewWebappName anchor tag is introduced to make webappname configurable by customers. The default value for d2smartviewWebappName is D2-Smartview.
+      # Since yaml doesn't allow String concatenation OOTB, the below paramter is made an array parameter and then converted to string.
+      # Below file paramter value is equivalent to /opt/tomcat/webapps/D2-Smartview/logs/D2-Smartview.log.
+      # The same goes with fileNamePattern and log4j file parameters.
+      file: 
+      - /opt/tomcat/webapps/
+      - *d2smartview_webapp_name
+      - /logs/D2-Smartview.log
+      fileNamePattern: 
+      - /opt/tomcat/webapps/
+      - *d2smartview_webapp_name
+      - /logs/D2-Smartview-%d{yyyy-MM-dd}-%i.log.zip
+      logLevel: info
+
+    # parameters used to compose d2smartview-log4j-properties config map
+    log4j:
+      file: 
+      - /opt/tomcat/webapps/
+      - *d2smartview_webapp_name
+      - /logs/rest-api-log4j.log
+
+    restApiRuntime:
+        OTDS:
+          enable: *otds_enabled
+          authSvcProtocol: *otds_auth_svc_protocol
+          authSvc: *otds_auth_svc
+          clientId: *otds_oauth_client
+          appName: Documentum D2 CE 23.4
+        ##When CC/D2 Mobile is enabled, enable the CookieConfiguration to true to set SameSite and session cookie attributes
+        CookieConfiguration:
+          enable: false
+        ContentConnect:
+          enable: false
+          restAllowedOrigins: 
+        # Crypto salt for client token encryption and decryption
+        # For a multi-node deployment of REST servers, this property MUST be consistently set across all REST servers. For a
+        # single-node deployment of REST servers, this property is optional. The value CAN be any ascII characters. We recommend
+        # that you specify a text no less than 8 characters.    
+        cryptoKeySalt: 
+
+    # parameters used to compose d2smartview-settings-properties config map
+    settings:
+       # "connection.remote.url" setting in "settings.properties"
+       # When using Ingress to expose webapp service inside the cluster to the outside user,
+       # the ingress is behaving like the reverse proxy. The connectionRemoteUrl should be the
+       # set to the URL of the Ingress resource that the outside user uses to access the
+       # webapp inside the cluster.
+       connectionRemoteUrlProtocol: *ingress_protocol
+       # d2smartviewWebappName anchor tag is introduced to make webappname configurable by customers. The default value for d2smartviewWebappName is D2-Smartview.
+       # Since yaml doesn't allow String concatenation OOTB, the below paramter is made an array parameter and then converted to string.
+       # Below filconnectionRemoteUrl paramter value is equivalent to dctm-ingress.mcbu-dev.chevron.com/D2-Smartview.
+       connectionRemoteUrl: 
+       - *ingressUrl
+       - *d2smartview_webapp_name
+
+    newrelic:
+      enable: *newrelic_enabled
+      app_name: DOCUMENTUM_D2SMARTVIEW-PROD-OT2_CFCR_BP2-ECD
+      proxy_host: *newrelic_proxy_host
+      proxy_port: *newrelic_proxy_port
+
+    bravatls:
+      enable: false
+      certName:
+ 
+    nodeSelector: {}
+
+d2rest:
+    enabled: true
+    ## serviceAnnotations define custom annotations that need to be assigned to d2rest service.
+    ## For example:
+    ##  cloud.google.com/backend-config: '{"ports": {"80": "abcd-d2rest-backend"}}'
+    ##  cloud.google.com/neg: '{"ingress": true}'
+    serviceAnnotations: {}
+    ### Tomcat ###
+    tomcat:
+      logfilerotation: 7  #Log files are rotated "logfilerotation" times before being removed 
+      logfilesize: 5M  #Log files are rotated only if they grow bigger then "logfilesize" bytes
+      logrotateFrequency: 1d  #Log files are rotated every "logrotateFrequency". Ex., 10m, 10h, 10d
+      connectionTimeoutInMilliseconds: 60000
+
+    ### Environment ###
+    env:
+      domain: *env_domain
+      #Below parameter can be used to pass jvm arguments to TOMCAT. Give the setting inside double quote
+      tomcatJVMArgs: ""
+      webappName: *d2rest_webapp_name
+
+    docbroker:
+      count: 2
+
+    cs:
+      custom:
+        ##In the case of  hybrid installers approach, volumeMountName value should be custom-script-pvc and scriptPVCname value should be shared-pvc
+        volumeMountName: dcs-data-pvc
+        scriptPVCname: dcs-pg-pvc
+        PVCSubPath: initcontainercustomscripts/dcs-pg
+
+    ### Docbase ###
+    docbase:
+      name: *docbase_name
+
+    methodsvr:
+      containerName: dcs-pg
+
+    session:
+      allowTrustedLogin: *allow_trusted_login
+      
+    removeDocumentation: *remove_documentation  
+# for k8s version is < 1.19  default initial delay is set to 250 seconds and 60 seconds for k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+    readinessProbe:
+      initialDelaySeconds: 
+# for k8s version is < 1.19  default initial delay is set to 250 seconds and 60 seconds for k8s version is >= 1.19
+# Increase the initialDelaySeconds and add the value below if default value is not enough
+    livenessProbe:
+      initialDelaySeconds: 
+      
+    startupProbe:
+      initialDelaySeconds: 180  
+
+    replicaCount: 2
+
+    ### Persistent Volume ###
+    persistentVolume:
+      storageClass: *rwo_storage_class
+
+    certificate:
+      use_certificate: *use_certificate
+      dbrserviceName: *dbr_service_name
+
+    ### Graylog Enabled by default, set to false if logs mount to PVC ###
+    graylog:
+      enable: *graylog_enable
+      volumeClaimTemplate:
+        logVctStorageClass: *rwo_storage_class
+
+    extension:  
+      createPVC: false
+      PVCStorageClass: *rwm_storage_class
+      pvcName: *tomcatbase_commonpvcname
+      #Update the below parameters in case of Static Provisioning in AWS
+      staticPVName:
+      reclaimPolicy:
+      awsEFSCSIDriver: efs.csi.aws.com
+      awsEFSCSIHandle:
+
+    serviceAccount: 
+      createserviceaccount: false
+      serviceAccountName: *documentum_service_account
+    
+    ### Custom Configuration ###
+    customConfigurations:
+      custom: true
+      hook_approach: false
+      createPVC: false
+      scriptPVCname: d2custom-shared-pvc
+      persistentVolume:
+        awsEFS: false
+        awsEFSCSIDriver: efs.csi.aws.com
+        awsEFSCSIHandle:
+        existVolumePv:
+        reclaimPolicy: Retain
+        storageClass: *rwm_storage_class
+        size: 2Gi
+      locale:
+    serviceType: *webapp_service_type
+
+    # parameters used to compose d2rest-logback-xml config map
+    logback:
+      # d2restWebappName anchor tag is introduced to make webappname configurable by customers. The default value for d2restWebappName is d2-rest.
+      # Since yaml doesn't allow String concatenation OOTB, the below paramter is made an array parameter and then converted to string.
+      # Below file paramter value is equivalent to /opt/tomcat/webapps/d2-rest/logs/rest-api-logback.log.
+      # The same goes with fileNamePattern and log4j file parameters.
+      file: 
+      - /opt/tomcat/webapps/
+      - *d2rest_webapp_name
+      - /logs/rest-api-logback.log
+      fileNamePattern: 
+      - /opt/tomcat/webapps/
+      - *d2rest_webapp_name
+      - /logs/rest-api-logback-%d{yyyy-MM-dd}-%i.log.zip
+      logLevel: info
+
+    # parameters used to compose d2rest-log4j-properties config map
+    log4j:
+      file: 
+      - /opt/tomcat/webapps/
+      - *d2rest_webapp_name
+      - /logs/rest-api-log4j.log
+
+    restApiRuntime:
+       OTDS:
+          enable: *otds_enabled
+          authSvcProtocol: *otds_auth_svc_protocol
+          authSvc: *otds_auth_svc
+          clientId: *otds_oauth_client
+          appName: Documentum D2 CE 23.4
+       #The "ContentConnect" attribute earlier is now replaced as "AllowCors"
+       AllowCors:
+          enable: false
+          #The restAllowedOrigins value should be in the format- https://<Ingress URL>
+          restAllowedOrigins:
+
+       CSRF:
+          enable: true
+
+    # parameters used to compose d2rest-settings-properties config map
+    settings:
+       # "connection.remote.url" setting in "settings.properties"
+       # When using Ingress to expose webapp service inside the cluster to the outside user,
+       # the ingress is behaving like the reverse proxy. The connectionRemoteUrl should be the
+       # set to the URL of the Ingress resource that the outside user uses to access the
+       # webapp inside the cluster.
+       connectionRemoteUrlProtocol: *ingress_protocol
+       # d2restWebappName anchor tag is introduced to make webappname configurable by customers. The default value for d2restWebappName is d2-rest.
+       # Since yaml doesn't allow String concatenation OOTB, the below paramter is made an array parameter and then converted to string.
+       # Below filconnectionRemoteUrl paramter value is equivalent to dctm-ingress.mcbu-dev.chevron.com/d2-rest.
+       connectionRemoteUrl: 
+       - *ingressUrl
+       - *d2rest_webapp_name
+    
+    msgraphConfig:
+      enable: true
+      clientid: *msClientId
+      clientsecret: ""
+      tenantid: ""
+      scope: Mail.read offline_access
+      proxy_host: ""
+      proxy_port: ""
+
+    newrelic:
+      enable: *newrelic_enabled
+      app_name: DOCUMENTUM_D2REST-PROD-OT2_CFCR_BP2-ECD
+      proxy_host: *newrelic_proxy_host
+      proxy_port: *newrelic_proxy_port
+ 
+    nodeSelector: {}
+
+appworks-gateway:
+    enabled: true
+    
+    # Default values for appworks-gateway.
+    global:
+      ingressAnnotations:
+      # kubernetes.io/ingress.class: nginx
+      # kubernetes.io/tls-acme: "true"
+        nginx.ingress.kubernetes.io/proxy-body-size: 20m
+        nginx.ingress.kubernetes.io/client-max-body-size: 20m
+      # nginx.org/client-max-body-size: "50m"
+      ingressEnabled: true
+      serviceType: *webapp_service_type
+      # provide valid timezone e.g Asia/Kolkata
+      timezone: UTC
+      otdsPublicUrl: "http://otdsws:80"
+
+
+    database:
+      vendor: PostgreSql # Valid values PostgreSql/Oracle/MsSqlServer
+      server:
+        host: db-pg-0.db-pg.mcbudev.svc.cluster.local
+        port: 5432
+      admin:
+        user: postgres
+        password: password
+        database: postgres
+      appworksdb:
+        user: gateway201 # will be created by pg init container if not exist
+        password: password
+        # database will be created by pg init container only for PostgreSql if it does not exist
+        # database is not required for Oracle instead will use service
+        database: postgresdatabase
+        service:  # provide service/SID for oracle database instead of database name
+        # useSSL and trustDbCerts will be used incase if you are trying to connect with Amazon RDS.
+        # If both the values are true, then Appworks Gateway will take care of downloading the certificates from the AWS.
+        # If useSSL is true and trustDbCerts is false , then Administrator needs to placed that certificate inside the helm i.e. appworks-gateway\trustCertificates folder.
+      useSSL: false
+      trustDbCerts : false
+
+    otds:
+      admin:
+        user: admin
+        password: *otds_admin_password
+        
+      partition:
+        new: otag17
+        customPartition:
+      resource:
+        new: OTAG17
+    awg:
+      admin:
+        newadminuser: otag17
+        newadminpassword: password
+      externalurl: "http://appworks-gateway.mcbu-dev.chevron.com" # must not be localhost or 127.0.0.1
+      logging:
+        level: info # one of ["trace", "debug", "info", "warn", or "error"]
+
+      settings:
+        wantSecureCookies: true
+        doNotProxyOTDS: false
+    #   cookieDomainForGeneratedOTDSCookies: ""
+        anonymousAccessEnabled: false
+        forcePasswordBasedNonOauthAuthentication: false
+        disableOTDSAuth: false
+    #   otdsSSODisableByIP: ""
+    #   listOfTenants: ""
+        awgDeveloperMode: false
+        mdm:
+          clientTrackingEnabled: true
+          remoteWipeTimeoutSeconds: "300"
+    #     remoteWipeFailureEmailRecipients: ""
+          permitStorageOfPasswordsOnDevice: false
+          passwordOnDeviceExpirySeconds: 604800
+          permitOfflineAccessOnDevice: false
+          notifyDevicesOfOfflinePolicyChange: false
+        mail:
+          smtpReturnAddress: noreply@example.com
+          smtpHost: some-host
+          smtpPort: 25
+    #     smtpUsername: ""
+    #     smtpPassword: ""
+          smtpUseSSL: false # not required to be true in most SSL settings
+    #     oauthScope: "" # Value 'Google' or 'Microsoft' - for specific mail server
+    #     oauthClientId: ""
+    #     oauthClientSecret: ""      
+        enableAutoLogout: false # if enabled then only autoLogoutTimeInterval will be respected
+        autoLogoutTimeIntervalSeconds: 900 # Minimum value acceptable is 120 Seconds
+        enableConcurrentSessionLimit: true # if enabled then only concurrentSessionLimitAdmin and concurrentSessionLimitUser will be respected
+        concurrentSessionLimitAdmin: 3 # Value cannot be 0
+        concurrentSessionLimitUser: 2 # Value cannot be 0        
+        pushToConsole: false # if enabled then only audit information w
+
+    # Flag to change FIPS mode
+    fipsModeEnabled: false
+
+    # Flag to decide whether the secrets need to be deployed from helm chart or not.
+    # In case of using an external secret manager we should not deploy our secret.
+    deploySecretsFromHelm: true
+
+    # Proxy Configuration
+    proxy:
+      automate: false
+      fileName: Rulestemplate.json
+
+    service:
+      port: 80
+
+    ingress:
+      hosts:
+        - host: appworks-gateway.mcbu-dev.chevron.com
+          paths:
+            - path: /
+              pathType: ImplementationSpecific
+      tls:
+        enabled: false
+        info:
+          - secretName:
+              name: otawg-tls-secret
+              create: false
+              key: #provide the .crt file value
+              cert: #provide the .key file value
+            hosts:
+              - appworks-gateway.mcbu-dev.chevron.com
+    #In case of any custom PodLabels add the pod labels under here in key value pairs
+    customPodLabels:
+    #LabelName : LabelValue
+
+    #Provide the Custom Secret Name here
+    secretName: otag-awg       
+    #Settings related to NewRelic APM integration
+    newrelic:
+      enabled: *newrelic_enabled
+      appName: APPWORKS GATEWAY
+      licenseKey: *newrelic_license_key
+      logFileName: STDOUT #If any log file name is mentioned, the logs will be placed in tomcat logs folder
+      logLevel: info
+      proxyHost: *newrelic_proxy_host
+      proxyPort: *newrelic_proxy_port
+      proxyScheme: *newrelic_proxy_protocol
+
+    # ServiceAccount
+    serviceAccount:
+      createserviceaccount: false
+      serviceAccountName: *documentum_service_account
+d2ingress:
+    enabled: false
+
+    ingress:
+      hostShortName: d2-ingress
+      hostDomainName: *ingress_domain
+      class: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/affinity: "cookie"
+        nginx.ingress.kubernetes.io/session-cookie-hash: "sha1"
+        nginx.ingress.kubernetes.io/proxy-body-size: "0"
+        nginx.ingress.kubernetes.io/proxy-connect-timeout: "6000"
+        nginx.ingress.kubernetes.io/proxy-send-timeout: "6000"
+        nginx.ingress.kubernetes.io/proxy-read-timeout: "6000"
+
+    tls:
+      enable: false
+      secretName: tls-secret-name
+    d2configservice:
+        enable: true
+        path: *d2config_webapp_name
+    d2classicservice:
+        enable: true
+        path: *d2classic_webapp_name
+    d2smartviewservice:
+        enable: true
+        path: *d2smartview_webapp_name
+    d2restservice:
+        enable: true
+        path: *d2rest_webapp_name
+    #### Enable dctmreportsd2service value to true if DCTM REPORTS is enabled ####
+    dctmreportsd2service:
+        enable: false
+    # List of valid values are CFCR, Azure, AWS, GCP
+    cloudPlatform: CFCR
+xplore:
+    enabled: true
+
+    # Default values for xplore.
+    # This is a YAML-formatted file.
+    # Declare variables to be passed into your templates.
+    ### General ###
+    ingress:
+      name: xplore-ingress
+      domain: *ingress_domain
+      hostName: dctm-ingress
+      enable: false
+
+    graylog:
+      server: *graylog_server
+      port: *graylog_port
+      enable: *graylog_enable
+    serviceAccount: 
+      createServiceAccount: false
+      serviceAccountName: *documentum_service_account
+    ### Index Server ###
+    indexserver:
+      persistLogs: *persist_logs
+
+      #To use blow extraEnv paramters with #, plaese uncomment them.
+      extraEnv:
+        NEWRELIC_HOME: /root/xPlore/newrelic
+      #  SCRIPT_DIR: /root/xPlore/rtdata/script
+      #  SCRIPT_INIT: init.sh
+      #  SCRIPT_BEFORE_START: before-start.sh
+      #  SCRIPT_AFTER_START: after-start.sh
+      #  PASSWORD: your_new_password
+
+      livenessProbe:
+        initialDelay: 600
+        timeout: 1
+        period: 10
+        failure: 6
+      readinessProbe:
+        initialDelay: 600
+        timeout: 1
+        period: 10
+        failure: 3
+
+    ### Index Agent ###
+    indexagent:
+      docbaseName: *docbase_name
+      #Enter the Documentum Server installation owner user name
+      docbaseUser: *installOwner_username
+      persistLogs: *persist_logs
+      #If not use secret to pass through password, please uncomment docbasePassword and registryPassword
+      #Enter the Documentum Server installation owner password
+      #docbasePassword: password
+      #registryPassword: password
+
+      #If not use configmap to pass through below properties, please uncomment them
+      #brokerHost: xpl-dbr.mcbudev.svc.cluster.local
+      #brokerPort: 1489
+      #registryName: *docbase_name
+      #registryUser: *global_registry_username
+
+      #To use blow extraEnv paramters with #, please uncomment them.
+      extraEnv:
+        NEWRELIC_HOME: /root/xPlore/newrelic
+        FORCE_CREATE_OBJECT: true
+      #  SCRIPT_DIR: /root/xPlore/rtdata/script
+      #  SCRIPT_INIT: init.sh
+      #  SCRIPT_BEFORE_START: before-start.sh
+      #  SCRIPT_AFTER_START: after-start.sh
+
+      livenessProbe:
+        initialDelay: 600
+        timeout: 1
+        period: 10
+        failure: 6
+      readinessProbe:
+        initialDelay: 615
+        timeout: 1
+        period: 10
+        failure: 3
+
+    ### xPlore CPS ###
+    cps:
+      persistLogs: *persist_logs
+
+      #To use blow extraEnv paramters with #, please uncomment them.
+      extraEnv:
+        NEWRELIC_HOME: /root/xPlore/newrelic
+        REGISTER_CPS_DELAY: 345
+      #  SCRIPT_DIR: /root/xPlore/rtdata/script
+      #  SCRIPT_INIT: init.sh
+      #  SCRIPT_BEFORE_START: before-start.sh
+      #  SCRIPT_AFTER_START: after-start.sh
+      #  ESS_PASSWORD: your_new_password
+
+      livenessProbe:
+        initialDelay: 300
+        timeout: 1
+        period: 10
+        failure: 6
+      readinessProbe:
+        initialDelay: 315
+        timeout: 1
+        period: 10
+        failure: 3
+    ### Persistent Volume ###
+    persistentVolume:
+      # possible value: true | false . isExist: true means using an external volume instead of default one nested in xPlore chart
+      isExist: false
+      storageClass: *rwm_storage_class
+      ### AWS related parameters ###
+      awsEFS: false
+      awsEFSCSIDriver: efs.csi.aws.com
+      awsEFSCSIHandle:
+      ### Below parameter is used to provide aws PV name if AWS EFS CSI is used ###
+      awsEFSCSIPvName:
+
+    customVolume:
+      customMountPath:
+      customClaimName:
+
+    newRelic:
+      # Possible value: true | false. When set to true, you must set values of 'appNameSuffix' and 'licenseKey'.
+      enable: *newrelic_enabled
+      # Please ensure your application name is unique. xPlore will construct application name as '$NODE_NAME'-'$appNameSuffix' in newrelic.yml
+      appNameSuffix: DCS_XPLORE-PROD-OT2_CFCR_LI3-EIM-ce
+      licenseKey: *newrelic_license_key
+      # If your agent is behind a LAN and needs proxy to access external network, you must set the proxy properties.
+      proxyHost: *newrelic_proxy_host
+      proxyPort: *newrelic_proxy_port
+      proxyScheme:
+      configMap:
+        # Possible value: true | false. If using an existing configmap for new relic, then licenseKey and proxy needn't input and those properties should be included in the existing configmap.
+        isExist: false
+        name: new-relic.configmap
+
+    configMap:
+      cs:
+        name: *dbr_configmap_name
+
+otiv:
+    enabled: true
+    # Default values for IV
+    # This is a YAML-formatted file.
+    # Declare variables to be passed into your templates.
+
+    ingress:
+      enabled: true
+
+    global:
+      ## specifies the storage class (ReadWriteOnce) to use for postgresql (non-production) amqp storage
+      #  if nothing is specified after &storageClassName, the default storage class for the cluster is used;
+      #    specify a value after to change from default, e.g.: storageClassName: &storageClassName trident-nfs
+      storageClassName: *rwo_storage_class
+      ## specifies the storage class (ReadWriteMany required) to use for IV published artifacts
+      #  if no value is specified, the default storage class for the cluster is used
+      storageClassNameNFS: *rwm_storage_class
+      # size of NFS storage to allocate for IV published artifacts
+      nfsPersistenceSize: 2Gi
+
+      ## the public web protocol to access services; valid values are https or http
+      publicWebProtocol: *ingress_protocol
+
+      # name of the service account associated with the otds and postgresql (non-production) service accounts
+      serviceAccountName: *ot_service_account
+
+      ## database host and user by config, publication, publisher, and markup services
+      database:
+        ## Valid values are postgresql and oracle
+        type: postgresql
+        hostname: db-pg-0.db-pg.mcbudev.svc.cluster.local
+        port: 5432
+        ivName:   &db_name otiv
+        ## Database name that psql initially connects with prior to command execution
+        adminDatabase: postgres
+        adminUsername: *otds_db_username
+        #   if upgrading helm chart, password needs to match that of existing db
+        adminPassword: *otds_db_password
+        # set to true if database is configured to for SSL communication
+        ssl: false
+        # if above ssl property is true, the specified ssl mode will be used
+        #  valid values are (in ascending order of security) -> prefer, require, verify-ca, verifyfull
+        sslMode: prefer
+
+      # http/https calls to the access source documents are routed through the proxy if the host
+      #  and port properties are set, and the url is not specified in the excludes property
+      proxy:
+        ## proxy hostname or IP. If username/password required, format is username:password@some.proxy.net
+        host:
+        port: 3128
+        # list can be either | or , delimited, i.e.  "10.*|192.168.*|otds|*.company.net"
+        # IP and DNS entries to internal k8s services should be included in the excludes list
+        excludes: "10.*|otds"
+
+      
+      amqp:
+        # the following properties should only be updated if connecting to an external AMQP broker
+        #   and not the default rabbitmq container that can be deployed as part of this chart
+        # If using this chart's rabbitmq container, the rabbitmq password can be set via the
+        #   global.amqp.password property, or a pre-existing password value can be established
+        #   by setting assigning it to the rabbitmq-password key in the secret defined by global.existingSecret
+        # If using an external MQ, then the password must be set in the secret defined by global.existingSecret
+        #   with the key rabbitmq-password
+      
+        ## amqp/rabbitmq properties; used by the publication and publisher services
+        host: *msg_host
+        user: *msg_user
+        vhost: /
+        password: rabbpass
+     
+      
+      ## messaging host and user by the publication and publisher services
+      msgHost: *msg_host
+      msgUser: *msg_user
+
+      otdsSecretName: otiv-base-secrets
+      otdsSecretKey:  otdsPassword
+
+      dbSecretName:   otiv-base-secrets
+      dbSecretKey:    pithos-password
+      # indicates where the transformation services output is directed, and potentially its format
+      # "stdout" directs to starndard output; "stdout_json" diredts to standard output, but output
+      #    in in json format.
+      logOutput: stdout
+
+      ## hazelcast port
+      hazelport: 5701
+
+      ## the domain name used to construct the ingress URLs
+      ingressDomainName: *ingress_domain
+
+      # determines if the ingress hostname includes the namespace in its name;
+      #  set to true if OTIV being deployed to multiple namespaces within a cluster
+      ingressIncludeNamespace: true
+
+      # if ingress is an https end-point, create a secret with certificate and private key and set
+      #   the following property with the name of the secret, i.e. ingressSSLSecret: otiv-tls-secrets
+      #   Setting a value for this secret prevents the ingress endpoints from receiving http traffic
+      ingressSSLSecret:
+
+      ## the default docker registry where 3rd party docker images are stored
+      #  if runnning on a cluster with public internet access, set to docker.io
+      imageSourcePublic: &imageSourcePublic  artifactory.otxlab.net/ot2-paas-dev
+
+      ## the url of the OTDS server; if not defined, defaults to otds-mcbudev.<ingressDomainName>
+      #      note that '-mcbudev' isn't included if global.ingressIncludeNamespace is false
+      otdsPublicUrl:
+
+      ## defaults to the publicWebProtocol; if different, set explicitly i.e. otdsWebProtocol: http
+      #   this property is only relevant if otdsPublicUrl has not been set
+      otdsWebProtocol: *ingress_protocol
+
+      ## indicates if otds is accessible via the k8s network; if set to false, global.otdsPublicUrl is used
+      otdsInCluster: true
+
+      ## the k8s url that OTDS is accessible at; only relevant if otdsInCluster is set to true
+      ## if property is not set, defaults to the otds service name for the cluster
+      otdsPrivateUrl: http://otdsws
+
+      ## must match the otds.password property
+      masterPassword: *otds_admin_password
+
+      # number of minutes viewer, highlight, and markup services will wait before updating cert from OTDS
+      otdsCertUpdateInterval: 1440
+
+      # if there's a need to redeploy ALL otiv containers, modify the following value before running a helm upgrade
+      counter: 1
+
+      # the resource name associated with the IV license; defaults to 'iv' if not set
+      resourceName:
+      
+      # if set to true, information in the request's Forwarded header will be used when
+      #  setting the externally accessible URLs
+      enableForwarding: false
+      
+      # If set to true, Forwarded/X-Forwarded-Host header whitelist enforcement is enabled
+      #   and the services validate that the Forwarded/X-Forwarded-* headers adhere to what's
+      #   allowed by the forwardedHostsList or forwardedHostsRegex properties.
+      #
+      # If set to true and the forwardedHostsList and forwardedHostsRegex are not defined
+      #    or have been defined with an invalid syntax, the services will fail to start.
+      # If both of these properties are configured, forwardedHostsRegex takes precedence.
+      # The Forwarded/X-Forwarded-Host headers in incoming requests that do not match the
+      #    properties whitelist criteria are ignored.
+      # If these properties are defined at the service level (i.e. publication.forwardedHostsList),
+      #   the service level definition takes precedence
+      enforceForwardedHosts: false
+
+      # a comma-separated list of FQDNs (cannot specify protocols such as https) that are used
+      #   for validating the Forwarded/X-Forwarded-* headers.
+      forwardedHostsList:
+
+      # a regex pattern to match FQDNs
+      # The metacharacter * is a modifier and matches the preceding character 0 or more times;
+      #  so * needs to be after another character; typically this will be the metacharacter . (dot)
+      #  which represents any single character, e.g.: .*site.sample.*
+      forwardedHostsRegex:
+
+      # If set to true, requests will be only be accepted from the servers listed in corsOriginsList
+      #  or corsOriginsRegex; if both are defined, corsOriginRegex has precedence
+      # If these properties are defined at service level (i.e. publication.corsOriginList),
+      #   the service level definition takes precedence
+      enforceCorsOrigins: false
+
+      # a comma-separated list of servers that OTIV services will allow origin requests from
+      # each origin should start with https:// or http://
+      corsOriginsList:
+
+      # a regex pattern for servers that OTIV services will allow origin requests from
+      # The metacharacter * is a modifier and matches the preceding character 0 or more times;
+      #  so * needs to be after another character; typically this will be the metacharacter . (dot)
+      #  which represents any single character. The expression needs to match a url that can begin
+      #  with http. An example value would be: .*site.sample.*
+      corsOriginsRegex:
+
+      # List of additional custom http headers, comma-separated, that will be allowed by IV services
+      customHttpHeaders:
+
+      newRelic:
+        # new relic license key
+        licenseKey: *newrelic_license_key
+
+        # new relic base app name
+        # Each service appends its service name to the new relic app name
+        # if empty, defaults to global.ingressDomainName
+        baseAppName:
+
+        # new relic proxy host
+        host: *newrelic_proxy_host
+
+        # new relic proxy port
+        port: *newrelic_proxy_port
+        
+      service:
+        annotations: []  
+
+      # Should be set to true if using a service mesh like istio which uses envy sidecar
+      #    containers; this technology doesn't allow communication from init containers
+      # if false, init containers are used to perform database and OTDS initialization
+      # if true, jobs are used to do this initialization. Service pods will generally
+      #   restart several times before successfully getting to a ready state
+      usingServiceMesh: false
+      
+      # Should be set to true if using istio's VirtualServices for ingress. Setting this to true 
+      #  instantiates an istio VirtualService object for each otiv service that is externally facing
+      #  Generally, when this is set, ingress is also disabled within the cluster, which is done
+      #   by setting ingressEnabled=false
+      istioVirtualServicesEnabled: false
+
+      # The range of IPs for the k8s API server. Used when istio sidecars are used and may
+      #   be blocking communication to the kubernetes API.
+      k8sApiIPRanges: 10.0.0.0/32,172.0.0.0/32
+
+      # The range of IPs for the transformation services. Required so that IP communication
+      #   within these services can occur in istio's PeerAuthentication strict mode.
+      transformationPodApiIPRanges: 10.0.0.0/32
+
+      # time zone that the containers are set to (sets TZ env var). If not set,
+      #   containers will use UTC. Values should be set to a "TZ database name"
+      #   from https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+      # If an invalid value is entered, the time zone defaults to UTC
+      timeZone:
+      
+      # This field has three acceptable settings: "DoNotSchedule", "ScheduleAnyway", or it can be blank.
+      #   If set to either DoNotSchedule or ScheduleAnyway, the deployment definitions will include a 
+      #   topologySpreadConstraints definition with a mexSkew set to 1 for two different topology keys,
+      #   and their whenUnsatisfiable property set to the value specified (either DoNotSchedule or ScheduleAnyway).
+      #   If topologyScheduling is set to blank or "", the topologySpreadConstraints is not included in the deployments
+      topologyScheduling: 
+      # Sets the terminationGracePeriodSeconds property in the transformation service pods
+      transformationTerminantionGracePeriod: 
+
+      # These properties take a comma delimited set of origins, i.e. http(s)://<hostname><:port>
+      #   where source files to be converted are allowed to be retrieved from.
+      # If neither trustedSourceOrigins nor trustedSourceOriginsAnonymous is set, then there is
+      #   no origin restriction and IV attempts to retrieve source files from the requested
+      #   file url; however, if the file url is at an http endpoint (as opposed to https), no
+      #   Authorization header is sent with the request.
+      # If either property is defined, then retrievals are restricted to the defined origins.
+      # Origins defined in trustedSourceOrigins will pass along an Authorization header,
+      #   whereas origins defined in trustedSourceOriginsAnonymous won't include an
+      #   Authorization header. The same origin should not be listed in both properties.
+      trustedSourceOrigins:
+      trustedSourceOriginsAnonymous:
+
+      otdsUseReleaseName: false
+      otdsServiceName: otds
+
+    amqp:
+      enabled: true      
+
+      ## String to fully override amqp.fullname template
+      ## This value needs to match global.msgHost in this chart
+      fullnameOverride: *msg_host
+
+      persistence:
+        storageClass: *rwo_storage_class
+
+      rabbitmq:
+
+        password: rabbpass
+
+        # define configuration for rabbitmq;
+        extraConfiguration: |-
+          #consumer_timeout=10800000   # 3 hours; default is 2 hours
+    ## The following properties are for the sub-charts.
+    #   Note that the *.image.tag properties refer to "latest"
+    #   It's recommended that the when installing/upgrading this helm chart
+    #   that either the following tags are updated with a specific version, or
+    #   that a yaml file with the specific versions is provided as a -f parameter
+    #   to the helm install/upgrade command.  The latestTags.yaml which has specific
+    #   versions is distributed along with this helm chart. Using specific versions
+    #   provides clarity on the version being used, and can avoid issues with a
+    #   docker registry server that may be providing an older cached version of
+    #   the "latest"
+
+    ## publication service settings
+    publication:
+      enabled: true
+
+      service:
+        port: *publication_port
+      # potential loglevel values: ERROR, WARN, INFO, DEBUG, TRACE
+      loglevel:
+        example: DEBUG
+        #access: DEBUG
+        #expiry: DEBUG
+        #hazelCast: ERROR
+        #migrator: DEBUG
+        #netty: DEBUG
+        #service: DEBUG
+        #spi: DEBUG
+        #spiAjira: DEBUG
+        #spiMkondo: DEBUG
+        #spiSoteria: DEBUG
+        #spiPithos: DEBUG
+        #system: DEBUG
+        #util: DEBUG
+        #vertx: DEBUG
+        #vertxHost: DEBUG
+
+      # if set to true, requests will be only be accepted from the servers listed in corsOriginsList
+      #  or corsOriginsRegex; if both are defined, corsOriginRegex has precedence
+      # If not defined here, corresponding global property values are used
+      #enforceCorsOrigins: false
+
+      # a comma-separated list of servers that OTIV services will allow origin requests from
+      # each origin should start with https:// or http://
+      #corsOriginsList:
+
+      # a regex pattern for servers that OTIV services will allow origin requests from
+      # The metacharacter * is a modifier and matches the preceding character 0 or more times;
+      #  so * needs to be after another character; typically this will be the metacharacter . (dot)
+      #  which represents any single character. The expression needs to match a url that can begin
+      #  with http. An example value would be: .*site.sample.*
+      #corsOriginsRegex:
+
+
+      # number of seconds the publication service waits for a HEAD response for
+      #  accessing the source document; may want to increase for slow connections
+      accessCheckTimeoutSeconds: 3
+
+    ## asset service settings
+    asset:
+      enabled: true
+
+    # potential loglevel values: ERROR, WARN, INFO, DEBUG, TRACE
+      loglevel:
+        example: DEBUG
+        #artifacts: DEBUG
+        #hazelCast: DEBUG
+        #netty: DEBUG
+        #system: DEBUG
+        #vertx: DEBUG
+        #vertxWebHandler: DEBUG
+
+      # if set to true, requests will be only be accepted from the servers listed in corsOriginsList
+      #  or corsOriginsRegex; if both are defined, corsOriginRegex has precedence
+      # If not defined here, corresponding global property values are used
+      #enforceCorsOrigins: false
+
+      # a comma-separated list of servers that OTIV services will allow origin requests from
+      # each origin should start with https:// or http://
+      #corsOriginsList:
+
+      # a regex pattern for servers that OTIV services will allow origin requests from
+      # The metacharacter * is a modifier and matches the preceding character 0 or more times;
+      #  so * needs to be after another character; typically this will be the metacharacter . (dot)
+      #  which represents any single character. The expression needs to match a url that can begin
+      #  with http. An example value would be: .*site.sample.*
+      #corsOriginsRegex:
+
+      publication:
+        port: *publication_port
+
+    ## highlight service settings
+    highlight:
+      enabled: true
+
+      # error, warn, info, debug
+      loglevel: info
+      # fatal, error, warn, info, debug, trace
+      newRelic:
+        loglevel: debug
+
+      # if set to true, requests will be only be accepted from the servers listed in corsOriginsList
+      #  or corsOriginsRegex; if both are defined, corsOriginRegex has precedence
+      # If not defined here, corresponding global property values are used
+      #enforceCorsOrigins: false
+
+      # a comma-separated list of servers that OTIV services will allow origin requests from
+      # each origin should start with https:// or http://
+      #corsOriginsList:
+
+      # a regex pattern for servers that OTIV services will allow origin requests from
+      # The metacharacter * is a modifier and matches the preceding character 0 or more times;
+      #  so * needs to be after another character; typically this will be the metacharacter . (dot)
+      #  which represents any single character. The expression needs to match a url that can begin
+      #  with http. An example value would be: .*site.sample.*
+      #corsOriginsRegex:
+
+      # If set, the NODE_OPTIONS env variable will be set with the value
+      nodeOptions:
+
+      publication:
+        port: *publication_port
+
+    ## markup service settings
+    markup:
+      enabled: true
+
+      # error, warn, info, debug
+      loglevel: info
+
+      # fatal, error, warn, info, debug, trace
+      newRelic:
+        loglevel: debug
+
+      # The maximum number of SQL connections in the markup service pool; value must be greater than 0
+      dbMaxPoolSize: 10
+
+      # if set to true, requests will be only be accepted from the servers listed in corsOriginsList
+      #  or corsOriginsRegex; if both are defined, corsOriginRegex has precedence
+      # If not defined here, corresponding global property values are used
+      #enforceCorsOrigins: false
+
+      # a comma-separated list of servers that OTIV services will allow origin requests from
+      # each origin should start with https:// or http://
+      #corsOriginsList:
+
+      # a regex pattern for servers that OTIV services will allow origin requests from
+      # The metacharacter * is a modifier and matches the preceding character 0 or more times;
+      #  so * needs to be after another character; typically this will be the metacharacter . (dot)
+      #  which represents any single character. The expression needs to match a url that can begin
+      #  with http. An example value would be: .*site.sample.*
+      #corsOriginsRegex:
+
+      # If set, the NODE_OPTIONS env variable will be set with the value
+      nodeOptions:
+
+      service:
+        port: *markup_port
+
+      # If true, requires an integrator provided JWT to authorize access to markups
+      enableRoleBasedAccessControl: false
+
+      # string used for generating a key to sign access control JWT
+      jwtSecret:
+
+    ## viewer service settings
+    viewer:
+      enabled: true
+
+      # error, warn, info, debug
+      loglevel: info
+      # fatal, error, warn, info, debug, trace
+      newRelic:
+        loglevel: debug
+
+      # if set to true, requests will be only be accepted from the servers listed in corsOriginsList
+      #  or corsOriginsRegex; if both are defined, corsOriginRegex has precedence
+      #enforceCorsOrigins: false
+
+      # a comma-separated list of servers that OTIV services will allow origin requests from
+      # each origin should start with https:// or http://
+      #corsOriginsList:
+
+      # a regex pattern for servers that OTIV services will allow origin requests from
+      # The metacharacter * is a modifier and matches the preceding character 0 or more times;
+      #  so * needs to be after another character; typically this will be the metacharacter . (dot)
+      #  which represents any single character. The expression needs to match a url that can begin
+      #  with http. An example value would be: .*site.sample.*
+      #corsOriginsRegex:
+
+      # If set, the NODE_OPTIONS env variable will be set with the value
+      nodeOptions:
+
+    ## publisher settings
+    publisher:
+      enabled: true
+
+      markup:
+        port: *markup_port
+        
+      # Adds entries to the publisher's /etc/hsots file. For more info, see:
+      #   https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/
+      #hostAliases:
+      #- ip: "127.0.0.1"
+      #  hostnames:
+      #  - "foo.local"
+      #  - "bar.local"
+
+      # set to true to add write_any_markups scope to the iv-publisher OAuth client
+      #   this enables the publishing agent to create or update markups
+      writeMarkups: false
+
+    # potential loglevel values: ERROR, WARN, INFO, DEBUG, TRACE
+      loglevel:
+        example: DEBUG
+        #artifacts: DEBUG
+        #config: DEBUG
+        #conversion: DEBUG
+        #converter: DEBUG
+        #converterHost: DEBUG
+        #discovery: DEBUG
+        #metrics: DEBUG
+        #netty: DEBUG
+        #retrieval: DEBUG
+        #sequencing: DEBUG
+        #spi: DEBUG
+        #spiAjira: DEBUG
+        #spiMkondo: DEBUG
+        #spiPithos: DEBUG
+        #spiSoteria: DEBUG
+        #system: DEBUG
+        #util: DEBUG
+        #vertx: DEBUG
+        #zmq: DEBUG
+        
+      ## set to true if needed to convert Office documents on FIPS compliant hardware
+      fipsEnabled: false
+      
+    ## config service settings
+    config:
+      enabled: true
+
+      # potential loglevel values: ERROR, WARN, INFO, DEBUG, TRACE
+      loglevel:
+        example: DEBUG
+        #hazelCast: ERROR
+        #migrator: DEBUG
+        #netty: DEBUG
+        #service: DEBUG
+        #spi: DEBUG
+        #spiSoteria: DEBUG
+        #spiPithos: DEBUG
+        #system: DEBUG
+        #util: DEBUG
+        #vertx: DEBUG
+    otds:
+      enabled: false
+    postgresql:
+      enabled: false
+smartviewm365:
+    enabled: true
+    ## serviceAnnotations define custom annotations that need to be assigned to d2config service.
+    ## For example:
+    ##  cloud.google.com/backend-config: '{"ports": {"80": "abcd-d2config-backend"}}'
+    ##  cloud.google.com/neg: '{"ingress": true}'
+    serviceAnnotations: {}    
+    
+    ### Environment ###
+    env:
+      tomcatJVMArgs: ""
+      
+    ### Tomcat ###  
+    tomcat:
+      connectionTimeoutInMilliseconds: 60000
+      maxHttpHeaderSize: 100000 
+      logfilerotation: 7  #Log files are rotated "logfilerotation" times before being removed 
+      logfilesize: 5M  #Log files are rotated only if they grow bigger then "logfilesize" bytes
+      
+    # if k8s version is < 1.19  default initial delay is set to 300 seconds and 60 seconds if k8s version is >= 1.19
+    # Increase the initialDelaySeconds and add the value below if default value is not enough
+    readinessProbe:
+      initialDelaySeconds: 
+    # if k8s version is < 1.19  default initial delay is set to 300 seconds and 60 seconds if k8s version is >= 1.19
+    # Increase the initialDelaySeconds and add the value below if default value is not enough
+    livenessProbe:
+      initialDelaySeconds: 
+
+    startupProbe:
+      initialDelaySeconds: 180  
+ 
+    ### Persistent Volume ###
+    persistentVolume:
+      storageClass: *rwo_storage_class
+      
+    ### Graylog Enabled by default, set to false if logs mount to PVC ###
+    graylog:
+      enable: *graylog_enable
+      pvcName: smartviewm365-logs-pvc
+      PVCAccessMode: ReadWriteMany
+      PVCStorageClass: *rwm_storage_class
+      PVCSize: 4Gi
+    
+    ### CCSmartview service type
+    serviceType: *webapp_service_type
+
+    ### CCSmartview Extension image ###
+    extension:
+      PVCStorageClass: *rwm_storage_class
+      createPVC: false 
+      pvcName: *tomcatbase_commonpvcname
+     
+    ###############################################################
+    #  BEGIN parameter value definitions for CC smartview configuration files
+    ###############################################################
+   
+    # parameters used to compose ccsmartview-settings-properties config map
+    settings:   
+    # "connection.remote.url" setting in "settings.properties"
+    # When using Ingress to expose webapp service inside the cluster to the outside user, 
+    # the ingress is behaving like the reverse proxy. The connectionRemoteUrl should be the 
+    # set to the URL of the Ingress resource that the outside user uses to access the 
+    # webapp inside the cluster.
+      connectionRemoteUrlProtocol: *ingress_protocol
+      connectionRemoteUrl: 
+      - *ingressUrl
+      - SmartViewM365
+    #############################################################
+    #  END parameter value definitions for CC smartview configuration files
+    #############################################################
+
+    ### New Relic Configuration ###
+
+    newrelic:
+      enable: *newrelic_enabled
+      app_name: SMARTVIEWM365
+      proxy_host: *newrelic_proxy_host
+      proxy_port: *newrelic_proxy_port   
+
+    nodeSelector: {}    
+
+    ccsv:
+      appname: xECM Documentum for M365
+      teamsrootpath: "/TeamsM365"
+      loglevel: "WARN"
+      window: false
+      consoleRe: false
+      performancetimestamp: false
+      timing: false
+      clientid: *msClientId    
+      d2rest_url: "https://dctm-ingress.mcbu-dev.chevron.com/d2-rest"
+   
+    secret:
+      csConfigName: *cs_secret_name   
+
+    serviceAccount:
+      createserviceaccount: false
+      serviceAccountName: *documentum_service_account  
+
+    customConfigurations:
+      custom: false
+      locale:       
+      
+bps:
+    # Default values for bps.
+    # This is a YAML-formatted file.
+    # Declare variables to be passed into your templates.
+
+    #Prefix
+    prefix: bps
+
+    #volumeClaimTemplates details
+    volumeClaimTemplates:
+      # storage class for the volumeClaimTemplates Ex : azurefile
+      storageClassReadWriteOnce: *rwo_storage_class
+
+    #Docbase Connection Info
+    docbaseConnection:
+      use_certificate: *use_certificate
+      truststorePassword: *trust_store_password   
+      docbroker: *dbr_service_name
+      port: 1489
+      jmshttpport: 9080
+      #Name of the JMS Service. Refer JMS service name of type ClusterIP from CS Service Yaml
+      jmsservicename: *jmsServiceName      
+      docbase: *docbase_name
+      username: *installOwner_username
+      password: *installOwner_password
+      #Domain is optional and can be left blank
+      domain:
+      globalRegistryRepository: *docbase_name
+      globalRegistryUsername: *global_registry_username
+      globalRegistryPassword: *global_registry_password
+
+    #Volume used by CS and Broker to store CS and Broker certificates. Should match the persistentVolume name given in Broker values.yaml
+    dbrpersistentVolume:
+      dbrdataPVCName: certdbr-data-pvc
+  
+    #Tomcat JavaOpts:
+    tomcat:
+      username: admin
+      password: password
+      javaOptions: ''
+
+    #CS Secret. Used to fetch Newrelic License Value
+    secret:
+      name: *cs_secret_name
+      
+    #Newrelic agent configuration
+    newrelic:
+      enable: *newrelic_enabled
+      #Key Name of Newrelic License Key in CS Secrets. This value is referenced from yaml file of CS Secrets, needs to be changed accordingly. 
+      licenseKeyName: newrelicLicensekey
+      app_name: DOCUMENTUM_XCPBPSCONFIG-PROD
+      proxy_host: *newrelic_proxy_host
+      proxy_port: *newrelic_proxy_port
+      
+    #BPS config:
+    bpsConfig:
+      #polling interval in seconds
+      pollingInterval: 300
+      # Message store home dir is optional. If not required, comment the varibale 'messageStoreHomeDir' and unconfigure message store directory. 
+      # Also, comment the message store volume mount configuration in bps-statefulset.yaml to avoid persisting of the messages stored in message store in the event of pod failure.
+      messageStoreHomeDir: /home/xcpuser/documentum/msgstore
+      instanceName: bps
+      haEnabled: true
+      #DFC properties:
+       #Below path should always be /home/xcpuser/<any_folder_name>
+    dfc:
+      dataDir: /home/xcpuser/documentum
+    #Service Account  
+    serviceAccount:
+      createserviceaccount: false 
+      serviceAccountName: *documentum_service_account 
+
+xda:
+    # Default values for xDA.
+    # This is a YAML-formatted file.
+    # Declare variables to be passed into your templates.
+
+    #Prefix. Give a suitable prefix to distinguish the xDA pods
+    prefix: xda
+    
+    #Redirection Parameters.
+    redirectionParameters: 
+      redirectToHTTPS: true
+      redirectPort: 443
+
+    #Docbase Connection Info
+    docbaseConnection:
+      use_certificate: *use_certificate
+      truststorePassword: *trust_store_password
+      docbroker: *dbr_service_name
+    
+    #Volume used by CS and Broker to store CS and Broker certificates. Should match the persistentVolume name given in Broker values.yaml
+    dbrpersistentVolume:
+      dbrdataPVCName: certdbr-data-pvc
+  
+    secret:
+      name: *cs_secret_name
+      
+    #Newrelic agent configuration
+    newrelic:
+      enable: *newrelic_enabled
+      #Key Name of Newrelic License Key in CS Secrets. This value is referenced from yaml file of CS Secrets, needs to be changed accordingly. 
+      licenseKeyName: newrelicLicensekey
+      app_name: DOCUMENTUM_XCPXDACONFIG-PROD
+      proxy_host: *newrelic_proxy_host
+      proxy_port: *newrelic_proxy_port
+      
+    #Persistent Volume Details
+    persistentVolume:
+      storageClassReadWriteOnce: *rwo_storage_class
+
+    #xDA Admin Console service Port
+    adminConsoleServicePort: 7000
+      
+    dfcTracing:
+      isEnabled: false
+
+    # xDA TrustStore
+    trustStore:
+      enable: false
+      # Name of xDA Trust Store file, xDA Trust Store file should be kept inside xda/secrets folder
+      fileName: <trustStoreFileName>
+      # Password of xDA Trust Store 
+      password: <trustStorePassword>
+        #Service Account  
+    serviceAccount:
+      createserviceaccount: false
+      serviceAccountName: *documentum_service_account            

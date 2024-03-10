@@ -1,0 +1,514 @@
+repository : &docker_repo dctmimagedb.azurecr.io
+image: &graylog_image dctmimagedb.azurecr.io/graylog:5.2
+appserverImageTag: &appserverImageTag '23.4'
+appserverImageName: &appserverImageName dctm-tomcat
+pullPolicyType: &pull_policy_type IfNotPresent
+pullSecretName: &pull_secret_name []
+
+dctm-server:
+  db:
+    images:
+      repository: *docker_repo
+      db :
+        name : postgres
+        tag : 15.2
+      pullPolicy : *pull_policy_type
+      pullSecrets: *pull_secret_name
+  docbroker:
+    images:
+      repository: *docker_repo
+      contentserver :
+        name : dctm-server
+        tag : 23.4.1
+      pullPolicy : *pull_policy_type
+      pullSecrets: *pull_secret_name
+    graylog:
+      image: *graylog_image
+  content-server:
+    images:
+      repository: *docker_repo
+      contentserver :
+        name : dctm-server
+        tag : 23.4.1
+      pullPolicy : *pull_policy_type        
+      pullSecrets: *pull_secret_name
+    graylog:
+      image: *graylog_image
+      imagePullPolicy: *pull_policy_type        
+    custom:
+      versions: 
+      ### Provide the marker file names of client products in any order separated by comma. Before CS copying the custom scripts, these marker files presence are verified. 
+      markerFiles:
+    fluentd_service:
+      # Name and tag of should not be changed as they specify fluentd image details
+      image: dctmimagedb.azurecr.io/fluentd-4.4.2-1:23.4
+      imagePullPolicy: *pull_policy_type
+      restartPolicy: Always
+          
+    extraInitContainers: 
+    - name: d2installerinit
+      image: dctmimagedb.azurecr.io/dctm-d2pp-installer:23.4
+      imagePullPolicy: *pull_policy_type
+      command: ['/bin/sh', '-c', 'yes |sudo cp -rf /customscripts/* /opt/dctm_docker/customscriptpvc/']
+      volumeMounts:
+      - name: dcs-data-pvc
+        mountPath: /opt/dctm_docker/customscriptpvc
+        subPath: initcontainercustomscripts/dcs-pg
+    - name: "peinstaller-init"
+      image: "dctmimagedb.azurecr.io/dctm-xcp-installer:23.4"
+      imagePullPolicy: *pull_policy_type
+      command: ['/bin/sh', '-c', 'yes |sudo cp -Rf /pescripts/* /opt/dctm_docker/customscriptpvc/ && sudo rm -f /opt/dctm_docker/customscriptpvc/10peijmsdeploy.sh']
+      volumeMounts:
+      - name: dcs-data-pvc
+        mountPath: /opt/dctm_docker/customscriptpvc
+        subPath: initcontainercustomscripts/dcs-pg
+    - name: cc-dar-installer
+      image: dctmimagedb.azurecr.io/dctm-content-connect:23.4
+      imagePullPolicy: *pull_policy_type
+      volumeMounts:
+      - name: dcs-data-pvc
+        mountPath: /opt/dctm_docker/customscriptpvc 
+        subPath: initcontainercustomscripts/dcs-pg 
+    - name: smartviewm365-dar-installer
+      image: dctmimagedb.azurecr.io/dctm-smartviewm365:23.4
+      imagePullPolicy: *pull_policy_type
+      command: ['/bin/sh', '-c', '. /opt/ccsmartview/initstartup.sh']
+      volumeMounts:
+      - name: dcs-data-pvc
+        mountPath: /opt/dctm_docker/customscriptpvc 
+        subPath: initcontainercustomscripts/dcs-pg
+    - name: dctm-records-darinstallation
+      image: dctmimagedb.azurecr.io/dctm-records-darinstallation:23.4
+      imagePullPolicy: Always
+      volumeMounts:
+      - name: dcs-data-pvc
+        mountPath: /opt/dctm_docker/customscriptpvc 
+        subPath: initcontainercustomscripts/dcs-pg
+    - name: dctm-reports-d2
+      image: dctmimagedb.azurecr.io/dctm-reports-d2:22.4.2
+      imagePullPolicy: *pull_policy_type
+      command: ['/bin/sh', '-c', 'yes |sudo cp -rf /opt/D2-install/custom/dtr_dar/* /opt/dctm_docker/customscriptpvc/d2']
+      volumeMounts:
+      - name: dcs-data-pvc
+        mountPath: /opt/dctm_docker/customscriptpvc
+        subPath: initcontainercustomscripts/dcs-pg
+    - name: dctm-reports-installer
+      image: dctmimagedb.azurecr.io/dctm-reports-installer:22.4.2
+      imagePullPolicy: *pull_policy_type
+      command: ['/bin/sh', '-c', 'yes |sudo cp -rf /opt/dtr_build/* /opt/dctm_docker/customscriptpvc/']
+      volumeMounts:
+      - name: dcs-data-pvc
+        mountPath: /opt/dctm_docker/customscriptpvc 
+        subPath: initcontainercustomscripts/dcs-pg
+    ####Uncomment the below dcc-dar-installer init container when dcc is enabled####
+    # - name: dcc-dar-installer
+      # image: dctmimagedb.azurecr.io/dctm-dcc-darinitcontainer:22.4
+      # imagePullPolicy: Always
+      # command: ['/bin/sh', '-c', 'yes |sudo cp -rf /opt/customscripts/* /opt/dctm_docker/customscriptpvc/']
+      # volumeMounts:
+      # - name: dcs-data-pvc
+        # mountPath: /opt/dctm_docker/customscriptpvc 
+        # subPath: initcontainercustomscripts/dcs-pg
+
+  dctm-rest:
+      image: *docker_repo
+      path: *appserverImageName
+      imageTag: *appserverImageTag
+      imagePullPolicy: *pull_policy_type
+      imagePullSecrets: *pull_secret_name
+      restInitContainers:
+        name: rest-init-container
+        image: dctmimagedb.azurecr.io/dctm-rest
+        imageTag: 23.4
+        imagePullPolicy: *pull_policy_type               
+      graylog:
+        image: *graylog_image
+        imagePullPolicy: *pull_policy_type
+      fluentd_service:
+        # Name and tag of should not be changed as they specify fluentd image details
+        image: dctmimagedb.azurecr.io/fluentd-4.4.2-1:23.4
+        imagePullPolicy: *pull_policy_type
+        restartPolicy: Always
+      extraInitContainers:
+        name: rest-custom
+        image:
+        imageTag:
+        imagePullPolicy: Always
+        volumeMounts:
+          # should not be modified by ct
+          name: custom-script-pvc
+          # this should be created in init container docker file and init container startup script should copy the customization files from init container image to this mount path.
+          mountPath: /opt/customscriptpvc
+          # should not be modified by ct
+          subPath: initcontainercustomscripts/dctm-rest-custom
+
+  dtrbase:
+      imagePullSecrets: *pull_secret_name
+      images:
+        dtrbase:
+          repository: *docker_repo
+          name: dctm-reports-base
+          tag: 22.4.2
+          pullPolicy: *pull_policy_type
+        graylog:
+          image: *graylog_image
+          pullPolicy: *pull_policy_type       
+  dctm-cmis:
+      image: *docker_repo
+      path: *appserverImageName
+      imageTag: *appserverImageTag
+      imagePullPolicy: *pull_policy_type
+      imagePullSecrets:
+      
+      cmisInitContainers:
+        name: cmis-init-container
+        image: dctmimagedb.azurecr.io/dctm-cmis
+        imageTag: 23.4
+        imagePullPolicy: *pull_policy_type
+      graylog:
+        image: *graylog_image
+        imagePullPolicy: *pull_policy_type
+  dctm-workflow-designer:
+      #Init Docker image
+      initImage:
+          repository: *docker_repo
+          name: dctm-xcp-apphost
+          tag: 23.4
+          pullPolicy: *pull_policy_type
+      #Docker image
+      image:
+          repository: *docker_repo
+          name: dctm-workflow-designer
+          tag: 23.4
+          pullPolicy: *pull_policy_type
+          pullSecrets: *pull_secret_name
+  contentconnect:
+      images:
+        pullSecrets: *pull_secret_name
+        cc:
+          repository: *docker_repo
+          name: dctm-content-connect
+          tag: 23.4
+          pullPolicy: *pull_policy_type
+        ccdb:
+          repository: *docker_repo
+          name: dctm-content-connect-dbinit
+          tag: 23.4
+          pullPolicy: *pull_policy_type
+          
+  da:
+    images:
+      da:
+        repository: *docker_repo
+        name: dctm-admin
+        tag: 23.4
+        pullPolicy: *pull_policy_type
+        imagePullSecrets: *pull_secret_name
+      graylog: 
+        image: *graylog_image
+        pullPolicy: *pull_policy_type
+        name: graylog-sidecar
+        
+  dfs:
+    imagePullSecrets: *pull_secret_name
+    containers:
+      initcontainer:
+        name: dfsinit
+        image:
+          repository: *docker_repo
+          path: dctm-dfs
+          tag: 23.4
+          pullPolicy: *pull_policy_type
+      dfs:
+        image:
+          repository: *docker_repo
+          path: *appserverImageName
+          tag: *appserverImageTag
+          pullPolicy: *pull_policy_type
+      graylog:
+        image: *graylog_image
+        imagePullPolicy: *pull_policy_type
+      fluentdConf:
+        image: dctmimagedb.azurecr.io/fluentd-4.4.2-1:23.4
+        pullPolicy: *pull_policy_type
+        restartPolicy: Always    
+  records:
+      images:
+        records:
+          repository: *docker_repo  
+          name: dctm-records
+          tag: 23.4
+          pullPolicy: *pull_policy_type
+        graylog: 
+          image: *graylog_image
+
+  rqm:
+      images:
+        repository : *docker_repo  
+        rqm :
+          name : dctm-rqm
+          tag : 23.4
+          pullPolicy : *pull_policy_type
+          pullSecrets: *pull_secret_name
+        graylog:
+          image: *graylog_image
+
+  dctm-dcc:
+    consul:
+      image:
+        path: dctmimagedb.azurecr.io/dctm-dcc-consul
+        tag: 22.4
+        pullPolicy: *pull_policy_type
+    metadata:
+      image:
+        path: dctmimagedb.azurecr.io/dctm-dcc-metadataservice
+        tag: 22.4
+        pullPolicy: *pull_policy_type
+    syncagent:    
+      image:
+        path: dctmimagedb.azurecr.io/dctm-dcc-syncagent
+        tag: 22.4
+        pullPolicy: *pull_policy_type   
+    syncnshareManual: 
+      image:
+        path: dctmimagedb.azurecr.io/dctm-dcc-syncnshare-manual
+        tag: 22.4
+        pullPolicy: *pull_policy_type   
+    coreNotification: 
+      image:
+        path: dctmimagedb.azurecr.io/dctm-dcc-corenotificationservice
+        tag: 22.4
+        pullPolicy: *pull_policy_type
+    mailService:
+      image:   
+        path: dctmimagedb.azurecr.io/dctm-dcc-mailservice
+        tag: 22.4
+        pullPolicy: *pull_policy_type 
+    database:
+      dbSchemaInit:
+        image:
+          pullPolicy: *pull_policy_type
+          path: dctmimagedb.azurecr.io/dctm-dcc-dbschema
+          tag: 22.4         
+    graylog:
+      image: 
+        path: dctmimagedb.azurecr.io/graylog-sidecar@sha256
+        tag: d8ed2bf68399e34bafc68f883d8f4fb14feb9575e78d63722e544c1529f37db9
+        pullPolicy: *pull_policy_type
+         
+
+otds:
+  otdsws:
+    image:
+      source: *docker_repo
+      name: otds-server
+      tag: 23.3.0
+      pullPolicy: *pull_policy_type
+      pullSecret: *pull_secret_name
+
+d2config:
+  images:
+    repository: *docker_repo
+    name : *appserverImageName
+    tag : *appserverImageTag
+    pullPolicy: *pull_policy_type
+    pullSecrets: *pull_secret_name
+  extensionImage:
+    repository: *docker_repo
+    name : dctm-d2pp-config
+    tag : 23.4
+    pullPolicy: *pull_policy_type
+  extraInitContainers:
+  - name: dctm-reports-d2
+    image: dctmimagedb.azurecr.io/dctm-reports-d2:22.4.2
+    imagePullPolicy: *pull_policy_type
+    command: ['/bin/sh', '-c', 'yes |cp -rf /opt/D2-install/custom/dtr_config/* /customdir/']
+    volumeMounts:
+    - name: customconfig
+      mountPath: /customdir
+d2classic:
+  images:
+    repository: *docker_repo
+    name : *appserverImageName
+    tag : *appserverImageTag
+    pullPolicy: *pull_policy_type
+    pullSecrets: *pull_secret_name
+  extensionImage:
+    repository: *docker_repo
+    name : dctm-d2pp-classic
+    tag : 23.4
+    pullPolicy: *pull_policy_type
+  extraInitContainers:
+  - name: dctm-reports-d2
+    image: dctmimagedb.azurecr.io/dctm-reports-d2:22.4.2
+    imagePullPolicy: *pull_policy_type
+    command: ['/bin/sh', '-c', 'yes |cp -rf /opt/D2-install/custom/dtr_build/* /customdir/']
+    volumeMounts:
+    - name: d2report
+      mountPath: /customdir
+d2smartview:
+  images:
+    repository: *docker_repo
+    name : *appserverImageName
+    tag : *appserverImageTag
+    pullPolicy: *pull_policy_type
+    pullSecrets: *pull_secret_name
+  extensionImage:
+    repository: *docker_repo
+    name : dctm-d2pp-smartview
+    tag : 23.4
+    pullPolicy: *pull_policy_type
+  extraInitContainers: []
+d2rest:
+  images:
+    repository: *docker_repo
+    name : *appserverImageName
+    tag : *appserverImageTag
+    pullPolicy: *pull_policy_type
+    pullSecrets: *pull_secret_name
+  extensionImage:
+    repository: *docker_repo
+    name : dctm-d2pp-rest
+    tag : 23.4
+    pullPolicy: *pull_policy_type
+  extraInitContainers: 
+  - name: dctm-smartviewm365customjar
+    image: dctmimagedb.azurecr.io/dctm-smartviewm365customjar:23.4
+    imagePullPolicy: *pull_policy_type
+    command: ['/bin/sh', '-c', 'yes | cp -rf /opt/D2-install/custom/* /customdir/']
+    volumeMounts:
+      # should not be modified by ct
+    - name: customconfig
+      # this should be created in init container docker file and init container startup script should copy the customization files from init container image to this mount path.
+      mountPath: /customdir 
+
+        
+appworks-gateway:
+  global:
+    imageSource: *docker_repo
+    imagePullPolicy: *pull_policy_type
+    imageTag: 23.4.0
+ #  Optional-specify the name of secret created to pull private images
+ #  imagePullSecrets: [ "name" : "" ]
+
+  image:
+    registry:
+    repository: otawg
+    tag: 23.4.0
+    pgInitContainer:
+      registry:
+      repository: otawg-pg-init
+      tag: 23.4.0
+    awgInitContainer:
+      registry:
+      repository: otawg-init
+      tag: 23.4.0
+    appsInitContainer:
+      registry:
+      repository: dctm-d2-mobile-init-container
+      tag: 23.4
+xplore:
+  image:
+    repository: *docker_repo
+    pullPolicy: *pull_policy_type
+    pullSecrets: *pull_secret_name
+    indexserver:
+      name: dctm-xplore-indexserver
+      tag: 22.1.0040
+    indexagent:
+      name: dctm-xplore-indexagent
+      tag: 22.1.0040
+    cps:
+      name: dctm-xplore-cps
+      tag: 22.1.0040
+  graylog:
+    image: *graylog_image
+
+otiv:
+    global:
+      imageBaseTag: 23.4.0
+      imageSource: dctmimagedb.azurecr.io
+      ## the default pull policy for images; can be overridden by per service by setting <service>.image.pullPolicy
+      imagePullPolicy: *pull_policy_type
+
+      ## name of the secret needed to pull from docker registry
+      imagePullSecret: *pull_secret_name
+      
+      otdsInit:
+        image:
+          name: otiv-init-otds
+          tag: 23.4.0
+    amqp:
+      image:
+        name: otiv-amqp
+        tag: 23.4.0
+    viewer:
+      image:
+        name: otiv-viewer
+        tag: 23.4.0
+
+    markup:
+      image:
+        name: otiv-markup
+        tag: 23.4.0
+
+    config:
+      image:
+        name: otiv-config
+        tag: 23.4.0
+
+    highlight:
+      image:
+        name: otiv-highlight
+        tag: 23.4.0
+
+    publication:
+      image:
+        name: otiv-publication
+        tag: 23.4.0
+
+    publisher:
+      image:
+        name: otiv-publisher
+        tag: 23.4.0
+
+    asset:
+      image:
+        name: otiv-asset
+        tag: 23.4.0
+
+smartviewm365:
+  images:
+    repository : *docker_repo
+    name : *appserverImageName
+    tag : *appserverImageTag
+    pullPolicy: *pull_policy_type
+    pullSecrets: *pull_secret_name
+  extensionImage:
+    repository: *docker_repo
+    name : dctm-smartviewm365
+    tag : 23.4
+    pullPolicy: *pull_policy_type 
+  extraInitContainers: []
+  
+bps:
+  initImage:
+    repository: *docker_repo
+    name: dctm-xcp-apphost
+    tag: 23.4
+    pullPolicy: *pull_policy_type
+    pullSecrets: *pull_secret_name    
+  image:
+    repository: *docker_repo
+    name: dctm-xcp-bps
+    tag: 23.4
+    pullPolicy: *pull_policy_type
+    pullSecrets: *pull_secret_name    
+ 
+xda:
+  image:
+    repository: *docker_repo
+    name: dctm-xcp-xda
+    tag: 23.4
+    pullPolicy: *pull_policy_type
+    pullSecrets: *pull_secret_name   

@@ -1,0 +1,6 @@
+apiVersion: v2
+appVersion: "1"
+description: Blazon Asset Service
+name: asset
+type: application
+version: 0.1.0

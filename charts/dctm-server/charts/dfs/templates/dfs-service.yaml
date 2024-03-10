@@ -1,0 +1,17 @@
+#Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.serviceName }}
+spec:
+  type: ClusterIP
+  sessionAffinity: ClientIP
+  ports:
+  - name: dfs-http-port
+    port: {{ .Values.service.ports.httpPort }}
+    targetPort: dfs-http-port
+  - name: dfs-secure-port
+    port: {{ .Values.service.ports.sslPort }}
+    targetPort: dfs-secure-port
+  selector:
+    app: {{ .Values.serviceName }}

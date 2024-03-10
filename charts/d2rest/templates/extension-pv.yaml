@@ -1,0 +1,17 @@
+{{- if .Values.extension.staticPVName }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.extension.staticPVName }}
+spec:
+  capacity:
+    storage: {{ .Values.extension.PVCSize }}
+  volumeMode: Filesystem
+  accessModes:
+    - {{ .Values.extension.PVCAccessMode }}
+  persistentVolumeReclaimPolicy: {{ .Values.extension.reclaimPolicy }}
+  storageClassName: {{ .Values.extension.PVCStorageClass }}
+  csi:
+    driver: {{ .Values.extension.awsEFSCSIDriver }}
+    volumeHandle: {{ .Values.extension.awsEFSCSIHandle }}
+{{- end }}

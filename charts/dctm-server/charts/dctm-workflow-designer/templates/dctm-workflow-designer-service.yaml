@@ -1,0 +1,43 @@
+#Service - Headless service to make apphost ping-able from xDA pod
+####apiVersion: v1
+####kind: Service
+####metadata:
+####  name: {{ .Values.prefix }}
+####  labels:
+####    app: {{ .Values.prefix }}
+####spec:
+####  ports:
+####  - port: 8080
+####    name: apphostport
+####  clusterIP: None
+####  selector:
+####    app: {{ .Values.prefix }}
+####---
+#####Cluster IP Service
+####apiVersion: v1
+####kind: Service
+####metadata:
+####  name: {{ .Values.prefix }}-cip-service
+####spec:
+####  type: ClusterIP
+####  sessionAffinity: ClientIP
+####  ports:
+####  - port: 8080
+####    name: apphostport
+####    targetPort: 8080
+####  selector:
+####    app: {{ .Values.prefix }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.prefix }}-service
+  labels:
+    app: {{ .Values.prefix }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    name: webdesignerport
+    targetPort: 8080
+  selector:
+    app: {{ .Values.prefix }}

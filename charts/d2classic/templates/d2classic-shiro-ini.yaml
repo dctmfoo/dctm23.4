@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2classic-shiro-ini
+  {{- template "configMap.labels" . }}
+data:
+  shiro.ini: |-
+    {{- if eq .Values.shiro.SSOType "OTDS" }}
+    [main]
+    X3-OTDS=com.emc.x3.portal.server.filters.authc.X3OTDSAuthenticationFilter
+    X3-OTDS.defaultRepository={{ .Values.docbase.name }}
+    X3-OTDS.apiSvc={{ .Values.shiro.OTDS.apiSvc }}
+    X3-OTDS.authSvc={{ .Values.shiro.OTDS.authSvcProtocol }}://{{ .Values.shiro.OTDS.authSvc }}
+    X3-OTDS.clientId={{ .Values.shiro.OTDS.clientId }}
+    {{- if .Values.env.subscriptionName }} 
+    X3-OTDS.subscriptionName={{ .Values.env.subscriptionName }} 
+    {{- end }}
+    X3-OTDS.appName={{ .Values.shiro.OTDS.appName }}
+    X3-OTDS.userLoginNameMapping=oTExternalID3
+    #X3-OTDS.forceLogOutFromOtds
+    #X3-OTDS.resourceId
+    [urls]
+    /**/servlet/CheckInWithLifeCycle = anon
+    /**/servlet/Checkin = anon
+    /**/servlet/CheckinPdfFile = anon
+    /**/servlet/DoOperation = anon
+    /**/servlet/Download = anon
+    /**/servlet/ExportContent = anon
+    /**/servlet/ExportDictionary = anon
+    /**/servlet/ExportTaxonomy = anon
+    /**/servlet/ExportValues = anon
+    /**/servlet/ExtractProperties = anon
+    /**/servlet/GetBocsUploadUrl = anon
+    /**/servlet/ImportDictionary = anon
+    /**/servlet/ImportStructure = anon
+    /**/servlet/ImportTaxonomy = anon
+    /**/servlet/ImportValues = anon
+    /**/servlet/LoadOnStartup = anon
+    /**/servlet/RefreshCache = anon
+    /**/servlet/ReloadOptions = anon
+    /**/servlet/SetFile = anon
+    /**/servlet/ViewLinkDestination = anon
+    /**/logoutService = anon
+    /**/ws = anon
+    /**/ws/* = anon
+    /d2_otds.html = anon
+    /ready = anon
+    /live = anon
+    /d2_external_signoff_page.jsp = anon
+    /resources/** = anon
+    /** = X3-OTDS
+    {{- end }}
+    {{- if eq .Values.shiro.SSOType "SAML" }}
+    [main]
+    X3-SAML=com.emc.x3.portal.server.filters.authc.X3SAMLHttpAuthenticationFilter
+    X3-SAML.defaultRepository={{ .Values.defaultRepository }}
+    X3-SAML.idpAuthenticationUrl=https://d2-adfs.d2saml.com/adfs/ls
+    X3-SAML.idpLogoutUrl=https://d2-adfs.d2saml.com/adfs/ls
+    X3-SAML.assertionConsumerServiceUrl={{ .Values.shiro.SAML.assertionConsumerServiceUrl }}
+    X3-SAML.logoutResponseEndpointUrl={{ .Values.shiro.SAML.logoutResponseEndpointUrl }}
+    X3-SAML.issuer={{ .Values.shiro.SAML.issuer }}
+    X3-SAML.forceLogOutFromIdp=false
+    X3-SAML.forceAuthentication=true
+    X3-SAML.idpTokenSigningCertificate={{ .Values.shiro.SAML.idpTokenSigningCertificate }}
+    X3-SAML.jksLocation={{ .Values.shiro.SAML.jksLocation }}
+    X3-SAML.serviceProviderIdentifier={{ .Values.shiro.SAML.serviceProviderIdentifier }}
+    [urls]
+    /**/servlet/CheckInWithLifeCycle = anon
+    /**/servlet/Checkin = anon
+    /**/servlet/CheckinPdfFile = anon
+    /**/servlet/DoOperation = anon
+    /**/servlet/Download = anon
+    /**/servlet/ExportContent = anon
+    /**/servlet/ExportDictionary = anon
+    /**/servlet/ExportTaxonomy = anon
+    /**/servlet/ExportValues = anon
+    /**/servlet/ExtractProperties = anon
+    /**/servlet/GetBocsUploadUrl = anon
+    /**/servlet/ImportDictionary = anon
+    /**/servlet/ImportStructure = anon
+    /**/servlet/ImportTaxonomy = anon
+    /**/servlet/ImportValues = anon
+    /**/servlet/LoadOnStartup = anon
+    /**/servlet/RefreshCache = anon
+    /**/servlet/ReloadOptions = anon
+    /**/servlet/SetFile = anon
+    /**/servlet/ViewLinkDestination = anon
+    /**/logoutService = anon
+    /**/ws = anon
+    /**/ws/* = anon
+    /d2_otds.html = anon
+    /ready = anon
+    /live = anon
+    /d2_external_signoff_page.jsp = anon
+    /resources/** = anon
+    /** = X3-SAML
+    {{- end }}

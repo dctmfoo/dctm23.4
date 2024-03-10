@@ -1,0 +1,9 @@
+{{- if .Values.logrotate.enable }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configMap.logrotate_configmap_name }}
+data:
+  logrotate: |-
+{{ .Values.logrotate.configmap | indent 4 }}
+{{- end }}

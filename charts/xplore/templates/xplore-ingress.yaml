@@ -1,0 +1,69 @@
+{{- if eq .Values.ingress.enable true }}
+{{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+apiVersion: networking.k8s.io/v1
+{{ else }}
+apiVersion: extensions/v1beta1
+{{ end }}
+kind: Ingress
+metadata:
+  name: {{ .Values.ingress.name }}
+{{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+  annotations:
+{{- else }}
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: route
+    nginx.ingress.kubernetes.io/session-cookie-hash: sha1
+{{- end }}    
+spec:
+  {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+  ingressClassName: nginx
+  {{- end }}
+  rules:
+  - host: {{ .Values.ingress.hostName }}.{{ .Values.ingress.domain }}
+    http:
+      paths:
+      - path: /dsearchadmin
+      {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: {{ .Values.service.indexserver.name }}
+            port:
+              number: {{ .Values.service.indexserver.port }}
+      {{- else }}
+        
+        backend:
+          serviceName: {{ .Values.service.indexserver.name }}
+          servicePort: {{ .Values.service.indexserver.port }}
+      {{- end }}
+      - path: /dsearch
+      {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: {{ .Values.service.indexserver.name }}
+            port:
+              number: {{ .Values.service.indexserver.port }}
+      {{- else }}
+        
+        backend:
+          serviceName: {{ .Values.service.indexserver.name }}
+          servicePort: {{ .Values.service.indexserver.port }}
+      {{- end }}    
+      - path: /IndexAgent
+      {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: {{ .Values.service.indexagent.name }}
+            port:
+              number: {{ .Values.service.indexagent.port }}
+      {{- else }}        
+        
+        backend:
+          serviceName: {{ .Values.service.indexagent.name }}
+          servicePort: {{ .Values.service.indexagent.port }}
+      {{- end }}  
+    
+{{ end }}

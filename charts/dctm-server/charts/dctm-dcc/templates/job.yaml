@@ -1,0 +1,201 @@
+{{- if and (eq .Values.coreNotification.enabled true) (eq .Values.coreNotification.dbSchemaInit.enabled true) }}   
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dbschema-{{ .Values.coreNotification.prefix }}
+spec:
+  template:
+    spec:
+      containers:
+        - name: dbschema-{{ .Values.coreNotification.prefix }}
+          image: {{ .Values.database.dbSchemaInit.image.path }}:{{ .Values.database.dbSchemaInit.image.tag }}
+          imagePullPolicy: Always
+          env:
+          - name: db_host
+            value: "{{ .Values.database.db_host }}"
+          - name: db_port
+            value: "{{ .Values.database.db_port }}"
+          - name: db_usr
+            value: "{{ .Values.database.username }}"
+          - name: db_pass
+            valueFrom:
+              secretKeyRef:
+                name: db-secret
+                key: db-pass
+          - name: db_name_core_notification
+            value: "{{ .Values.coreNotification.dbSchemaInit.dbname }}"
+          command: ["/bin/bash", "DbSchemaCoreNotification.sh"]
+      volumes:
+        - name: db-secret
+          secret:
+            secretName: db-secret
+      restartPolicy: Never
+  backoffLimit: 4
+{{ end }}  
+---
+
+{{- if and (eq .Values.metadata.enabled true) (eq .Values.metadata.dbSchemaInit.enabled true) }}     
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dbschema-{{ .Values.metadata.prefix }}
+spec:
+  template:
+    spec:
+      containers:
+        - name: dbschema-{{ .Values.metadata.prefix }}
+          image: {{ .Values.database.dbSchemaInit.image.path }}:{{ .Values.database.dbSchemaInit.image.tag }}
+          imagePullPolicy: Always
+          env:
+          - name: db_host
+            value: "{{ .Values.database.db_host }}"
+          - name: db_port
+            value: "{{ .Values.database.db_port }}"
+          - name: db_usr
+            value: "{{ .Values.database.username }}"
+          - name: db_pass
+            valueFrom:
+              secretKeyRef:
+                name: db-secret
+                key: db-pass
+          - name: db_name_metadata
+            value: "{{ .Values.metadata.dbSchemaInit.dbname }}"
+          command: ["/bin/bash", "DbSchemaMetadataService.sh"]
+      volumes:
+        - name: db-secret
+          secret:
+            secretName: db-secret
+      restartPolicy: Never
+  backoffLimit: 4
+{{ end }}  
+---
+
+{{- if and (eq .Values.syncagent.enabled true) (eq .Values.syncagent.dbSchemaInit.enabled true) }}     
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dbschema-{{ .Values.syncagent.prefix }}
+spec:
+  template:
+    spec:
+      containers:
+        - name: dbschema-{{ .Values.syncagent.prefix }}
+          image: {{ .Values.database.dbSchemaInit.image.path }}:{{ .Values.database.dbSchemaInit.image.tag }}
+          imagePullPolicy: Always
+          env:
+          - name: db_host
+            value: "{{ .Values.database.db_host }}"
+          - name: db_port
+            value: "{{ .Values.database.db_port }}"
+          - name: db_usr
+            value: "{{ .Values.database.username }}"
+          - name: db_pass
+            valueFrom:
+              secretKeyRef:
+                name: db-secret
+                key: db-pass
+          
+          - name: db_name_syncagent
+            value: "{{ .Values.syncagent.dbSchemaInit.dbname }}"
+          command: ["/bin/bash", "DbSchemaSyncagent.sh"]
+      volumes:
+        - name: db-secret
+          secret:
+            secretName: db-secret
+      restartPolicy: Never
+  backoffLimit: 4
+{{ end }}  
+---
+
+{{- if and (eq .Values.syncnshareManual.enabled true) (eq .Values.syncnshareManual.dbSchemaInit.enabled true) }}      
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dbschema-{{ .Values.syncnshareManual.prefix }}
+spec:
+  template:
+    spec:
+      containers:
+        - name: dbschema-{{ .Values.syncnshareManual.prefix }}
+          image: {{ .Values.database.dbSchemaInit.image.path }}:{{ .Values.database.dbSchemaInit.image.tag }}
+          imagePullPolicy: Always
+          env:
+          - name: db_host
+            value: "{{ .Values.database.db_host }}"
+          - name: db_port
+            value: "{{ .Values.database.db_port }}"
+          - name: db_usr
+            value: "{{ .Values.database.username }}"
+          - name: db_pass
+            valueFrom:
+              secretKeyRef:
+                name: db-secret
+                key: db-pass
+          - name: db_name_syncagentmanual
+            value: "{{ .Values.syncnshareManual.dbSchemaInit.dbname }}"
+          command: ["/bin/bash", "DbSchemaSyncagentManual.sh"]
+      volumes:
+        - name: db-secret
+          secret:
+            secretName: db-secret
+      restartPolicy: Never
+  backoffLimit: 4
+{{ end }}
+---
+
+{{- if eq .Values.dardeploy.enabled true }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.prefix }}-{{ .Values.dardeploy.prefix }}
+spec:
+  template:
+    spec:
+      containers:
+        - name: {{ .Values.dardeploy.prefix }}
+          image: {{ .Values.dardeploy.image.path }}:{{ .Values.dardeploy.image.tag }}
+          imagePullPolicy: Always
+          env:
+          - name: DM_HOME
+            value: /usr/src/dcc
+          - name: DOCBASE_NAME
+            value: "{{ .Values.dardeploy.docbase_name }}"
+          - name: INSTALL_OWNER
+            value: "{{ .Values.dardeploy.install_owner }}"
+          - name: INSTALL_OWNER_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: dar-secret
+                key: install_owner_password
+          - name: dartypes
+            value: /usr/src/dcc/ExternalShare/ExternalShare.dar
+          - name: darsyncgroups
+            value: /usr/src/dcc/DccSyncUsers/dccSyncUsers.dar
+          - name: containerBaseDfcDir
+            value: /usr/src/dcc/ComposerHeadless/plugins/com.emc.ide.external.dfc_1.0.0/documentum.config       
+          command: ["/bin/bash", "dardeloymentscript.sh"]
+          volumeMounts:
+          - mountPath: /usr/src/dcc/ComposerHeadless/plugins/com.emc.ide.external.dfc_1.0.0/documentum.config/dfc.properties
+            name: dfc-config-map
+            subPath: dfc.properties
+        {{- if eq .Values.dardeploy.certificate.useCertificate true }}
+          - name: {{ .Values.dardeploy.certificate.dbrDataPVCName }}
+            mountPath: /opt/dctm/certificate
+            subPath: certificate/{{ .Values.dardeploy.certificate.dbrDataPVCName }}
+        {{ end }}
+      volumes:  
+      - name: dfc-config-map
+      {{- if eq .Values.dardeploy.cs.useCSDfcConfigMap true }}
+        configMap:
+          name: {{ .Values.dardeploy.cs.configMapName}}
+      {{ else }}
+        configMap:
+          name: {{ .Values.dardeploy.prefix }}-configmap
+      {{ end }}
+      {{- if eq .Values.dardeploy.certificate.useCertificate true }}
+      - name: {{ .Values.dardeploy.certificate.dbrDataPVCName }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.dardeploy.certificate.dbrServiceName }}-pvc
+      {{ end }}
+      restartPolicy: Never
+{{ end }}

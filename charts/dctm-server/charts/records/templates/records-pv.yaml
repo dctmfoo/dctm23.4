@@ -1,0 +1,17 @@
+{{- if .Values.persistentVolumeClaim.awsEFSCSIHandle }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.persistentVolumeClaim.pvcName }}-pv
+spec:
+  capacity:
+    storage: {{ .Values.persistentVolumeClaim.size }}
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: {{ .Values.persistentVolumeClaim.storageClass }}
+  csi:
+    driver: {{ .Values.persistentVolumeClaim.awsEFSCSIDriver }}
+    volumeHandle: {{ .Values.persistentVolumeClaim.awsEFSCSIHandle }}
+{{- end }}

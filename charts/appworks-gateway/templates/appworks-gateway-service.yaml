@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "appworks-gateway.fullname" . }}
+  labels: {{ include "appworks-gateway.labels" . | nindent 4 }}
+spec:
+  ports:
+    - port: {{ .Values.service.port | default 8080 }}
+      targetPort: 8080
+  type: {{ default .Values.global.serviceType .Values.service.type }}
+  selector:
+    app.kubernetes.io/name: {{ include "appworks-gateway.name" . }}

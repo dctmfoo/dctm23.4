@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configMap.acs_configMap_name }}  
+data:
+  log4j: |
+    rootLogger.level = {{ .Values.acs.log4j.rootLogLevel }}
+    rootLogger.appenderRefs = A1, F1
+    rootLogger.appenderRef.A1.ref = STDOUT
+    rootLogger.appenderRef.F1.ref = File
+    monitorInterval = 5
+
+    log4j.additivity.tracing=true
+    log4j.category.tracing=WARN, FILE_TRACE
+
+    #------------------- CONSOLE --------------------------
+    appender.A1.type=Console
+    appender.A1.name=STDOUT
+    appender.A1.layout.type=PatternLayout
+    appender.A1.layout.pattern=%d{ABSOLUTE} %5p [%t] %c - %m%n
+    appender.A1.filter.threshold.type = ThresholdFilter
+    appender.A1.filter.threshold.level = ERROR
+
+    #------------------- FILE --------------------------
+
+    appender.F1.type=RollingFile
+    appender.F1.name=File
+    appender.F1.fileName=/opt/dctm/{{ .Values.jmsVersion }}/logs/acs.log
+    appender.F1.filePattern=${filename}.%d{yyyy-MM-dd}
+    appender.F1.layout.type=PatternLayout
+    appender.F1.layout.pattern=%d{ABSOLUTE} %5p [%t] %c - %m%n
+    appender.F1.policies.type=Policies
+    appender.F1.policies.time.type=TimeBasedTriggeringPolicy
+    appender.F1.policies.time.interval=1
+    appender.F1.policies.time.modulate=true
+    appender.F1.policies.size.type=SizeBasedTriggeringPolicy
+    appender.F1.policies.size.size=10MB
+    appender.F1.strategy.type=DefaultRolloverStrategy
+    appender.F1.strategy.max=5
+
+    #logger.ACS_LOG.additivity = false
+
+    appender.acs.type=RollingFile
+    appender.acs.fileName=/opt/dctm/{{ .Values.jmsVersion }}/logs/AcsServer.log
+    appender.acs.name=AcsFile
+    appender.acs.filePattern=${filename}.%d{yyyy-MM-dd}
+    appender.acs.layout.type=PatternLayout
+    appender.acs.layout.pattern=%d{ABSOLUTE} %5p [%t] %c - %m%n
+    appender.acs.policies.type=Policies
+    appender.acs.policies.time.type=TimeBasedTriggeringPolicy
+    appender.acs.policies.time.interval=1
+    appender.acs.policies.time.modulate=true
+    appender.acs.policies.size.type=SizeBasedTriggeringPolicy
+    appender.acs.policies.size.size=10MB
+    appender.acs.strategy.type=DefaultRolloverStrategy
+    appender.acs.strategy.max=5
+
+    loggers=acs,atmos,esu,tracing
+
+    logger.acs.name = com.documentum.acs
+    logger.acs.level = {{ .Values.acs.log4j.acsLogLevel }}
+    logger.acs.additivity = true
+    logger.acs.appenderRefs = acs
+    logger.acs.appenderRef.acs.ref = AcsFile
+
+    logger.atmos.name = com.documentum.content.store.plugin.atmos
+    logger.atmos.level = {{ .Values.acs.log4j.atmosLogLevel }}
+    logger.atmos.additivity = true
+    logger.atmos.appenderRefs = atmos
+    logger.atmos.appenderRef.atmos.ref = AcsFile
+
+    #loggers=esu
+    logger.esu.name = com.emc.esu
+    logger.esu.level = {{ .Values.acs.log4j.atmosLogLevel }}
+    logger.esu.additivity = true
+    logger.esu.appenderRefs = esu
+    logger.esu.appenderRef.esu.ref = AcsFile
+
+    logger.tracing.name = tracing
+    logger.tracing.level = WARN
+    logger.tracing.additivity = true
+    logger.tracing.appenderRefs = tracing
+    logger.tracing.appenderRef.tracing.ref = FileTrace
+
+    #------------------- FILE_TRACE --------------------------
+    appender.FILE_TRACE.type=RollingFile
+    appender.FILE_TRACE.name=FileTrace
+    appender.FILE_TRACE.fileName=/opt/dctm/{{ .Values.jmsVersion }}/logs/acs_trace.log
+    appender.FILE_TRACE.filePattern=${filename}.%d{yyyy-MM-dd}
+    appender.FILE_TRACE.layout.type=PatternLayout
+    appender.FILE_TRACE.layout.pattern=%d{ABSOLUTE} %5p [%t] %c - %m%n
+    appender.FILE_TRACE.policies.type=Policies
+    appender.FILE_TRACE.policies.time.type=TimeBasedTriggeringPolicy
+    appender.FILE_TRACE.policies.time.interval=1
+    appender.FILE_TRACE.policies.time.modulate=true
+    appender.FILE_TRACE.policies.size.type=SizeBasedTriggeringPolicy
+    appender.FILE_TRACE.policies.size.size=100MB
+    appender.FILE_TRACE.strategy.type=DefaultRolloverStrategy
+    appender.FILE_TRACE.strategy.max=5

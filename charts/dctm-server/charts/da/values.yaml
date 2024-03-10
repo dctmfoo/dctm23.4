@@ -1,0 +1,185 @@
+#######################################################
+# Documentum Administrator default values.            #
+# This is This is a YAML-formatted file.              #
+# Declare variables to be passed into your templates. #
+#######################################################
+
+persistentVolumeClaim:  
+  pvcName: da-pvc
+  accessMode: ReadWriteOnce
+  size: 1Gi
+  storageClass: trident-nfs
+  awsEFSCSIDriver: efs.csi.aws.com
+  awsEFSCSIHandle:
+ 
+service:
+  name: da-svc
+  type: ClusterIP
+  port: 8080
+  
+serviceAccount:
+    createserviceaccount: false
+    serviceAccountName: documentum-sa
+
+ingress:
+  name: da-ingress
+  # If common ingress created in the cluster/namespace then ensure this is false.
+  enable: true
+  ingressHostName: da-ingress-host
+  clusterDomainName: webtop.cfcr-lab.bp-paas.otxlab.net
+  path: /
+  annotations: 
+    nginx.ingress.kubernetes.io/proxy-body-size: 5g
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: 30m
+    # Uncomment for deploying on azure.
+    # kubernetes.io/ingress.class: nginx    
+    # nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # kubernetes.io/tls-acme: "true"
+
+cs:  
+  useCSDfcConfigMap: true             
+  configMapName: csdbr.configmap
+  csSecretConfigName: cs-secret-config  
+  allowTrustedLogin: false
+
+##################################################################################################
+# set the useCertificate to true if this DA is getting configured to SSL enabled CS.             # 
+# The dbrServiceName & dbrDataPVCName needs to be updated from the Docbroker Charts accordingly. # 
+# dfc.properties values should be updated manually if connecting to SSL enabled CS &             #
+# the useCSDfcConfigMap need to be reset to false.                                               #
+##################################################################################################
+
+certificate:
+  useCertificate: false
+  dbrServiceName: dbr
+  dbrDataPVCName: certdbr-data-pvc
+  
+####################################################################################
+# Suppose Content Server config map not used                                       #
+# then uncomment and update the below listed parameters with appropriate values of # 
+# dfc.properties and ensure to toggle the flag useDfcConfigMap to false.           #
+####################################################################################
+#dfc:  
+#  properties:
+#  - dfc.data.dir=/opt/dctm
+#  - dfc.tokenstorage.dir=/opt/dctm/apptoken
+#  - dfc.tokenstorage.enable=false
+#  - dfc.security.ssl.use_anonymous_cipher=true
+#  - dfc.security.ssl.truststore=/opt/dctm/certificate/dfc.keystore
+#  - dfc.security.ssl.use_existing_truststore=false
+#  - dfc.docbroker.host[0]=<DOCBROKER_SERVICE_NAME>
+#  - dfc.docbroker.port[0]=<PORT_NO>
+#  - dfc.crypto.repository=<CRYPTO_REPO_NAME>
+#  - dfc.globalregistry.repository=<GLOBAL_REPO>
+#  - dfc.session.secure_connect_default=try_secure_first
+#  - dfc.globalregistry.username=dm_bof_registry
+#  - dfc.session.allow_trusted_login=false
+   
+deployment:  
+  name: da
+  appName: da
+  replicaCount: 1
+  strategyType: RollingUpdate
+  
+images:
+  da:
+    repository: artifactory.otxlab.net
+    name: bpdockerhub/dctm-admin
+    tag: 23.4
+    pullPolicy: IfNotPresent
+    imagePullSecrets:
+  graylog:
+    enable: true
+    image: artifactory.otxlab.net/bpdockerhub/graylog-sidecar@sha256:d8ed2bf68399e34bafc68f883d8f4fb14feb9575e78d63722e544c1529f37db9
+    pullPolicy: IfNotPresent
+    name: graylog-sidecar
+    server: 10.9.57.15
+    port: 9000
+    tags: "[\"linux\",\"apache\"]"
+    userhomedir: /home/daadmin
+   
+containers:
+  da:
+    name: da
+    kubernetes: true
+    externalFolderPath: /opt/tomcat/webapps/da/external-configurations    
+    containerPort: 8080
+    docbaseName: <DOCBASE_NAME>
+    probing:
+      healthPath: /da/health
+      healthPort: 8080
+      failureThreshold: 2
+      successThreshold: 1
+      timeoutSeconds: 120
+      readinessProbe:      
+        initialDelaySeconds: 150
+        periodSeconds: 150        
+      livenessProbe:
+        initialDelaySeconds: 150
+        periodSeconds: 120
+
+# OTDS SSO details.
+# Following mentioned values will be updated in otdsoauth.properties file of DA if enabled.
+otds:
+  enable: false 
+  url: <OTDS_URL>
+  clientID: <CLIENT_ID>
+  authentication:
+    repoSelectionPageRequired: true
+    loginTicketTimeout: 250
+    
+lmsgcustomLog:
+    enable: false
+    loglocation: /opt/tomcat/logs
+    
+dctmreports:
+  enable: false 
+  url: https://<fully qualified ingress host>/dtr
+    
+###############################################################################
+# To update the wdk/app.xml file take hierarchal structure and form parameter #
+# as below. Exclude tags <scope> and <config>.                                #
+#<application>                                                                #
+#     <language>                                                              #
+#        <supported_locales>                                                  #
+#           <locale>                                                          #
+# this should be converted to application.language.supported_locales.locale   #
+# and add equals operator then value                                          #
+#                                                                             #
+###############################################################################
+wdkAppXmlConfig:  
+  tagsnvalues:
+  # Syntax for specifying both English and Japanese language pack 
+  # application.language.supported_locales.locale=[en_US, ja_JP]
+  - application.language.supported_locales.locale=[en_US]
+  - application.language.default_locale=en_US
+      
+# log4j2 logging config details.
+logging:  
+  rootLoggerLevel: WARN
+  consoleThresholdLevel: WARN
+  filename: documentum.log
+  logFileSize: 10MB
+  maxLogFiles: 5
+  
+newrelic:
+  enable: true
+  appName: DOCUMENTUM_DA-PROD-OT2_CFCR_BP2-ECD
+  licenseKeyName: newrelicLicensekey
+  proxyHost: bp2-prox01-l001.otxlab.net
+  proxyPort: 3128
+  proxyScheme: http
+
+resources:
+  limits:
+    cpu: 400m
+    memory: 4Gi
+  requests:
+    cpu: 400m
+    memory: 4Gi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

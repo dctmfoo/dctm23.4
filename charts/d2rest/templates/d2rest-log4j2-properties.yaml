@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2rest-log4j2-properties
+  {{- template "configMap.labels" . }}
+data:
+  log4j2.properties: |-
+    #
+    # Copyright (c) 2017. Open Text Corporation. All Rights Reserved.
+    #
+    # Set root logger to {{ .Values.log4j.logLevel }} and add an appender called A1.
+    
+    rootLogger.level= {{ .Values.log4j.logLevel }}
+    rootLogger.appenderRefs = R, A1
+    rootLogger.appenderRef.A1.ref = STDOUT
+    rootLogger.appenderRef.R.ref = File
+    
+    # You can add config to specify the log level for specific Service,
+    # for example the following config is to assign DEBUG level for REST Service
+    
+    logger.package.name = com.emc.documentum.rest
+    logger.package.level = {{ .Values.log4j.logLevel }}
+    logger.package.appenderRef.R.ref = File
+    logger.package.appenderRef.A1.ref = STDOUT
+    
+    # A1 is set to be a ConsoleAppender. A1 uses PatternLayout
+    #------------------- CONSOLE --------------------------
+    
+    appender.A1.type=Console
+    appender.A1.name=STDOUT
+    appender.A1.layout.type=PatternLayout
+    appender.A1.layout.pattern=%d %-4r [%t] %-5p %c %x - %m%n
+    appender.A1.filter.threshold.type=ThresholdFilter
+    appender.A1.filter.threshold.level= INFO
+    
+    #------------------- FILE --------------------------
+    
+    appender.R.type=RollingFile
+    appender.R.name=File
+    appender.R.fileName= {{ .Values.log4j.file | toString | replace "[" "" | replace "]" "" | replace "/ " "/" | replace " /" "/" }}
+    appender.R.filePattern= {{ .Values.log4j.file | toString | replace "[" "" | replace "]" "" | replace "/ " "/" | replace " /" "/" }}.%i
+    appender.R.layout.type=PatternLayout
+    appender.R.layout.pattern=%d %p %t %c - %m%n
+    appender.R.policies.type=Policies
+    appender.R.policies.size.type=SizeBasedTriggeringPolicy
+    appender.R.policies.size.size=100MB
+    appender.R.strategy.type=DefaultRolloverStrategy
+    appender.R.strategy.max=3
+    
+    
+    
+
+{{- $configFileOverridesFile := printf "%s/%s" .Values.configFileOverrideFilesDir "log4j2.properties" }}
+{{- $configFileMsg0 := printf "\n\n##### Begin lines added from %s\n" $configFileOverridesFile }}
+{{- $configFileMsg1 := printf "##### End lines added from %s" $configFileOverridesFile }}
+{{- $configFileLinesToAppend := .Files.Get $configFileOverridesFile }}
+{{- if $configFileLinesToAppend }}
+{{ $configFileMsg0 | indent 4 }}
+{{ $configFileLinesToAppend | indent 4 }}
+{{ $configFileMsg1 | indent 4 }}
+{{- end }}

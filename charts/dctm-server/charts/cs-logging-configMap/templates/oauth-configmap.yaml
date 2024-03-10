@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configMap.oauth_configMap_name }}  
+data:
+  log4j: |
+    rootLogger.level={{ .Values.oauth.log4j.rootLogLevel }}
+    property.logfolderpath=/opt/dctm/{{ .Values.jmsVersion }}/logs
+    monitorInterval=30
+    rootLogger.appenderRefs=F1
+    rootLogger.appenderRef.F1.ref=File
+    
+    #----------------------------OAUTH_TRACE --------------------------    
+    appender.OAUTH_TRACE.type=RollingFile
+    appender.OAUTH_TRACE.name=File
+    appender.OAUTH_TRACE.filePattern=${logfolderpath}/oauth.log.%i.%d{yyyy-MM-dd}
+    appender.OAUTH_TRACE.layout.type=PatternLayout
+    appender.OAUTH_TRACE.filter.threshold.type=ThresholdFilter
+    appender.OAUTH_TRACE.filter.threshold.level=DEBUG
+    appender.OAUTH_TRACE.fileName=${logfolderpath}/oauth.log
+    appender.OAUTH_TRACE.layout.pattern=%d{ABSOLUTE} %5p [%t] %c - %m%n
+    appender.OAUTH_TRACE.policies.type=Policies
+    appender.OAUTH_TRACE.policies.time.type=TimeBasedTriggeringPolicy
+    appender.OAUTH_TRACE.policies.time.interval=1
+    appender.OAUTH_TRACE.policies.time.modulate=true
+    appender.OAUTH_TRACE.policies.size.type=SizeBasedTriggeringPolicy
+    appender.OAUTH_TRACE.policies.size.size=10MB
+    appender.OAUTH_TRACE.strategy.type=DefaultRolloverStrategy
+    appender.OAUTH_TRACE.strategy.max=5

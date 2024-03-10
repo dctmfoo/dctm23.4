@@ -1,0 +1,25 @@
+#DBR PVC CERTIFICATE
+{{ if eq .Values.certificate.use_certificate true }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.serviceName}}-pvc
+spec:
+  accessModes:
+    - {{ .Values.persistentVolume.pvcAccessModes }}
+{{ if .Values.persistentVolume.pvcStorageClass }}
+  storageClassName: {{ .Values.persistentVolume.pvcStorageClass }}
+{{ else }}
+  storageClassName: {{ .Values.persistentVolume.storageClass }}
+{{ end }}
+{{ if .Values.persistentVolume.existVolumePv }}
+  volumeName: {{ .Values.persistentVolume.existVolumePv }}
+{{ end }}
+  resources:
+    requests:
+{{ if .Values.persistentVolume.pvcStorageSize }}
+      storage: {{ .Values.persistentVolume.pvcStorageSize }}
+{{ else }}
+      storage: {{ .Values.persistentVolume.size }}
+{{ end }}
+{{ end }}

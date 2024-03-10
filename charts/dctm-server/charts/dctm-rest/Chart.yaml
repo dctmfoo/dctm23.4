@@ -1,0 +1,8 @@
+apiVersion: v1
+appVersion: "23.4"
+description: Deploy Documentum REST Services
+maintainers:
+- email: rnara@opentext.com
+  name: Rama Krushna
+name: dctm-rest
+version: "23.4"

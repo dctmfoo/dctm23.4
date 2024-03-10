@@ -1,0 +1,283 @@
+{{- if and .Values.migration.enabled .Values.migration.preUpgradeJob.enabled }}
+{{- $customsecretname := default .Values.global.existingSecret .Values.customSecretName -}}
+# Service Account required for the pre-upgrade migrate job
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+{{- if .Values.global.namespace }}
+  namespace: {{ .Values.global.namespace }}
+{{- end }}
+  name: migrate-job-sa
+  labels:
+    {{- include (printf "%s%s" .Chart.Name ".labels" ) . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "-6"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+
+---
+# RBAC role to be assigned to service account for the pre-upgrade migrate job
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+{{- if .Values.global.namespace }}
+  namespace: {{ .Values.global.namespace }}
+{{- end }}
+  name: migrate-job-role
+  labels:
+    {{- include (printf "%s%s" .Chart.Name ".labels" ) . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "-6"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/exec", "pods/log", "configmaps", "secrets", "persistentvolumeclaims", "services"]
+  verbs: ["list", "get", "delete", "create", "patch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["get","list","delete","watch"]
+- apiGroups: ["apps"]
+  resources: ["statefulsets", "statefulsets/scale", "deployments", "deployments/scale"]
+  verbs: ["list", "get", "delete", "create", "patch"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "jobs/exec"]
+  verbs: ["list", "get", "delete", "create", "patch", "watch"]
+
+---
+# Binding the role with the service account for the pre-upgrade job
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+{{- if .Values.global.namespace }}
+  namespace: {{ .Values.global.namespace }}
+{{- end }}
+  name: migrate-job-rbac
+  labels:
+    {{- include (printf "%s%s" .Chart.Name ".labels" ) . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: migrate-job-role
+subjects:
+- kind: ServiceAccount
+  name: migrate-job-sa
+
+---
+# Pre-upgrade job definition
+apiVersion: batch/v1
+kind: Job
+metadata:
+{{- if .Values.global.namespace }}
+  namespace: {{ .Values.global.namespace }}
+{{- end }}
+  name: otds-migrate-job
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "-4"
+spec:
+  ttlSecondsAfterFinished: 0
+  template:
+    metadata:
+      annotations:
+      {{- if .Values.vault.agentInjector }}
+        vault.hashicorp.com/agent-inject: 'true'
+      {{- if .Values.vault.namespace }}
+        vault.hashicorp.com/namespace: {{ .Values.vault.namespace }}
+      {{- end }}
+        vault.hashicorp.com/auth-path: {{ .Values.vault.authpath }}
+        vault.hashicorp.com/role: {{ .Values.vault.role }}
+        vault.hashicorp.com/agent-cache-enable: 'true'
+      {{- end }}
+    spec:
+      securityContext:
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+        runAsNonRoot: true
+      restartPolicy: Never
+      serviceAccountName: migrate-job-sa
+      volumes:
+        - name: {{ template "otdsws.name" . }}-migrate-volume
+          secret:
+            secretName: {{ template "otdsws.name" . }}-migrate-job-yaml
+{{- if .Values.otdsdb.automaticDatabaseCreation.enabled }}
+        - name: scripts-vol
+          configMap:
+            name: {{ template "initdb.script" . }}
+{{- end }}
+{{- if .Values.otdsdb.automaticDatabaseCreation.enabled }}
+      initContainers:
+        - name: init-db
+          image: {{ include "db.image" . }}
+          imagePullPolicy: {{ default .Values.global.pullPolicy .Values.otdsdb.automaticDatabaseCreation.dbImage.pullPolicy }}
+          name: init-db
+          securityContext:
+            allowPrivilegeEscalation: false
+          env:
+          - name: DB_ADMIN_PASSWORD
+            valueFrom:
+              secretKeyRef:
+{{- if $customsecretname }}
+                name: {{ $customsecretname }}
+{{- else }}
+                name: {{ template "otdsws.name" . }}-secrets
+{{- end }}
+                key: DB_ADMIN_PASSWORD
+          - name: DB_NAME
+            value: {{ required "A valid otdsws.otdsdb.automaticDatabaseCreation.dbName is required!" .Values.otdsdb.automaticDatabaseCreation.dbName }}
+          - name: DB_ADMIN
+            value: {{ required "A valid otdsws.otdsdb.automaticDatabaseCreation.dbAdmin is required!" .Values.otdsdb.automaticDatabaseCreation.dbAdmin }}
+          - name: DB_USER
+            value: {{ required "A valid otdsws.otdsdb.username is required!" .Values.otdsdb.username }}
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+{{- if $customsecretname }}
+                name: {{ $customsecretname }}
+{{- else }}
+                name: {{ template "otdsws.name" . }}-secrets
+{{- end }}
+                key: OTDS_JAKARTA_PERSISTENCE_JDBC_PASSWORD
+          - name: DB_EXTENSIONS
+            value: {{ template "otds.database.extensions" . }}
+          - name: DB_TYPE
+            value: {{ required "A valid otdsws.otdsdb.automaticDatabaseCreation.dbType is required!" .Values.otdsdb.automaticDatabaseCreation.dbType }}
+          - name: DB_HOST
+            value: {{ include "otdsdb.url.host" . | indent 12 }}
+          - name: DB_PORT
+            value: {{ required "A valid otdsws.otdsdb.automaticDatabaseCreation.dbPort is required!" .Values.otdsdb.automaticDatabaseCreation.dbPort | quote }}
+{{- if .Values.otdsdb.useDefaultSchema }}
+          - name: USEDEFAULTSCHEMA
+            value: "true"
+{{- end }}
+          command:
+          - bash
+          args:
+          - /scripts/init-db.sh
+          volumeMounts:
+          - name: scripts-vol
+            mountPath: /scripts
+{{- end }}
+      containers:
+      - name:  otds-migrate-container
+        {{- $imageTag := include "preupgrade.job.image.tag" . -}}
+        {{- $imageSrc := default .Values.global.imageSourcePublic .Values.migration.preUpgradeJob.image.source -}}
+{{- if $imageSrc }}
+{{- if not (regexFind "\\/$" $imageSrc ) }}
+        image: {{ $imageSrc }}/{{ .Values.migration.preUpgradeJob.image.name }}:{{ $imageTag }}
+{{- else }}
+        image: {{ $imageSrc }}{{ .Values.migration.preUpgradeJob.image.name }}:{{ $imageTag }}
+{{- end }}
+{{- else }}
+        image: {{ .Values.migration.preUpgradeJob.image.name }}:{{ $imageTag }}
+{{- end }}
+        securityContext:
+          allowPrivilegeEscalation: false
+        env:
+{{- if .Values.migration.usingLegacyImage }}
+        - name: PVC_NAME
+          value: {{ .Values.migration.legacyImagePVC }}
+        - name: SECRET_NAME
+{{- if $customsecretname }}
+          value: {{ $customsecretname }}
+{{- else }}
+          value: {{ template "otdsws.name" . }}-secrets
+{{- end }}
+{{- end }}
+{{- if .Values.migration.serviceName }}
+        - name: OPENDJ_SVC_NAME
+          value: {{ .Values.migration.serviceName }}
+{{- end }}
+{{- if .Values.migration.deploymentName }}
+        - name: OTDS_DEPLOYMENT_NAME
+          value: {{ .Values.migration.deploymentName }}
+{{- else }}
+        - name: OTDS_DEPLOYMENT_NAME
+          value: {{ template "otdsws.name" . }}
+{{- end }}
+        volumeMounts:
+        - name: {{ template "otdsws.name" . }}-migrate-volume
+          mountPath: /tmp/migrate
+        command: ["sh"]
+        args: [ "-c",
+              "PRE_JOB_NAME=otds-migrate-job;
+               kubectl delete job migrate-job --ignore-not-found=true;
+               kubectl delete configmap migrate-job-configmap --ignore-not-found=true;
+               kubectl delete event --field-selector involvedObject.name=migrate-job --ignore-not-found=true;
+               {{- if (not $customsecretname) }}
+                kubectl delete secret migrate-job-secrets --ignore-not-found=true;
+               {{- end }}
+                 {{- if .Values.migration.usingLegacyImage }}
+                  output=`kubectl get pvc $PVC_NAME`;
+                  if [ \"$?\" -eq \"0\" ];
+                  then
+                      statefulset=`kubectl get statefulset | grep -Ee \"^otds \" | sed -n 1p | awk '{print $1}'`;
+                      if [ ! -z \"$statefulset\" ];
+                      then
+                        echo Extracting CryptSecret from pod;
+                        CRYPTSECRET=`kubectl exec $statefulset-0 -- cat /opt/otds/otdsws/WEB-INF/classes/otds.properties|grep Crypt|awk -F Secret= '{ print $2 }'`;
+                        if [ ! -z $CRYPTSECRET ];
+                        then
+                          kubectl get secret $SECRET_NAME -o yaml|grep -q OTDS_DIRECTORY_BOOTSTRAP_CRYPTSECRET;
+                          if [ \"$?\" -eq \"0\" ];
+                          then
+                            kubectl patch secret $SECRET_NAME --type=json -p='[{\"op\":\"replace\",\"path\":\"/data/OTDS_DIRECTORY_BOOTSTRAP_CRYPTSECRET\",\"value\":\"'$(echo -n $CRYPTSECRET|base64)'\"}]';
+                          else
+                            kubectl patch secret $SECRET_NAME --type=json -p='[{\"op\":\"add\",\"path\":\"/data/OTDS_DIRECTORY_BOOTSTRAP_CRYPTSECRET\",\"value\":\"'$(echo -n $CRYPTSECRET|base64)'\"}]';
+                          fi;
+                        else
+                          echo CryptSecret not found in pod.;
+                        fi;
+                        echo Stop existing statefulset $statefulset;
+                        kubectl scale statefulset $statefulset --replicas=0 --timeout=1h;
+                      fi;
+                      echo Start database migrate job from otds pod;
+                  else
+                      echo PVC $PVC_NAME does not exist, $PRE_JOB_NAME exit.;
+                      exit 0;
+                  fi;
+                 {{- else if .Values.migration.opendjUri }}
+                      echo Start database migrate job from external OTDS;
+                 {{- else }}
+                  output=`kubectl get service $OPENDJ_SVC_NAME`;
+                  if [ \"$?\" -eq \"0\" ];
+                  then
+                      if [ ! -z \"$OTDS_DEPLOYMENT_NAME\" ];
+                      then
+                        echo Stop $OTDS_DEPLOYMENT_NAME front-end replicas;
+                        kubectl scale deployment $OTDS_DEPLOYMENT_NAME --replicas=0 --timeout=1h;
+                      fi;
+                      echo Start database migrate job from opendj pod;
+                  else
+                    echo OpenDJ service does not exist, $PRE_JOB_NAME exit.;
+                    exit 0;
+                  fi;
+                 {{- end }}
+                  kubectl create -f /tmp/migrate/migrate-job-configmap.yaml;
+                 {{- if (not $customsecretname) }}
+                  kubectl create -f /tmp/migrate/migrate-job-secrets.yaml;
+                 {{- end }}
+                  kubectl apply -f /tmp/migrate/migrate-job.yaml;
+                  echo Waiting for migrate-job to complete...;
+                  kubectl wait --for=condition=complete --timeout={{ .Values.migration.preUpgradeJob.timeout }} job/migrate-job;
+                  echo Migration job ended, retrieving log...;
+                  kubectl logs `kubectl get events | grep \"job/migrate-job\" | grep \"Created pod:\" |awk -F 'pod: ' '{ print $2 }'`;
+                  kubectl get jobs migrate-job -o jsonpath='{.status.conditions[?(@.type==\"Complete\")].status}' | grep True;
+                  if [ \"$?\" -eq \"0\" ];
+                  then
+                    echo Migration completed, cleaning up resources...;
+                  else
+                    echo Migration timeout, cleaning up resources...;
+                  fi;
+                  kubectl delete job migrate-job;
+                  kubectl delete configmap migrate-job-configmap;
+                 {{- if (not $customsecretname) }}
+                  kubectl delete secret migrate-job-secrets;
+                 {{- end }}" ]
+---
+{{- end -}}

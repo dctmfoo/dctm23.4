@@ -1,0 +1,1 @@
+Place the certificate inside the d2classic/certificate directory so that d2classic helm chart would pick the certificate.

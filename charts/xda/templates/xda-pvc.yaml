@@ -1,0 +1,12 @@
+#xDA PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.prefix}}-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.persistentVolume.storageClassReadWriteOnce }}
+  resources:
+    requests:
+      storage: {{ .Values.persistentVolume.size }}

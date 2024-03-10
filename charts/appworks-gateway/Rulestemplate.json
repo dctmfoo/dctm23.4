@@ -1,0 +1,71 @@
+{
+  "rules": [
+    {
+      "id": "1",
+      "name": "Sample OTDS",
+      "whitelist": [
+        "(?i)^(otdsws|otds-v2|ot-authws)(/.*|$)"
+      ],
+      "blacklist": [
+        {
+          "match": "(?i)^otdsws/rest/(accessroles|authhandlers|registeredauthhandlers|connectors|consolidation|currentusers|groups|identityproviderprofiles|identityproviders|jobs|orgunits|partitions|resources|systemconfig|users|usersgroups)/",
+          "responseCode": 404,
+          "location": null
+        },
+        {
+          "match": "(?i)^otdsws/api",
+          "responseCode": 404,
+          "location": null
+        },
+        {
+          "match": "(\\.\\./)|(//)",
+          "responseCode": 400,
+          "location": null
+        },
+        {
+          "match": "(?i)^otdsws/rest/?$",
+          "responseCode": 404,
+          "location": null
+        }
+      ],
+      "urlRules": [
+        {
+          "match": "(?i)^(otdsws|otds-v2|ot-authws)/?(.*|$)",
+          "replace": "http://<otds.hostname>:<port>/$1/$2",
+          "sort": 3,
+          "continue": false
+        }
+      ],
+      "outgoingRules": [],
+      "enabled": true,
+      "sort": 0,
+      "enableOAuth": true
+    },
+    {
+      "id": "893",
+      "name": "Sample eDOCS RestAPI",
+      "whitelist": [
+        "(?i)^(edocsapi)(/.*|$)"
+      ],
+      "blacklist": [
+        {
+          "match": "(\\.\\./)|(//)",
+          "responseCode": 400,
+          "location": null
+        }
+      ],
+      "urlRules": [
+        {
+          "match": "(?i)^(edocsapi)(/.*|$)",
+          "replace": "http://edocs/edocsapi$2",
+          "sort": 0,
+          "continue": false
+        }
+      ],
+      "outgoingRules": [],
+      "enabled": false,
+      "sort": 1,
+      "enableOAuth": true
+    }
+  ]
+}

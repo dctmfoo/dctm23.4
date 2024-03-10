@@ -1,0 +1,39 @@
+{{- if eq .Values.enabled true }}
+########################################################################
+# OpenText Directory Services (OTDS) Kubernetes Service
+########################################################################
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ template "otdsws.service" . }}
+{{- if .Values.global.namespace }}
+  namespace: {{ .Values.global.namespace }}
+{{- end }}
+  labels:
+    {{- include (printf "%s%s" .Chart.Name ".labels" ) . | nindent 4 }}
+  {{- with .Values.serviceAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+{{- if (default .Values.serviceType .Values.global.serviceType) }}
+  type: {{ default .Values.global.serviceType .Values.serviceType }}
+{{- else }}
+{{- if eq .Values.ingress.enabled true }}
+  # serviceType not specified. defaulting to ClusterIP (since ingress is enabled)
+  type: ClusterIP
+{{- else }}
+  # serviceType not specified. defaulting to LoadBalancer (since ingress is disabled)
+  type: LoadBalancer
+{{- end }}
+{{- end }}
+  ports:
+  - name: http
+    protocol: {{ .Values.portProtocol }}
+    port: {{ .Values.port }}
+    targetPort: {{ .Values.targetPort }}
+  selector:
+    app.kubernetes.io/component: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+{{- end }}

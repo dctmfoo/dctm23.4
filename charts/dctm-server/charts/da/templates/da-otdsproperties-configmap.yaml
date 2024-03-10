@@ -1,0 +1,10 @@
+{{- if eq .Values.otds.enable true }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.deployment.name }}-otdsproperties-configmap  
+data:
+  otdsoauth.properties: |
+   otds_url={{ .Values.otds.url }}
+   client_id={{ .Values.otds.clientID }}
+{{ end }}

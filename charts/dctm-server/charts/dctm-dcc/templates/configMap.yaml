@@ -1,0 +1,364 @@
+## Consul Configmap ##
+apiVersion: v1
+data:
+  basic_config.json: |
+    {
+    "data_dir" : "/usr/src/data",
+    "log_level": "INFO",
+    "ui":true,
+    "bootstrap":true,
+    "bind_addr":"127.0.0.1",
+    "client_addr":"0.0.0.0",
+    "server": true
+    }
+kind: ConfigMap
+metadata:
+  name: {{ .Values.consul.prefix }}-configmap
+  namespace: {{ .Values.namespace }}
+---
+{{ if eq .Values.metadata.enabled true }}
+## Metadata Service Configmap ##
+apiVersion: v1
+data:
+  database.properties: |
+    db.reconnect-attempts=10
+    jdbc.dbSchemaName={{ .Values.database.dbSchemaName }}
+    jdbc.driverClassName={{ .Values.database.driverClassName }}
+    jdbc.url={{ .Values.metadata.configMap.database.url }}
+    quartz.dbDelegateClass={{ .Values.database.quartzdbDelegateClass }}
+    jdbc.username={{ .Values.database.username }}
+    jdbc.password={{ .Values.database.password }}
+    dbcp.initialSize=20
+    dbcp.maxActive=30
+  service-registry-location.properties: |
+    serviceregistry-fqdn = {{ .Values.prefix }}-{{ .Values.consul.prefix }}-service
+    app.servicePort = {{ .Values.metadata.configMap.serviceRegistry.serverPort }}
+  log4j2.xml: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Configuration status ="debug">
+      <Appenders>
+          <Console name="CONSOLE" target="SYSTEM_OUT">
+              <PatternLayout pattern="%-5p: [%t]: %c - %d{dd MMM yyy HH:mm:ss,SSS} - %m%n"/>
+          </Console>
+          <RollingFile name="RollingFile" fileName="//usr//src//DCC//logs//MetadataService.log" filePattern="//usr//src//DCC//logs//MetadataService%i.log">
+              <PatternLayout>
+                  <pattern>%-5p: [%t]: %c - %d{dd MMM yyy HH:mm:ss,SSS} - %m%n</pattern>
+              </PatternLayout>
+              <Policies>
+                  <SizeBasedTriggeringPolicy size="10 MB"/>
+              </Policies>
+              <DefaultRolloverStrategy max="5"/>
+          </RollingFile>
+      </Appenders>
+      <Loggers>
+          <!-- Application Loggers -->
+          <Logger name="com.opentext.dcc.metadata" level="info">
+              <AppenderRef ref="RollingFile"/>
+          </Logger>
+          <Logger name="org.apache.log4j.xml" level="info">
+              <AppenderRef ref="CONSOLE"/>
+          </Logger>
+          <!-- Root Logger -->
+          <Root level="warn">
+              <AppenderRef ref="CONSOLE"/>
+          </Root>
+      </Loggers>
+    </Configuration>
+kind: ConfigMap
+metadata:
+  name: {{ .Values.metadata.prefix }}-configmap
+  namespace: {{ .Values.namespace }}
+{{ end }}
+---
+{{ if eq .Values.syncagent.enabled true }}
+## Syncagent configmap ##
+apiVersion: v1
+data:
+  database.properties: |
+    db.reconnect-attempts=10
+    jdbc.dbSchemaName={{ .Values.database.dbSchemaName }}
+    jdbc.driverClassName={{ .Values.database.driverClassName }}
+    jdbc.url={{ .Values.syncagent.configMap.database.url }}
+    quartz.dbDelegateClass={{ .Values.database.quartzdbDelegateClass }}
+    jdbc.username={{ .Values.database.username }}
+    jdbc.password={{ .Values.database.password }}
+    dbcp.initialSize=20
+    dbcp.maxActive=30
+  mail-details.properties: |
+    #the details 'from','to' and 'subject' are mandatory fields if mail service is being used.
+    from={{ .Values.syncagent.configMap.mail.fromEmailId }}
+    to={{ .Values.syncagent.configMap.mail.toEmailId }}
+    bcc={{ .Values.syncagent.configMap.mail.bccEmailId }}
+    cc={{ .Values.syncagent.configMap.mail.ccEmailId }}
+    subject={{ .Values.syncagent.configMap.mail.subject }}
+  service-registry-location.properties: |
+    serviceregistry-fqdn = {{ .Values.prefix }}-{{ .Values.consul.prefix }}-service
+    server-port = {{ .Values.syncagent.configMap.serviceRegistry.serverPort }}
+    server-protocol = http
+    server-host=
+  log4j2.xml: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Configuration status ="debug">
+    <Appenders>
+        <Console name="CONSOLE" target="SYSTEM_OUT">
+            <PatternLayout pattern="%-5p: [%t]: %c - %d{dd MMM yyy HH:mm:ss,SSS} - %m%n"/>
+        </Console>
+        <RollingFile name="RollingFile" fileName="//usr//src//DCC//logs//syncagent.log" filePattern="//usr//src//DCC//logs//syncagent%i.log">
+            <PatternLayout>
+                <pattern>%-5p: [%t]: %c - %d{dd MMM yyy HH:mm:ss,SSS} - %m%n</pattern>
+            </PatternLayout>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="5"/>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <!-- Application Loggers -->
+        <Logger name="com.emc.syncplicity" level="info">
+            <AppenderRef ref="RollingFile"/>
+        </Logger>
+        <Logger name="org.apache.log4j.xml" level="info">
+            <AppenderRef ref="CONSOLE"/>
+        </Logger>
+        <!-- Root Logger -->
+        <Root level="warn">
+            <AppenderRef ref="CONSOLE"/>
+        </Root>
+    </Loggers>
+    </Configuration>
+{{- if eq .Values.syncagent.configMap.proxy.enabled true  }}
+  {{- if eq .Values.syncagent.newrelic.enabled true }}              
+  catalina_opts: -javaagent:/opt/tomcat/newrelic_java_agent/newrelic/newrelic.jar -Dhttp.proxyHost={{ .Values.syncagent.configMap.proxy.proxyHost }} -Dhttp.proxyPort={{ .Values.syncagent.configMap.proxy.proxyPort }} -Dhttp.nonProxyHosts="{{ .Values.syncagent.configMap.proxy.noProxyHosts }}|{{ .Values.prefix }}-{{ .Values.consul.prefix }}-service" -Dhttps.proxyHost={{ .Values.syncagent.configMap.proxy.proxyHost }} -Dhttps.proxyPort={{ .Values.syncagent.configMap.proxy.proxyPort }} -Dhttps.nonProxyHosts="{{ .Values.syncagent.configMap.proxy.noProxyHosts }}|{{ .Values.prefix }}-{{ .Values.consul.prefix }}-service"
+  {{ else }}
+  catalina_opts: -Dhttp.proxyHost={{ .Values.syncagent.configMap.proxy.proxyHost }} -Dhttp.proxyPort={{ .Values.syncagent.configMap.proxy.proxyPort }} -Dhttp.nonProxyHosts="{{ .Values.syncagent.configMap.proxy.noProxyHosts }}|{{ .Values.prefix }}-{{ .Values.consul.prefix }}-service" -Dhttps.proxyHost={{ .Values.syncagent.configMap.proxy.proxyHost }} -Dhttps.proxyPort={{ .Values.syncagent.configMap.proxy.proxyPort }} -Dhttps.nonProxyHosts="{{ .Values.syncagent.configMap.proxy.noProxyHosts }}|{{ .Values.prefix }}-{{ .Values.consul.prefix }}-service"
+  {{ end }}
+  httpsProxy: "http://{{ .Values.syncagent.configMap.proxy.proxyHost }}:{{ .Values.syncagent.configMap.proxy.proxyPort }}"
+  httpProxy: "http://{{ .Values.syncagent.configMap.proxy.proxyHost }}:{{ .Values.syncagent.configMap.proxy.proxyPort }}"
+  noProxy: "{{ .Values.syncagent.configMap.proxy.noProxyHosts }}|{{ .Values.prefix }}-{{ .Values.consul.prefix }}-service"
+{{ end }}                                                                                                                         
+kind: ConfigMap
+metadata:
+  name: {{ .Values.syncagent.prefix }}-configmap
+  namespace: {{ .Values.namespace }}
+{{ end }}
+---
+{{ if eq .Values.syncnshareManual.enabled true }}
+## Syncnshare manual ##
+apiVersion: v1
+data:
+  database.properties: |
+    db.reconnect-attempts=10
+    jdbc.dbSchemaName={{ .Values.database.dbSchemaName }}
+    jdbc.driverClassName={{ .Values.database.driverClassName }}
+    jdbc.url={{ .Values.syncnshareManual.configMap.database.url }}
+    quartz.dbDelegateClass={{ .Values.database.quartzdbDelegateClass }}
+    jdbc.username={{ .Values.database.username }}
+    jdbc.password={{ .Values.database.password }}
+    dbcp.initialSize=20
+    dbcp.maxActive=30
+  notification-service.properties: |
+    hostname=localhost
+    port=10029
+  service-registry-location.properties: |
+    serviceregistry-fqdn = {{ .Values.prefix }}-{{ .Values.consul.prefix }}-service
+    server-port = {{ .Values.syncnshareManual.configMap.serviceRegistry.serverPort }}
+    server-protocol = http
+    server-host=
+  setup.properties: |
+    sourceRepoName={{ .Values.syncnshareManual.configMap.setup.sourceRepoName }}
+    sourceRepoUser={{ .Values.syncnshareManual.configMap.setup.sourceRepoUser }}
+    sourceRepoPassword={{ .Values.syncnshareManual.configMap.setup.sourceRepoPassword }}
+    sourceRepoUrl={{ .Values.syncnshareManual.configMap.setup.sourceRepoUrl }}
+    targetRepoUrl={{ .Values.syncnshareManual.configMap.setup.targetRepoUrl }}
+    targetRepoClientId={{ .Values.syncnshareManual.configMap.setup.targetRepoClientId }}
+    targetRepoClientSecret={{ .Values.syncnshareManual.configMap.setup.targetRepoClientSecret }}
+  log4j2.xml: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Configuration status ="debug">
+    <Appenders>
+        <Console name="CONSOLE" target="SYSTEM_OUT">
+            <PatternLayout pattern="%-5p: [%t]: %c - %d{dd MMM yyy HH:mm:ss,SSS} - %m%n"/>
+        </Console>
+        <RollingFile name="RollingFile" fileName="//usr//src//DCC//logs//syncagent-manual.log" filePattern="//usr//src//DCC//logs//syncagent-manual%i.log">
+            <PatternLayout>
+                <pattern>%-5p: [%t]: %c - %d{dd MMM yyy HH:mm:ss,SSS} - %m%n</pattern>
+            </PatternLayout>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="5"/>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <!-- Application Loggers -->
+        <Logger name="com.emc.syncplicity" level="info">
+            <AppenderRef ref="RollingFile"/>
+        </Logger>
+        <Logger name="org.apache.log4j.xml" level="info">
+            <AppenderRef ref="CONSOLE"/>
+        </Logger>
+        <!-- Root Logger -->
+        <Root level="warn">
+            <AppenderRef ref="CONSOLE"/>
+        </Root>
+    </Loggers>
+    </Configuration>
+  java.config: |
+    jdk.tls.ephemeralDHKeySize=2048
+    jdk.certpath.disabledAlgorithms=MD2, MD5, DSA, RSA keySize < 1024
+    jdk.tls.disabledAlgorithms=DH keySize < 2048, SSLv2, SSLv3, TLSv1, TLSv1.1, DHE_DSS, RSA_EXPORT, DHE_DSS_EXPORT, DHE_RSA_EXPORT, DH_DSS_EXPORT, DH_RSA_EXPORT, ECDH_anon, DH_RSA, DH_DSS, ECDH, 3DES_EDE_CBC, DES_CBC, RC4_40, RC4_128, DES40_CBC, RC2, HmacMD5
+    jdk.tls.legacyAlgorithms=
+{{- if eq .Values.syncnshareManual.configMap.proxy.enabled true  }}                                                                                                                                                                                                                                                                   
+  {{- if eq .Values.syncnshareManual.newrelic.enabled true }}
+  catalina_opts: -javaagent:/opt/tomcat/newrelic_java_agent/newrelic/newrelic.jar -Dhttp.proxyHost={{ .Values.syncnshareManual.configMap.proxy.proxyHost }} -Dhttp.proxyPort={{ .Values.syncnshareManual.configMap.proxy.proxyPort }} -Dhttp.nonProxyHosts="{{ .Values.syncnshareManual.configMap.proxy.noProxyHosts }}|{{ .Values.prefix }}-{{ .Values.consul.prefix }}-service" -Dhttps.proxyHost={{ .Values.syncnshareManual.configMap.proxy.proxyHost }} -Dhttps.proxyPort={{ .Values.syncnshareManual.configMap.proxy.proxyPort }} -Dhttps.nonProxyHosts="{{ .Values.syncnshareManual.configMap.proxy.noProxyHosts }}|{{ .Values.prefix }}-{{ .Values.consul.prefix }}-service"
+  {{ else }}
+  catalina_opts: -Dhttp.proxyHost={{ .Values.syncnshareManual.configMap.proxy.proxyHost }} -Dhttp.proxyPort={{ .Values.syncnshareManual.configMap.proxy.proxyPort }} -Dhttp.nonProxyHosts="{{ .Values.syncnshareManual.configMap.proxy.noProxyHosts }}|{{ .Values.prefix }}-{{ .Values.consul.prefix }}-service" -Dhttps.proxyHost={{ .Values.syncnshareManual.configMap.proxy.proxyHost }} -Dhttps.proxyPort={{ .Values.syncnshareManual.configMap.proxy.proxyPort }} -Dhttps.nonProxyHosts="{{ .Values.syncnshareManual.configMap.proxy.noProxyHosts }}|{{ .Values.prefix }}-{{ .Values.consul.prefix }}-service"
+  {{ end }}
+  httpsProxy: "http://{{ .Values.syncnshareManual.configMap.proxy.proxyHost }}:{{ .Values.syncnshareManual.configMap.proxy.proxyPort }}"
+  httpProxy: "http://{{ .Values.syncnshareManual.configMap.proxy.proxyHost }}:{{ .Values.syncnshareManual.configMap.proxy.proxyPort }}"
+  noProxy: "{{ .Values.syncnshareManual.configMap.proxy.noProxyHosts }}|{{ .Values.prefix }}-{{ .Values.consul.prefix }}-service"
+{{ end }}                                                                                                                                       
+kind: ConfigMap
+metadata:
+  name: {{ .Values.syncnshareManual.prefix }}-configmap
+  namespace: {{ .Values.namespace }}
+{{ end }}
+---
+{{ if eq .Values.coreNotification.enabled true }}
+## Core Notification configmap ##
+apiVersion: v1
+data:
+  database.properties: |
+    db.reconnect-attempts=10
+    jdbc.dbSchemaName={{ .Values.database.dbSchemaName }}
+    jdbc.driverClassName={{ .Values.database.driverClassName }}
+    jdbc.url={{ .Values.coreNotification.configMap.database.url }}
+    quartz.dbDelegateClass={{ .Values.database.quartzdbDelegateClass }}
+    jdbc.username={{ .Values.database.username }}
+    jdbc.password={{ .Values.database.password }}
+    dbcp.initialSize=20
+    dbcp.maxActive=30
+  service-registry-location.properties: |
+    app.servicePort = {{ .Values.coreNotification.configMap.serviceRegistry.serverPort }}
+  ExtApi.config: |
+    dcc_api_user={{ .Values.coreNotification.configMap.extApiconfig.dccapiuser }}
+    dcc_api_credential={{ .Values.coreNotification.configMap.extApiconfig.dccapipassword }}
+    {{ if eq .Values.syncnshareManual.enabled true }}
+    dcc-manual-service ={{ .Values.coreNotification.configMap.extApiconfig.dccmanualFQDN }}
+    {{ else }}
+    #dcc-manual-service ={{ .Values.coreNotification.configMap.extApiconfig.dccmanualFQDN }}
+    {{ end }}
+    {{ if eq .Values.syncagent.enabled true }}
+    dcc-robot-service ={{ .Values.coreNotification.configMap.extApiconfig.dccroboticFQDN }}
+    {{ else }}
+    #dcc-robot-service ={{ .Values.coreNotification.configMap.extApiconfig.dccroboticFQDN }}
+    {{ end }}
+    serviceregistry ={{ .Values.prefix }}-{{ .Values.consul.prefix }}-service
+    core_notification_api_path = /api/v3/notifications
+    schedule_interval = 60
+    max_notification_limit = 100
+  log4j2.xml: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Configuration status ="debug">
+      <Appenders>
+          <Console name="CONSOLE" target="SYSTEM_OUT">
+              <PatternLayout pattern="%-5p: [%t]: %c - %d{dd MMM yyy HH:mm:ss,SSS} - %m%n"/>
+          </Console>
+          <RollingFile name="RollingFile" fileName="//usr//src//DCC//logs//CoreNotificationService.log" filePattern="//usr//src//DCC//logs//CoreNotificationService%i.log">
+              <PatternLayout>
+                  <pattern>%-5p: [%t]: %c - %d{dd MMM yyy HH:mm:ss,SSS} - %m%n</pattern>
+              </PatternLayout>
+              <Policies>
+                  <SizeBasedTriggeringPolicy size="10 MB"/>
+              </Policies>
+              <DefaultRolloverStrategy max="5"/>
+          </RollingFile>
+      </Appenders>
+      <Loggers>
+          <!-- Application Loggers -->
+          <Logger name="com.opentext.dcc" level="info">
+              <AppenderRef ref="RollingFile"/>
+          </Logger>
+          <Logger name="org.apache.log4j.xml" level="info">
+              <AppenderRef ref="CONSOLE"/>
+          </Logger>
+          <!-- Root Logger -->
+          <Root level="warn">
+              <AppenderRef ref="CONSOLE"/>
+          </Root>
+      </Loggers>
+    </Configuration>
+kind: ConfigMap
+metadata:
+  name: {{ .Values.coreNotification.prefix }}-configmap
+  namespace: {{ .Values.namespace }}
+{{ end }}
+---
+{{ if eq .Values.mailService.enabled true }}
+## mail service ##
+apiVersion: v1
+data:
+  mailservice.properties: |
+    #Configuration for smtp mail server.
+    #Provide the host , port , usermail and password it it is ssl based.
+    #Without ssl, provide the server host and port details.
+    smtpmailhost={{ .Values.mailService.configMap.mailconfig.smtpmailhost }}
+    smtpmailport={{ .Values.mailService.configMap.mailconfig.smtpmailport }}
+    usermail={{ .Values.mailService.configMap.mailconfig.usermail }}
+    mailpassword={{ .Values.mailService.configMap.mailconfig.mailpassword }}
+    starttls={{ .Values.mailService.configMap.mailconfig.starttls }}
+  service-registry-location.properties: |
+    serviceregistry-fqdn = {{ .Values.prefix }}-{{ .Values.consul.prefix }}-service
+    app.servicePort = {{ .Values.mailService.configMap.serviceRegistry.serverPort }}
+  log4j2.xml: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Configuration status ="debug">
+      <Appenders>
+          <Console name="CONSOLE" target="SYSTEM_OUT">
+              <PatternLayout pattern="%-5p: [%t]: %c - %d{dd MMM yyy HH:mm:ss,SSS} - %m%n"/>
+          </Console>
+          <RollingFile name="RollingFile" fileName="//usr//src//DCC//logs//MailService.log" filePattern="//usr//src//DCC//logs//MailService%i.log">
+              <PatternLayout>
+                  <pattern>%-5p: [%t]: %c - %d{dd MMM yyy HH:mm:ss,SSS} - %m%n</pattern>
+              </PatternLayout>
+              <Policies>
+                  <SizeBasedTriggeringPolicy size="10 MB"/>
+              </Policies>
+              <DefaultRolloverStrategy max="5"/>
+          </RollingFile>
+      </Appenders>
+      <Loggers>
+          <!-- Application Loggers -->
+          <Logger name="com.opentext.dcc.mailservice" level="debug">
+              <AppenderRef ref="RollingFile"/>
+          </Logger>
+          <Logger name="org.apache.log4j.xml" level="debug">
+              <AppenderRef ref="CONSOLE"/>
+          </Logger>
+          <!-- Root Logger -->
+          <Root level="warn">
+              <AppenderRef ref="CONSOLE"/>
+          </Root>
+      </Loggers>
+    </Configuration>
+ 
+kind: ConfigMap
+metadata:
+  name: {{ .Values.mailService.prefix }}-configmap
+  namespace: {{ .Values.namespace }}
+{{ end }}
+---
+
+{{- if eq .Values.dardeploy.enabled true }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.dardeploy.prefix }}-configmap
+  namespace: {{ .Values.namespace }}
+data:
+  dfc.properties: |
+   {{- range .Values.dardeploy.configmap.dfc.properties }}
+   {{ . }}
+   {{- end }}
+{{- end }}

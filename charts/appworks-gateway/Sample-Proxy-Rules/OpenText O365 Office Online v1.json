@@ -1,0 +1,1 @@
+{"rules":[{"id":"1708","name":"Sample OpenText O365 Office Online v1","whitelist":["(?i)^(wopi/v1)(/.*|$)"],"blacklist":[],"urlRules":[{"match":"(?i)^(wopi/v1)(/?.*|$)","replace":"https://hostname/path/cgi-name/$1$2","sort":1,"continue":false}],"outgoingRules":[],"enabled":false,"sort":14,"enableOAuth":true}]}

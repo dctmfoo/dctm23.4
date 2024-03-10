@@ -1,0 +1,172 @@
+{{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+apiVersion: networking.k8s.io/v1
+{{ else }}
+apiVersion: extensions/v1beta1
+{{ end }}
+kind: Ingress
+metadata:
+  name: {{ .Chart.Name }}
+  annotations:
+{{- if not (.Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress") }}
+{{- if .Values.ingress.class }}
+    kubernetes.io/ingress.class: {{ .Values.ingress.class }}
+{{- end }}
+{{- end }}
+{{- range $key, $value := .Values.ingress.annotations }}
+    {{ $key }}: {{ $value | squote }}
+{{- end }}
+{{- if eq .Values.cloudPlatform "Azure" }}
+    cert-manager.io/cluster-issuer: letsencrypt
+{{- end }}
+
+spec:
+{{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+  ingressClassName: {{ .Values.ingress.class }}
+{{- end }}
+{{- if .Values.tls.enable }}
+  tls:
+  - hosts:
+    - {{ .Values.ingress.hostShortName }}.{{ .Values.ingress.hostDomainName }}
+    secretName: {{ .Values.tls.secretName }}
+{{- end }}
+  rules:
+  - host: {{ .Values.ingress.hostShortName }}.{{ .Values.ingress.hostDomainName }}
+    http:
+      paths:
+      {{- if .Values.d2classicservice.enable }}
+      {{- if eq .Values.cloudPlatform "aws" }}
+      - path: /{{ .Values.d2classicservice.path }}/*
+      {{- else }}
+      - path: /{{ .Values.d2classicservice.path }}
+      {{- end }} 
+      {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: d2classic
+            port:
+              number: 8080
+      {{- else }}
+        backend:
+          serviceName: d2classic
+          servicePort: 8080
+      {{- end }}  
+      {{- end }}
+      
+      {{- if .Values.d2configservice.enable }}
+      {{- if eq .Values.cloudPlatform "aws" }}
+      - path: /{{ .Values.d2configservice.path }}*
+      {{- else }}
+      - path: /{{ .Values.d2configservice.path }}
+      {{- end }} 
+      {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: d2config
+            port:
+              number: 8080
+      {{- else }}
+        backend:
+          serviceName: d2config
+          servicePort: 8080
+      {{- end }}
+    {{- end }}
+      
+      {{- if .Values.dctmreportsd2service.enable }}
+      {{- if eq .Values.cloudPlatform "aws" }}
+      - path: /D2DCTMReports*
+      {{- else }}
+      - path: /D2DCTMReports
+      {{- end }} 
+      {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: d2classic
+            port:
+              number: 8080
+      {{- else }}
+        backend:
+          serviceName: d2classic
+          servicePort: 8080
+      {{- end }}  
+      {{- end }}
+      
+      
+      {{- if .Values.d2smartviewservice.enable }}
+      {{- if eq .Values.cloudPlatform "aws" }}
+      - path: /{{ .Values.d2smartviewservice.path }}*
+      {{- else }}
+      - path: /{{ .Values.d2smartviewservice.path }}
+      {{- end }} 
+      {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: d2smartview
+            port:
+              number: 8080
+      {{- else }}
+        backend:
+          serviceName: d2smartview
+          servicePort: 8080
+      {{- end }}
+      {{- end }}
+      {{- if .Values.d2restservice.enable }}
+      {{- if eq .Values.cloudPlatform "aws" }}
+      - path: /{{ .Values.d2restservice.path }}*
+      {{- else }}
+      - path: /{{ .Values.d2restservice.path }}
+      {{- end }} 
+      {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: d2rest
+            port:
+              number: 8080
+      {{- else }}
+        backend:
+          serviceName: d2rest
+          servicePort: 8080
+      {{- end }}
+    {{- end }}
+      {{- if eq .Values.cloudPlatform "aws" }}
+      - path: /otds-admin/*
+      {{- else }}
+      - path: /otds-admin
+      {{- end }}
+      {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: otdsws
+            port:
+              number: 80
+      {{- else }}
+        backend:
+          serviceName: otdsws
+          servicePort: 80
+      {{- end }}
+      {{- if eq .Values.cloudPlatform "aws" }}
+      - path: /otdsws/*
+      {{- else }}
+      - path: /otdsws
+      {{- end }}
+      {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: otdsws
+            port:
+              number: 80
+      {{- else }}
+        backend:
+          serviceName: otdsws
+          servicePort: 80
+      {{- end }}
+
+{{- if .Values.extraPaths }}
+{{ toYaml .Values.extraPaths | indent 6 }}
+{{- end }}

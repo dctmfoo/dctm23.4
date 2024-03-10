@@ -1,0 +1,123 @@
+# RQM values yaml file.
+
+### Namespace details ###
+namespace:
+serviceName: documentum-rqm-pg
+userName: dmadmin
+
+custom:
+  scriptinPVC: false
+  scriptPVCname: shared-pvc
+  PVCSubPath: customscripts
+  useInitContainers: false
+    ### Persistent Volume ###
+persistentVolumeClaim:
+  pvcName: rqmpvc 
+  accessMode: ReadWriteMany
+  size: 1Gi
+  storageClass: trident-nfs 
+  awsEFSCSIDriver: efs.csi.aws.com
+  awsEFSCSIHandle: 
+ # Content Server Helm deployment details.
+cs:   
+  useCSDfcConfigMap: true             
+  configMapName: cedbr.configmap
+  csSecretConfigName: cecs-secret-config
+  allowTrustedLogin: false
+  
+certificate:
+  useCertificate: false
+  dbrServiceName: cedbr
+  dbrDataPVCName: certdbr-data-pvc
+  
+  ####################################################################################
+# Suppose Content Server config map not used                                       #
+# then update the below listed parameters with appropriate values of dfc.properties#
+# and ensure to toggle the flag useDfcConfigMap to false.                          #
+####################################################################################
+dfc:  
+  properties:  
+  - dfc.docbroker.host[0]=<DOCBROKER_HOST_NAME>
+  - dfc.docbroker.port[0]=<PORT_NO>
+  - dfc.globalregistry.repository=<GLOBAL_REPO>
+  - dfc.globalregistry.username=dm_bof_registry  
+  - dfc.security.ssl.use_anonymous_cipher=true
+  - dfc.session.allow_trusted_login=false
+  - dfc.globalregistry.password=<GLOBAL_REPO_PASSWORD>
+  - dfc.security.ssl.truststore=/opt/dctm/certificate/dfc.keystore 
+
+### Docker Images ###  
+images:
+  repository : artifactory.otxlab.net/bpdockerhub
+  rqm :
+    name : dctm-rqm
+    tag : 23.4
+  pullPolicy : Always
+  pullSecrets :
+  graylog:
+    enable: true
+    image: artifactory.otxlab.net/bpdockerhub/graylog-sidecar@sha256:d8ed2bf68399e34bafc68f883d8f4fb14feb9575e78d63722e544c1529f37db9    
+    name: graylog-sidecar
+    server: 10.9.57.15
+    port: 9000
+  # Containers details
+containers:
+  rqm:    
+     name: rqm
+     containerName: RQMContainer
+     rqmSingleHelm: false
+     kubernetes: true
+     externalFolderPath: /opt/external-configurations     
+     replicaCount: 1
+     rqmInstallationDir: /home/recordsadmin/dctm      
+     installFiles: false
+     docbaseName: <Docbasename>     
+     rqmDocbaseUser: dmadmin    
+     rqmSysAdminName: recordsadmin
+     rqmSysAdminPass: password    
+     globalRegistryRepository: <Docbasename>   
+     bofRegistryUser: dm_bof_registry 
+     docbrokerhostname: records221dbr-0.records221dbr.rm-docu.svc.cluster.local        
+     rqmadminport: 9095
+     rqmjettyport: 9096
+     docbrokerport: 1489  
+     rqmHomeDir: /home/recordsadmin   
+     recordsaws: false
+     probing:
+       readinessProbe:
+         initialDelaySeconds: 120
+         periodSeconds: 120
+       livenessProbe:
+         initialDelaySeconds: 120
+         periodSeconds: 120
+
+### Docbroker ###
+
+docbroker:
+  replicaCount: 2
+  serviceName: dbr
+  port: 1489
+  
+### Environment ###
+env:
+  domain: rm-docu.svc.cluster.local
+  # Only used in cloud tenant environment to add subscriptionName query string 
+  # parameter to the OTDS authentication URL when redirecting the user.
+  #subscriptionName: subscription1  
+
+userProvidedServices:
+  newrelic:
+    enable: true    
+    appName: <MY_APPLICATION>
+    proxyHost: 
+    proxyPort:
+    proxyScheme: http
+serviceAccount:
+  createserviceaccount: false
+  serviceAccountName: documentum-sa
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

@@ -1,0 +1,16 @@
+{{if eq .Values.persistentVolume.isExist false }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.persistentVolume.claimName }}
+spec:
+  accessModes:
+    - {{ .Values.persistentVolume.accessModes }}
+  storageClassName: {{ .Values.persistentVolume.storageClass }}
+{{ if .Values.persistentVolume.awsEFSCSIPvName }}
+  volumeName: {{ .Values.persistentVolume.awsEFSCSIPvName }}
+{{ end }}
+  resources:
+    requests:
+      storage:  {{ .Values.persistentVolume.size }}
+{{- end }}

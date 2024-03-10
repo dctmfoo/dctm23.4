@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d2classic-d2-cache-xml
+  {{- template "configMap.labels" . }}
+data:
+  d2-cache.xml: |-
+    <?xml version="1.0" encoding="UTF-8"?>
+    
+    <ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:noNamespaceSchemaLocation="d2-cache.xsd"
+                 updateCheck="false" monitoring="autodetect">
+    
+    <!-- 
+    C6 CacheManager Configuration
+    ==========================
+        Do not modify this file without specific instructions from D2 Customer Support.
+    
+        To override D2's default cache settings, add <cache> entries here.
+        D2's Cache Manager loads d2-cache.xml from C6-Common.jar with default settings.  Any <cache> elements specified
+        in this d2-cache.xml file will override default settings.
+    -->
+    
+        <!-- Example: To override D2's "xml-cache" cache.
+             Uncomment this <cache> element to override D2's default "xml-cache" settings
+        <cache  name="xml-cache"
+                maxElementsInMemory="10000"
+                eternal="true"
+                memoryStoreEvictionPolicy="LFU"/>
+        -->
+                      
+                      
+    </ehcache>

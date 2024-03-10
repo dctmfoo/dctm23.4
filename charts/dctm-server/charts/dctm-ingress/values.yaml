@@ -1,0 +1,293 @@
+#Leave below value as empty if the deployment is not aws. if aws, follow cloud deployment guide to use aws.yaml
+platform:
+#prefix for the ingress name
+ingressPrefix: <prefix>
+ingress:   
+  #No need to configure host: and clusetrDomainName: if configureHost is false.
+  configureHost: true
+  #Domain name of the ingress controller in the cluster namespace
+  host: <INGRESS-HOSTNAME>
+  clusterDomainName: <CLUSTER-DOMAIN-NAME>
+  #To accomodate cluster 1.22
+  class: nginx
+  #annotations for the ingress object
+  annotations: {}
+  
+# The application URLs will be in the format of <PROTOCOL>://<INGRESS-HOSTNAME>.<CLUSTER-DOMAIN-NAME>/<APPLICATION PATH>
+# Ex: if the value of INGRESS-HOSTNAME is 'prod' and CLUSTER-DOMAIN-NAME value is 'docu.cfcr-lab.bp-paas.otxlab.net' 
+# then to access ACS application, the URL will be some thing like http://prod.docu.cfcr-lab.bp-paas.otxlab.net/ACS/servlet/ACS
+
+jmsService:
+  enable: false
+  serviceName: <jms-service-name> 
+  servicePort: 9080
+
+jmsBase:
+  enable: false
+  serviceName: <jms-service-name> 
+  servicePort: 9080
+
+acsService:
+  enable: false
+  serviceName: <jms-service-name> 
+  servicePort: 9080
+  
+tnsService:
+  enable: false
+  serviceName: <tns-service-name>
+  servicePort: 8081
+
+d2clientService:
+  enable: false
+  serviceName: <d2client-service-name>
+  servicePort: 8080
+  path: D2
+
+d2configService:
+  enable: false
+  serviceName: <d2config-service-name>
+  servicePort: 8080
+  path: D2-Config
+
+daService:
+  enable: false
+  serviceName: <da-service-name>
+  servicePort: 8080
+
+restService:
+  enable: false
+  serviceName: <dctm-rest-service-name>
+  servicePort: 8080
+
+appHostService:
+  enable: false
+  serviceName: <apphost-service-name> 
+  servicePort: 8080
+
+bamService:
+  enable: false
+  serviceName: <bam-service-name>
+  servicePort: 8080
+
+bpsService:
+  enable: false
+  serviceName: <bps-service-name>
+  servicePort: 8080
+
+xdaService:
+  enable: false
+  serviceName: <xda-service-name>
+  servicePort: 7000
+
+smartviewm365:
+  enable: false
+  serviceName: <smartviewm365-service-name>
+  servicePort: 8080
+  path: /SmartViewM365
+
+dsearchadminService:
+  enable: false
+  serviceName: <dsearchadmin-service-name>
+  servicePort: 9300
+
+documentumSearchService:
+  enable: false
+  serviceName: <documentumSearch-service-name>
+  servicePort: 8800
+  path: /admin
+
+indexagentService:
+  enable: false
+  serviceName: <indexagent-service-name>
+  servicePort: 9200
+
+dfsService:
+  enable: false
+  serviceName: <dfs-service-name>
+  servicePort: 8080
+
+cmisService:
+  enable: false
+  serviceName: <cmis-service-name>
+  servicePort: 8080
+
+webtopService:
+  enable: false
+  serviceName: <webtop-service-name>
+  servicePort: 8080
+
+dmotdsrestService:
+  enable: false
+  serviceName: <dmotdsrest-service-name>
+  servicePort: 9080
+
+otdsadmin:
+  enable: false
+     #Name of the otds service.
+  serviceName: <otdsServiceName>
+     #otds clusterIP service port. Default 80
+  servicePort: 80
+
+otdsws:
+  enable: false
+     #Name of the otds service.
+  serviceName: <otdsServiceName>
+     #otds clusterIP service port. Default 80
+  servicePort: 80
+
+otdstenant:
+  enable: false
+     #Name of the otds service.
+  serviceName: <otdsServiceName>
+     #otds clusterIP service port. Default 80
+  servicePort: 80
+  
+### enable TLS ###
+tls:
+  enable: false
+  secretName: cs-secret-config
+
+openshifttls:
+  enable: false
+  
+dtrbaseService:
+  enable: false
+  serviceName: <service name of Documentum Report Base>
+  servicePortCore: 5001
+  servicePortServlet: 8080
+  
+workflowDesignerService:
+  enable: false
+  serviceName: <dctm-workflow-designerServiceName>
+  servicePort: 9080
+
+bpm:
+   enable: false
+   #Name of the jms clusterIp service. Refer CS Service Yaml
+   serviceName: <bpmServiceName>
+   #bpm clusterIP service port. Default 9080
+   servicePort: 9080
+
+recordsService:
+  enable: false
+  serviceName: records-svc
+  servicePort: 8080
+  
+d2smartview:
+  enable: false
+  serviceName: d2smartview
+  servicePort: 8080
+  path: D2-Smartview
+  
+d2rest:
+  enable: false
+  serviceName: d2rest
+  servicePort: 8080
+  path: d2-rest
+  
+dcc:
+  enable: false
+  prefix: dcc
+  consul:
+    prefix: consul
+    service:
+      servicePort: 8500    
+  syncagent:
+    enabled: true
+    prefix: syncagent
+    service:
+      servicePort: 8080    
+  syncnshareManual:
+    enabled: true
+    prefix: syncagent-manual
+    service:
+      servicePort: 8080
+      
+ccService:
+  enabled: false
+  serviceName: cc
+  servicePort: 8080
+  extension: cc
+
+ccadminService:
+  enabled: false
+  serviceName: cc-admin
+  servicePort: 80
+  extension: cc
+  
+#extraPaths is used to define additional ingress resources for D2 customizations
+#For aws path should be as follows path: /CustomApp1*
+#extraPaths:
+#      - backend:
+#          serviceName: {{ .Values.d2webappName }}
+#          servicePort: 8080        
+#        path: /CustomApp1
+
+   
+adminURLS:
+     #On enabling this, enable one of the below services also
+  enable: false
+  ingressPrefix: ceadminingress
+  #No need to configure host: and clusetrDomainName: if configureHost is false.
+  configureHost: true
+  ingress:
+         #Domain name of the ingress controller in the cluster namespace
+    host: <INGRESS-HOSTNAME>
+    clusterDomainName: <CLUSTER-DOMAIN-NAME>
+    #To accomodate cluster 1.22 
+    class: nginx
+    #annotations for the ingress object
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"      
+      nginx.ingress.kubernetes.io/affinity: cookie
+      nginx.ingress.kubernetes.io/session-cookie-hash: sha1
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "60" 
+      nginx.ingress.kubernetes.io/ssl-redirect: "false"
+      nginx.org/hsts: "false"
+  daService:
+    enable: false
+    serviceName: <da-service-name>
+    servicePort: 8080  
+  indexagentService:
+    enable: false
+    serviceName: <indexagent-service-name>
+    servicePort: 9200
+     ### enable TLS ###
+  tls:
+    enable: true
+    secretName: cecs-secret-config
+    
+vpningress:
+  enable: false
+  configureHost: false
+  host: vpningress
+  clusterDomainName: 
+  path: /
+  class: nginx
+  #annotations for the ingress object
+  annotations: {}
+
+  dfsService:
+    enable: false
+    serviceName: <dfs-service-name>
+    servicePort: 8080
+  cmisService:
+    enable: false
+    serviceName: <cmis-service-name>
+    servicePort: 8080
+  daService:
+    enable: false
+    serviceName: <da-service-name>
+    servicePort: 8080
+  workflowDesignerService:
+    enable: false
+    serviceName: <dctm-workflow-designerServiceName>
+    servicePort: 8080
+    ### enable TLS ###
+  openshifttls:
+    enable: false
+  tls:
+    enable: false
+    secretName: cecs-secret-config

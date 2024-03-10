@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.deployment.name }}-appproperties-configmap  
+data:
+  app.properties: |
+   {{- range .Values.wdkAppXmlConfig.tagsnvalues }}
+   {{ . }}
+   {{- end }}
+   {{- if eq .Values.lmsgcustomLog.enable true }}
+   application.lmsg_customlog.enabled=true
+   application.lmsgreportloglocation={{ .Values.lmsgcustomLog.loglocation }}
+   {{ end }}
+   {{- if eq .Values.otds.enable true }}
+   application.authentication.otds_sso.enabled=true   
+   application.authentication.otds_sso.repo_selection_page_required={{ .Values.otds.authentication.repoSelectionPageRequired }}
+   application.authentication.otds_sso.dm_login_ticket_timeout={{ .Values.otds.authentication.loginTicketTimeout }}
+   {{ end }}

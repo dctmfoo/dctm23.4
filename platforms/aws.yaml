@@ -1,0 +1,63 @@
+#These are specific configuration values passed for AWS ALB. Other values for dctm-ingress still need to be configured in main values.yaml only
+dctm-server:
+  content-server:
+    platform: aws
+  docbroker:
+    platform: aws
+  dctm-ingress:
+    platform: aws
+    ingress:  
+      class: alb
+      #Note that the below annotation are basic annotations. For more secured and customized setup, customer must use AWS ALB annotation documentation to provide below configurations 
+      annotations:
+        alb.ingress.kubernetes.io/scheme: internet-facing
+        alb.ingress.kubernetes.io/subnets: subnet-0c4a1017a4ffb7962, subnet-0bbd3ec1319a30772, subnet-0a6ab032a5e03be49
+        alb.ingress.kubernetes.io/target-type: 'ip'    
+        alb.ingress.kubernetes.io/target-group-attributes: stickiness.enabled=true,stickiness.lb_cookie.duration_seconds=1200
+        alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=600
+        alb.ingress.kubernetes.io/group.name: dctm-internal-group
+        alb.ingress.kubernetes.io/backend-protocol: HTTP    
+        alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+        #if content connect ingress is enabled in the dctm-ingress, then uncomment the ssl-redirect annotation below#
+        #alb.ingress.kubernetes.io/ssl-redirect: '443'
+        #For secure connection, uncomment below annotation.          
+        #alb.ingress.kubernetes.io/certificate-arn: arn:aws:iam::820400221816:server-certificate/albselfsigned          
+
+  contentconnect:
+    platform: aws
+    ingress:
+      class: alb
+      annotations:
+        alb.ingress.kubernetes.io/scheme: internet-facing
+        alb.ingress.kubernetes.io/subnets: subnet-0c4a1017a4ffb7962, subnet-0bbd3ec1319a30772, subnet-0a6ab032a5e03be49
+        alb.ingress.kubernetes.io/target-type: 'ip'    
+        alb.ingress.kubernetes.io/target-group-attributes: stickiness.enabled=true,stickiness.lb_cookie.duration_seconds=1200
+        alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=600
+        alb.ingress.kubernetes.io/group.name: cc-group
+        alb.ingress.kubernetes.io/backend-protocol: HTTP    
+        alb.ingress.kubernetes.io/ssl-redirect: '443'     
+        alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]' 
+        #For secure connection, comment previous two annotations and uncomment below annotations.
+        #alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'    
+        #alb.ingress.kubernetes.io/certificate-arn: arn:aws:iam::820400221816:server-certificate/albselfsigned
+          
+appworks-gateway:   
+  ingress:   
+    annotations:
+      kubernetes.io/ingress.class: alb
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: 'ip'
+      alb.ingress.kubernetes.io/group.name: awg-group
+      #For secure connection,uncomment below annotations.
+      #alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+      #alb.ingress.kubernetes.io/certificate-arn: arn:aws:iam::820400221816:server-certificate/albselfsigned     
+otiv:
+  global:
+      ingressClass: alb 
+      ingressAnnotations: 
+        alb.ingress.kubernetes.io/scheme: internet-facing
+        alb.ingress.kubernetes.io/target-type: 'ip'
+        alb.ingress.kubernetes.io/group.name: otiv-group
+        alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=1800
+        #For secure connection,uncomment below annotation
+        #alb.ingress.kubernetes.io/certificate-arn: arn:aws:iam::820400221816:server-certificate/albselfsigned

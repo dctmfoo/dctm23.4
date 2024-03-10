@@ -1,0 +1,138 @@
+{{- if and .Values.migration.enabled .Values.migration.preUpgradeJob.enabled }}
+{{- $customsecretname := default .Values.global.existingSecret .Values.customSecretName -}}
+# self-signed certificates for the pre-upgrade migrate job
+{{- if eq .Values.enableCustomizedTruststore true }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ template "otdsws.name" . }}-certs
+{{- if .Values.global.namespace }}
+  namespace: {{ .Values.global.namespace }}
+{{- end }}
+  labels:
+    {{- include (printf "%s%s" .Chart.Name ".labels" ) . | nindent 4 }}
+data:
+{{- if .Values.singleCaCert }}
+{{/*
+Support single cert file
+*/}}
+  rootCA.crt: |-
+    {{ .Values.singleCaCert | b64enc }}
+{{- else }}
+  {{ range $path, $_ :=  .Files.Glob  "certificates/*" }}
+  {{ $subdir := dir $path }}
+  {{ $currentFilename := ($path | replace (printf "%s/" $subdir) "" ) }}
+  {{ $currentFilename | indent 2 }}: |-
+      {{ tpl ($.Files.Get $path) $ | b64enc }}
+  {{ end }}
+{{- end }}
+{{- end }}
+
+---
+# pre-upgrade migrate job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate-job
+  labels:
+    app.kubernetes.io/component: {{ .Chart.Name }}
+    {{- include (printf "%s%s" .Chart.Name ".labels" ) . | nindent 4 }}
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: {{ .Chart.Name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+        runAsNonRoot: true
+      volumes:
+{{- if and .Values.migration.enabled .Values.migration.usingLegacyImage }}
+        - name: {{ template "otdsws.name" . }}-data-volume
+          persistentVolumeClaim:
+            claimName: {{ .Values.migration.legacyImagePVC }}
+{{- end }}
+{{- if eq .Values.enableCustomizedTruststore true }}
+        - name: {{ template "otdsws.name" . }}-certs-volume
+          secret:
+            secretName: {{ template "otdsws.name" . }}-certs
+        - name: {{ template "otdsws.name" . }}-truststore-volume
+          emptyDir: {}
+{{- end }}
+      serviceAccountName: {{ default .Values.global.serviceAccountName .Values.serviceAccountName }}
+      containers:
+      - name: opendj-migrate
+        securityContext:
+          allowPrivilegeEscalation: false
+        envFrom:
+        - configMapRef:
+            name: migrate-job-configmap
+{{- if and ( not $customsecretname ) ( not .Values.vault.enabled ) }}
+        - secretRef:
+            name: migrate-job-secrets
+{{- end }}
+{{- if $customsecretname }}
+        env:
+        - name: OTDS_JAKARTA_PERSISTENCE_JDBC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ $customsecretname }}
+              key: OTDS_JAKARTA_PERSISTENCE_JDBC_PASSWORD
+{{- if (not .Values.migration.usingLegacyImage) }}
+        - name: OTDS_DIRECTORY_BOOTSTRAP_CRYPTSECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ $customsecretname }}
+              key: OTDS_DIRECTORY_BOOTSTRAP_CRYPTSECRET
+        - name: OTDS_DIRECTORY_BOOTSTRAP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ $customsecretname }}
+              key: OTDS_DIRECTORY_BOOTSTRAP_PASSWORD
+{{- end }}
+{{- end }}
+{{- if eq .Values.migration.enabled true }}
+        volumeMounts:
+{{- if eq .Values.migration.usingLegacyImage true }}
+          - name: {{ template "otdsws.name" . }}-data-volume
+            mountPath: /opt/otds
+{{- end }}
+{{- end }}
+{{- if eq .Values.enableCustomizedTruststore true }}
+        volumeMounts:
+          - name: {{ template "otdsws.name" . }}-certs-volume
+            mountPath: /opt/config/certificates
+          - name: {{ template "otdsws.name" . }}-truststore-volume
+            mountPath: /opt/config/truststore
+{{- end }}
+        image: {{ include "otds.image" . }}
+        imagePullPolicy: {{ default .Values.global.imagePullPolicy .Values.image.pullPolicy }}
+        name: opendj-migrate
+        command:
+            - /bin/bash
+            - -ec
+            - |
+              echo "start migration";
+              /opt/tomcat/bin/otds.sh job;
+              until [ -f /opt/tomcat/logs/completed.log ]; do echo Waiting for migrate-job completed...; sleep 3; done;
+{{- if (eq (default .Values.global.resourceRequirements .Values.resources.enabled) true) }}
+        resources:
+          limits:
+            cpu: {{ .Values.migration.preUpgradeJob.resources.limits.cpu }}
+            memory: {{ .Values.migration.preUpgradeJob.resources.limits.memory }}
+          requests:
+            cpu: {{ .Values.migration.preUpgradeJob.resources.requests.cpu }}
+            memory: {{ .Values.migration.preUpgradeJob.resources.requests.memory }}
+{{- end }}
+        ports:
+        - containerPort: {{ .Values.targetPort }}
+      hostname: {{ .Values.hostname }}
+{{- if (default .Values.global.imagePullSecret .Values.image.pullSecret) }}
+      imagePullSecrets:
+      - name: {{ default .Values.global.imagePullSecret .Values.image.pullSecret }}
+{{- end }}
+{{- end }}

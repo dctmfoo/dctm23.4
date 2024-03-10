@@ -1,0 +1,14 @@
+{{- if .Values.bpsConfig.haEnabled }}
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Values.prefix }}-hpa
+spec:
+  maxReplicas: {{ .Values.bpsConfig.maxReplicas }}
+  minReplicas: {{ .Values.bpsConfig.minReplicas }}
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: {{ .Values.prefix }}
+  targetCPUUtilizationPercentage: 50
+{{- end }}

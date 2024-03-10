@@ -1,0 +1,255 @@
+{{- if eq .Values.enabled true }}
+{{- $customsecretname := default .Values.global.existingSecret .Values.customSecretName -}}
+########################################################################
+# OpenText Directory Services (OTDS)
+########################################################################
+{{- if eq .Values.statefulSet true }}
+kind: StatefulSet
+{{- else }}
+kind: Deployment
+{{- end }}
+apiVersion: apps/v1
+metadata:
+  name: {{ template "otdsws.name" . }}
+{{- if .Values.global.namespace }}
+  namespace: {{ .Values.global.namespace }}
+{{- end }}
+  labels:
+    app.kubernetes.io/component: {{ .Chart.Name }}
+    {{- include (printf "%s%s" .Chart.Name ".labels" ) . | nindent 4 }}
+spec:
+{{- if eq .Values.statefulSet true }}
+  serviceName: {{ template "otdsws.service" . }}
+{{- end }}
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: {{ .Chart.Name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      annotations:
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.vault.agentInjector }}
+        vault.hashicorp.com/agent-inject: 'true'
+      {{- if .Values.vault.namespace }}
+        vault.hashicorp.com/namespace: {{ .Values.vault.namespace }}
+      {{- end }}
+        vault.hashicorp.com/auth-path: {{ .Values.vault.authpath }}
+        vault.hashicorp.com/role: {{ .Values.vault.role }}
+        vault.hashicorp.com/agent-cache-enable: 'true'
+      {{- end }}
+      labels:
+        app.kubernetes.io/component: {{ .Chart.Name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- with .Values.podLabels }}
+        {{ toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      securityContext:
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+        runAsNonRoot: true
+      initContainers:
+        {{- range .Values.initContainers }}
+        - name: {{ .name }}
+          image: {{ printf "%s/%s:%s" .image.source .image.name .image.tag }}
+          imagePullPolicy: {{ $.Values.global.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+          command:
+          - cp
+          - -r
+          - /otdsws
+          - /opt/config/customfiles
+          volumeMounts:
+          - name: {{ template "otdsws.name" $ }}-customfiles-volume
+            mountPath: /opt/config/customfiles
+        {{- end }}
+{{- if .Values.otdsdb.automaticDatabaseCreation.enabled }}
+        - name: init-db
+          image: {{ include "db.image" . }}
+          imagePullPolicy: {{ default .Values.global.pullPolicy .Values.otdsdb.automaticDatabaseCreation.dbImage.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+          env:
+          - name: DB_ADMIN_PASSWORD
+            valueFrom:
+              secretKeyRef:
+{{- if $customsecretname }}
+                name: {{ $customsecretname }}
+{{- else }}
+                name: {{ template "otdsws.name" . }}-secrets
+{{- end }}
+                key: DB_ADMIN_PASSWORD
+          - name: DB_NAME
+            value: {{ required "A valid otdsws.otdsdb.automaticDatabaseCreation.dbName is required!" .Values.otdsdb.automaticDatabaseCreation.dbName }}
+          - name: DB_ADMIN
+            value: {{ required "A valid otdsws.otdsdb.automaticDatabaseCreation.dbAdmin is required!" .Values.otdsdb.automaticDatabaseCreation.dbAdmin }}
+          - name: DB_USER
+            value: {{ required "A valid otdsws.otdsdb.username is required!" .Values.otdsdb.username }}
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+{{- if $customsecretname }}
+                name: {{ $customsecretname }}
+{{- else }}
+                name: {{ template "otdsws.name" . }}-secrets
+{{- end }}
+                key: OTDS_JAKARTA_PERSISTENCE_JDBC_PASSWORD
+          - name: DB_EXTENSIONS
+            value: {{ template "otds.database.extensions" . }}
+          - name: DB_TYPE
+            value: {{ required "A valid otdsws.otdsdb.automaticDatabaseCreation.dbType is required!" .Values.otdsdb.automaticDatabaseCreation.dbType }}
+          - name: DB_HOST
+            value: {{ include "otdsdb.url.host" . | indent 12 }}
+          - name: DB_PORT
+            value: {{ required "A valid otdsws.otdsdb.automaticDatabaseCreation.dbPort is required!" .Values.otdsdb.automaticDatabaseCreation.dbPort | quote }}
+{{- if .Values.otdsdb.useDefaultSchema }}
+          - name: USEDEFAULTSCHEMA
+            value: "true"
+{{- end }}
+          command:
+          - bash
+          args:
+          - /scripts/init-db.sh
+          volumeMounts:
+          - name: scripts-vol
+            mountPath: /scripts
+{{- end }}
+      volumes:
+{{- if .Values.vault.enabled }}
+        - name: {{ template "otdsws.name" . }}-vault-token
+          projected:
+            sources:
+            - serviceAccountToken:
+                path: vault-token
+                expirationSeconds: 7200
+                audience: vault
+{{- end }}
+{{- if and .Values.migration.enabled .Values.migration.usingLegacyImage (not .Values.migration.preUpgradeJob.enabled) }}
+        - name: {{ template "otdsws.name" . }}-data-volume
+          persistentVolumeClaim:
+            claimName: {{ .Values.migration.legacyImagePVC }}
+{{- end }}
+{{- if eq .Values.enableBootstrapConfig true }}
+        - name: {{ template "otdsws.name" . }}-bootstrap-volume
+          secret:
+            secretName: {{ template "otdsws.name" . }}-bootstrap
+{{- end }}
+{{- if eq .Values.enableCustomizedTruststore true }}
+        - name: {{ template "otdsws.name" . }}-certs-volume
+          secret:
+            secretName: {{ template "otdsws.name" . }}-certs
+        - name: {{ template "otdsws.name" . }}-truststore-volume
+          emptyDir: {}
+{{- end }}
+{{- if .Values.initContainers }}
+        - name: {{ template "otdsws.name" . }}-customfiles-volume
+          emptyDir: {}
+{{- end }}
+{{- if .Values.otdsdb.automaticDatabaseCreation.enabled }}
+        - name: scripts-vol
+          configMap:
+            name: {{ template "initdb.script" . }}
+{{- end }}
+      serviceAccountName: {{ default .Values.global.serviceAccountName .Values.serviceAccountName }}
+      containers:
+      - name: {{ template "otdsws.name" . }}
+        securityContext:
+          allowPrivilegeEscalation: false
+        envFrom:
+        - configMapRef:
+            name: {{ template "otdsws.name" . }}-configmap
+{{- if and ( not $customsecretname ) ( not .Values.vault.enabled ) }}
+        - secretRef:
+            name: {{ template "otdsws.name" . }}-secrets
+{{- end }}
+{{- if $customsecretname }}
+        env:
+        - name: OTDS_JAKARTA_PERSISTENCE_JDBC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ $customsecretname }}
+              key: OTDS_JAKARTA_PERSISTENCE_JDBC_PASSWORD
+        - name: OTDS_DIRECTORY_BOOTSTRAP_INITIALPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ $customsecretname }}
+              key: OTDS_DIRECTORY_BOOTSTRAP_INITIALPASSWORD
+        - name: OTDS_DIRECTORY_BOOTSTRAP_CRYPTSECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ $customsecretname }}
+              key: OTDS_DIRECTORY_BOOTSTRAP_CRYPTSECRET
+{{- if and .Values.migration.enabled (not .Values.migration.usingLegacyImage) (not .Values.migration.preUpgradeJob.enabled) }}
+        - name: OTDS_DIRECTORY_BOOTSTRAP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ $customsecretname }}
+              key: OTDS_DIRECTORY_BOOTSTRAP_PASSWORD
+{{- end }}
+{{- end }}
+        volumeMounts:
+{{- if .Values.vault.enabled }}
+          - name: {{ template "otdsws.name" . }}-vault-token
+            mountPath: /var/run/secrets/tokens
+{{- end }}
+{{- if and .Values.migration.enabled .Values.migration.usingLegacyImage (not .Values.migration.preUpgradeJob.enabled) }}
+          - name: {{ template "otdsws.name" . }}-data-volume
+            mountPath: /opt/otds
+{{- end }}
+{{- if eq .Values.enableBootstrapConfig true }}
+          - name: {{ template "otdsws.name" . }}-bootstrap-volume
+            mountPath: /opt/config/bootstrap
+{{- end }}
+{{- if eq .Values.enableCustomizedTruststore true }}
+          - name: {{ template "otdsws.name" . }}-certs-volume
+            mountPath: /opt/config/certificates
+          - name: {{ template "otdsws.name" . }}-truststore-volume
+            mountPath: /opt/config/truststore
+{{- end }}
+{{- if .Values.initContainers }}
+          - name: {{ template "otdsws.name" . }}-customfiles-volume
+            mountPath: /opt/config/customfiles
+{{- end }}
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - /opt/scripts/healthcheck.sh
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - /opt/scripts/healthcheck.sh
+          initialDelaySeconds: 240
+          periodSeconds: 10
+          timeoutSeconds: 5
+        image: {{ include "otds.image" . }}
+        imagePullPolicy: {{ default .Values.global.imagePullPolicy .Values.image.pullPolicy }}
+{{- if (eq (default .Values.global.resourceRequirements .Values.resources.enabled) true) }}
+        resources:
+          limits:
+            cpu: {{ .Values.resources.limits.cpu }}
+            memory: {{ .Values.resources.limits.memory }}
+          requests:
+            cpu: {{ .Values.resources.requests.cpu }}
+            memory: {{ .Values.resources.requests.memory }}
+{{- end }}
+        ports:
+        - containerPort: {{ .Values.targetPort }}
+      hostname: {{ .Values.hostname }}
+{{- if (default .Values.global.imagePullSecret .Values.image.pullSecret) }}
+      imagePullSecrets:
+      - name: {{ default .Values.global.imagePullSecret .Values.image.pullSecret }}
+{{- end }}
+{{- end }}
